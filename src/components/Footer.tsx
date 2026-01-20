@@ -35,16 +35,6 @@ const Footer = () => {
                   Pricing
                 </a>
               </li>
-              <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Supported Banks
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Integrations
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -60,11 +50,6 @@ const Footer = () => {
               <li>
                 <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Careers
                 </a>
               </li>
               <li>
