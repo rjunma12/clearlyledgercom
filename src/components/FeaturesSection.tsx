@@ -1,48 +1,31 @@
-import { 
-  Zap, 
-  ShieldCheck, 
-  FileSpreadsheet, 
-  CheckCircle2, 
-  Globe2, 
-  RefreshCw 
-} from "lucide-react";
-
-const features = [
-  {
-    icon: Zap,
-    title: "Zero AI Costs",
-    description: "Deterministic rule-based parsing means predictable costs and no per-page API fees. 80%+ gross margins guaranteed.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Privacy-First Processing",
-    description: "All PII is anonymized during processing. Names replaced, account numbers masked. Files auto-deleted after delivery.",
-  },
-  {
-    icon: FileSpreadsheet,
-    title: "Uniform Output",
-    description: "Every export follows the same template regardless of source bank. Date, Description, Debit, Credit, Balance—that's it.",
-  },
-  {
-    icon: CheckCircle2,
-    title: "100% Balance Verified",
-    description: "Opening + Credits − Debits = Closing. Every file is arithmetically validated before delivery. Failed files are rejected.",
-  },
-  {
-    icon: Globe2,
-    title: "Multi-Region Support",
-    description: "Localized rule sets for India, USA, UK, Canada, Australia, UAE, and Singapore. English default with optional secondary language.",
-  },
-  {
-    icon: RefreshCw,
-    title: "Auto-Rollback",
-    description: "Bank rule sets are version-controlled. If an update breaks parsing, the system automatically reverts to the last stable version.",
-  },
-];
-
+import { Zap, ShieldCheck, FileSpreadsheet, CheckCircle2, Globe2, RefreshCw } from "lucide-react";
+const features = [{
+  icon: Zap,
+  title: "Zero AI Costs",
+  description: "Deterministic rule-based parsing means predictable costs and no per-page API fees. 80%+ gross margins guaranteed."
+}, {
+  icon: ShieldCheck,
+  title: "Privacy-First Processing",
+  description: "All PII is anonymized during processing. Names replaced, account numbers masked. Files auto-deleted after delivery."
+}, {
+  icon: FileSpreadsheet,
+  title: "Uniform Output",
+  description: "Every export follows the same template regardless of source bank. Date, Description, Debit, Credit, Balance—that's it."
+}, {
+  icon: CheckCircle2,
+  title: "100% Balance Verified",
+  description: "Opening + Credits − Debits = Closing. Every file is arithmetically validated before delivery. Failed files are rejected."
+}, {
+  icon: Globe2,
+  title: "Multi-Region Support",
+  description: "Localized rule sets for India, USA, UK, Canada, Australia, UAE, and Singapore. English default with optional secondary language."
+}, {
+  icon: RefreshCw,
+  title: "Auto-Rollback",
+  description: "Bank rule sets are version-controlled. If an update breaks parsing, the system automatically reverts to the last stable version."
+}];
 const FeaturesSection = () => {
-  return (
-    <section id="features" className="py-24 relative">
+  return <section id="features" className="py-24 relative">
       <div className="absolute inset-0 bg-grid-pattern opacity-20" />
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -63,29 +46,11 @@ const FeaturesSection = () => {
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <div
-                key={feature.title}
-                className="group glass-card p-6 hover:bg-glass/70 transition-all duration-300 hover:-translate-y-1"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-[hsl(185,84%,45%)]/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-display text-lg font-semibold text-foreground mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            );
-          })}
+          const Icon = feature.icon;
+          return;
+        })}
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default FeaturesSection;

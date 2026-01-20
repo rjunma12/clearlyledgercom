@@ -1,63 +1,38 @@
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Clock } from "lucide-react";
-
-const plans = [
-  {
-    name: "Starter",
-    price: "$15",
-    period: "/month",
-    pages: "400 pages/month",
-    description: "Perfect for individual accountants and small practices.",
-    features: [
-      "400 pages per month",
-      "All bank formats",
-      "Excel & CSV export",
-      "Balance verification",
-      "Email support",
-    ],
-    cta: "Get Started",
-    variant: "glass" as const,
-    popular: false,
-  },
-  {
-    name: "Professional",
-    price: "$30",
-    period: "/month",
-    pages: "1,000 pages/month",
-    description: "For growing practices with higher volume needs.",
-    features: [
-      "1,000 pages per month",
-      "All Starter features",
-      "Priority processing",
-      "QuickBooks-ready format",
-      "Priority email support",
-    ],
-    cta: "Start Free Trial",
-    variant: "hero" as const,
-    popular: true,
-  },
-  {
-    name: "Business",
-    price: "$50",
-    period: "/month",
-    pages: "4,000 pages/month",
-    description: "For agencies and high-volume service firms.",
-    features: [
-      "4,000 pages per month",
-      "All Professional features",
-      "Batch upload (50 files)",
-      "Custom output templates",
-      "Dedicated support",
-    ],
-    cta: "Contact Sales",
-    variant: "glass" as const,
-    popular: false,
-  },
-];
-
+const plans = [{
+  name: "Starter",
+  price: "$15",
+  period: "/month",
+  pages: "400 pages/month",
+  description: "Perfect for individual accountants and small practices.",
+  features: ["400 pages per month", "All bank formats", "Excel & CSV export", "Balance verification", "Email support"],
+  cta: "Get Started",
+  variant: "glass" as const,
+  popular: false
+}, {
+  name: "Professional",
+  price: "$30",
+  period: "/month",
+  pages: "1,000 pages/month",
+  description: "For growing practices with higher volume needs.",
+  features: ["1,000 pages per month", "All Starter features", "Priority processing", "QuickBooks-ready format", "Priority email support"],
+  cta: "Start Free Trial",
+  variant: "hero" as const,
+  popular: true
+}, {
+  name: "Business",
+  price: "$50",
+  period: "/month",
+  pages: "4,000 pages/month",
+  description: "For agencies and high-volume service firms.",
+  features: ["4,000 pages per month", "All Professional features", "Batch upload (50 files)", "Custom output templates", "Dedicated support"],
+  cta: "Contact Sales",
+  variant: "glass" as const,
+  popular: false
+}];
 const PricingSection = () => {
-  return (
-    <section id="pricing" className="py-24 relative">
+  return <section id="pricing" className="py-24 relative">
       <div className="absolute inset-0 bg-grid-pattern opacity-20" />
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -69,30 +44,22 @@ const PricingSection = () => {
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mt-3 mb-4">
             Simple, Predictable Pricing
           </h2>
-          <p className="text-lg text-muted-foreground">
-            No hidden fees. No AI costs. Just straightforward usage-based plans.
-          </p>
+          <p className="text-lg text-muted-foreground">No hidden fees.  Just straightforward usage-based plans.</p>
         </div>
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`
+          {plans.map(plan => <div key={plan.name} className={`
                 relative glass-card p-6 sm:p-8 flex flex-col
                 ${plan.popular ? 'glow-primary border-primary/30' : ''}
-              `}
-            >
+              `}>
               {/* Popular Badge */}
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              {plan.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
                     <Sparkles className="w-3 h-3" />
                     Most Popular
                   </div>
-                </div>
-              )}
+                </div>}
 
               {/* Plan Header */}
               <div className="mb-6">
@@ -116,20 +83,17 @@ const PricingSection = () => {
 
               {/* Features */}
               <ul className="space-y-3 mb-8 flex-1">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
+                {plan.features.map(feature => <li key={feature} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <span className="text-sm text-muted-foreground">{feature}</span>
-                  </li>
-                ))}
+                  </li>)}
               </ul>
 
               {/* CTA */}
               <Button variant={plan.variant} className="w-full">
                 {plan.cta}
               </Button>
-            </div>
-          ))}
+            </div>)}
         </div>
 
         {/* Lifetime Plan */}
@@ -170,8 +134,6 @@ const PricingSection = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default PricingSection;
