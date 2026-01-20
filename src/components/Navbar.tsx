@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Menu, X } from "lucide-react";
+import { FileSpreadsheet, Menu, X, Sun, Moon } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "@/hooks/use-theme";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-card-strong border-b border-glass-border">
@@ -37,6 +39,19 @@ const Navbar = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="rounded-full"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
             <Button variant="ghost" size="sm">
               Sign In
             </Button>
@@ -71,6 +86,17 @@ const Navbar = () => {
                 Security
               </a>
               <div className="flex flex-col gap-2 pt-4 border-t border-glass-border">
+                <Button
+                  variant="ghost"
+                  onClick={toggleTheme}
+                  className="justify-start"
+                >
+                  {theme === "dark" ? (
+                    <><Sun className="h-5 w-5 mr-2" /> Light Mode</>
+                  ) : (
+                    <><Moon className="h-5 w-5 mr-2" /> Dark Mode</>
+                  )}
+                </Button>
                 <Button variant="ghost" className="justify-start">
                   Sign In
                 </Button>
