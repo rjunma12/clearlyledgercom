@@ -42,6 +42,42 @@ const blogPosts = [
     category: "Productivity",
     readTime: "6 min read",
     featured: false
+  },
+  {
+    slug: "south-africa-bank-statement-converter",
+    title: "Convert South African Bank Statement PDFs to Excel - Complete Guide",
+    excerpt: "Guide for converting South African bank statements from ABSA, Standard Bank, FNB, Nedbank, and Capitec to Excel with privacy and local format support.",
+    date: "January 21, 2025",
+    category: "Regional",
+    readTime: "5 min read",
+    featured: false
+  },
+  {
+    slug: "malaysia-bank-statement-converter",
+    title: "Best Tools for Converting Malaysian Bank Statement PDFs to Excel",
+    excerpt: "Convert Maybank, CIMB, Public Bank, and RHB statements to Excel. Handles MYR formats, bilingual statements, and PDPA-compliant processing.",
+    date: "January 21, 2025",
+    category: "Regional",
+    readTime: "5 min read",
+    featured: false
+  },
+  {
+    slug: "uk-bank-statement-converter",
+    title: "Convert UK Bank Statement PDFs to Excel - Barclays, HSBC, Lloyds & More",
+    excerpt: "Step-by-step guide for converting British bank statements to Excel. Covers Barclays, HSBC, Lloyds, NatWest with UK GDPR compliance.",
+    date: "January 21, 2025",
+    category: "Regional",
+    readTime: "5 min read",
+    featured: true
+  },
+  {
+    slug: "japan-bank-statement-converter",
+    title: "Japanese Bank Statement PDF to Excel Converter - Complete Guide",
+    excerpt: "Convert MUFG, SMBC, Mizuho, and Japan Post Bank statements to Excel. Handles Kanji, Zenkaku numbers, and Japanese date formats.",
+    date: "January 21, 2025",
+    category: "Regional",
+    readTime: "5 min read",
+    featured: false
   }
 ];
 
