@@ -34,18 +34,18 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Features
-            </a>
-            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <a href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               How It Works
             </a>
-            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Pricing
             </a>
-            <a href="#security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Security
-            </a>
+            </Link>
           </div>
 
           {/* CTA Buttons */}
@@ -131,18 +131,18 @@ const Navbar = () => {
                 />
               )}
               
-              <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Features
-              </a>
-              <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              </Link>
+              <a href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 How It Works
               </a>
-              <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Pricing
               </a>
-              <a href="#security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Security
-              </a>
+              </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-glass-border">
                 <Button
                   variant="ghost"
