@@ -46,24 +46,9 @@ const FeaturesSection = () => {
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <div
-                key={index}
-                className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <Icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-display text-lg font-semibold text-foreground mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            );
-          })}
+          const Icon = feature.icon;
+          return;
+        })}
         </div>
       </div>
     </section>;
