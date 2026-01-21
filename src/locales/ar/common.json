@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "features": "المميزات",
+    "howItWorks": "كيف يعمل",
+    "pricing": "الأسعار",
+    "blog": "المدونة",
+    "security": "الأمان",
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "getStarted": "ابدأ الآن",
+    "dashboard": "لوحة التحكم",
+    "lightMode": "الوضع الفاتح",
+    "darkMode": "الوضع الداكن"
+  },
+  "footer": {
+    "product": "المنتج",
+    "company": "الشركة",
+    "support": "الدعم",
+    "aboutUs": "من نحن",
+    "termsOfService": "شروط الخدمة",
+    "privacyPolicy": "سياسة الخصوصية",
+    "dataProcessing": "معالجة البيانات",
+    "contactUs": "اتصل بنا",
+    "tagline": "حوّل كشوف الحسابات البنكية إلى Excel بثقة. سريع وآمن ودقيق.",
+    "copyright": "© {{year}} ClearlyLedger. جميع الحقوق محفوظة."
+  },
+  "cta": {
+    "tryFree": "جرب مجاناً",
+    "uploadPdf": "رفع PDF",
+    "viewPricing": "عرض الأسعار",
+    "learnMore": "اعرف المزيد",
+    "contactUs": "اتصل بنا"
+  }
+}

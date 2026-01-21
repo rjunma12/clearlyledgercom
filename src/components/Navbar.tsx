@@ -1,16 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, Menu, X, Sun, Moon, LayoutDashboard, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageIndicator } from "./pricing/UsageIndicator";
 import { useUsage } from "@/hooks/use-usage";
-
+import { useTranslation } from "react-i18next";
+import { LanguageSelector } from "./LanguageSelector";
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isAuthenticated, usage, isLoading } = useUsage();
 
   const handleSignOut = async () => {
@@ -35,19 +37,19 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <Link to="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Features
+              {t('nav.features')}
             </Link>
             <a href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              How It Works
+              {t('nav.howItWorks')}
             </a>
             <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Pricing
+              {t('nav.pricing')}
             </Link>
             <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Blog
+              {t('nav.blog')}
             </Link>
             <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Security
+              {t('nav.security')}
             </Link>
           </div>
 
@@ -63,6 +65,8 @@ const Navbar = () => {
                 className="mr-2"
               />
             )}
+            
+            <LanguageSelector />
             
             <Button
               variant="ghost"
@@ -85,24 +89,24 @@ const Navbar = () => {
                 <Link to="/dashboard">
                   <Button variant="ghost" size="sm" className="gap-2">
                     <LayoutDashboard className="w-4 h-4" />
-                    Dashboard
+                    {t('nav.dashboard')}
                   </Button>
                 </Link>
                 <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
                   <LogOut className="w-4 h-4" />
-                  Sign Out
+                  {t('nav.signOut')}
                 </Button>
               </>
             ) : (
               <>
                 <Link to="/login">
                   <Button variant="ghost" size="sm">
-                    Sign In
+                    {t('nav.signIn')}
                   </Button>
                 </Link>
                 <Link to="/signup">
                   <Button variant="hero" size="sm">
-                    Get Started
+                    {t('nav.getStarted')}
                   </Button>
                 </Link>
               </>
@@ -135,30 +139,31 @@ const Navbar = () => {
               )}
               
               <Link to="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Features
+                {t('nav.features')}
               </Link>
               <a href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                How It Works
+                {t('nav.howItWorks')}
               </a>
               <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Pricing
+                {t('nav.pricing')}
               </Link>
               <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Blog
+                {t('nav.blog')}
               </Link>
               <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Security
+                {t('nav.security')}
               </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-glass-border">
+                <LanguageSelector variant="full" className="justify-start w-full" />
                 <Button
                   variant="ghost"
                   onClick={toggleTheme}
                   className="justify-start"
                 >
                   {theme === "dark" ? (
-                    <><Sun className="h-5 w-5 mr-2" /> Light Mode</>
+                    <><Sun className="h-5 w-5 mr-2" /> {t('nav.lightMode')}</>
                   ) : (
-                    <><Moon className="h-5 w-5 mr-2" /> Dark Mode</>
+                    <><Moon className="h-5 w-5 mr-2" /> {t('nav.darkMode')}</>
                   )}
                 </Button>
                 
@@ -167,24 +172,24 @@ const Navbar = () => {
                     <Link to="/dashboard">
                       <Button variant="ghost" className="justify-start w-full gap-2">
                         <LayoutDashboard className="w-4 h-4" />
-                        Dashboard
+                        {t('nav.dashboard')}
                       </Button>
                     </Link>
                     <Button variant="ghost" onClick={handleSignOut} className="justify-start gap-2">
                       <LogOut className="w-4 h-4" />
-                      Sign Out
+                      {t('nav.signOut')}
                     </Button>
                   </>
                 ) : (
                   <>
                     <Link to="/login">
                       <Button variant="ghost" className="justify-start w-full">
-                        Sign In
+                        {t('nav.signIn')}
                       </Button>
                     </Link>
                     <Link to="/signup">
                       <Button variant="hero" className="w-full">
-                        Get Started
+                        {t('nav.getStarted')}
                       </Button>
                     </Link>
                   </>

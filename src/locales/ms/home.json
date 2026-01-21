@@ -1,0 +1,93 @@
+{
+  "hero": {
+    "title": "Tukar Penyata Bank kepada Excel — Pantas dan Tepat",
+    "subtitle": "Mudah, selamat, dan dibina untuk kegunaan biasa.",
+    "noSignup": "Tiada pendaftaran diperlukan",
+    "supportedFormats": "Menyokong PDF, Excel, CSV sehingga 10MB",
+    "dragDrop": "Seret dan lepaskan fail anda di sini, atau klik untuk layari"
+  },
+  "advantages": {
+    "title": "Mengapa ClearlyLedger?",
+    "speed": {
+      "title": "Sepantas Kilat",
+      "description": "Tukar penyata dalam masa kurang 60 saat"
+    },
+    "accuracy": {
+      "title": "Ketepatan 99.9%",
+      "description": "Pengekstrakan berkuasa AI dengan pengesahan baki"
+    },
+    "security": {
+      "title": "Keselamatan Gred Bank",
+      "description": "Data anda tidak pernah disimpan"
+    },
+    "global": {
+      "title": "50+ Negara",
+      "description": "Sokongan untuk 200+ bank di seluruh dunia"
+    }
+  },
+  "features": {
+    "title": "Ciri-ciri",
+    "subtitle": "Dibina untuk Profesional Kewangan",
+    "speed": {
+      "title": "Sepantas Kilat",
+      "description": "Proses penyata berbilang halaman dalam masa kurang 60 saat"
+    },
+    "security": {
+      "title": "Privasi Diutamakan",
+      "description": "Fail diproses dalam memori, tidak pernah disimpan di cakera"
+    },
+    "formats": {
+      "title": "Pelbagai Format",
+      "description": "Eksport ke Excel, CSV, atau format perisian perakaunan"
+    },
+    "verification": {
+      "title": "Baki Disahkan",
+      "description": "Penyesuaian automatik mengesan ralat pengekstrakan"
+    },
+    "global": {
+      "title": "Sokongan Global",
+      "description": "50+ negara, 200+ bank, pengendalian pelbagai mata wang"
+    },
+    "updates": {
+      "title": "Sentiasa Terkini",
+      "description": "Kemas kini format bank dilaksanakan setiap minggu"
+    }
+  },
+  "pricing": {
+    "title": "Harga Mudah dan Telus",
+    "description": "Mula percuma. Naik taraf apabila anda memerlukan lebih.",
+    "anonymous": {
+      "name": "Tanpa Nama",
+      "description": "Tiada pendaftaran diperlukan",
+      "pages": "1 halaman/hari"
+    },
+    "starter": {
+      "name": "Pemula",
+      "description": "Percuma selamanya",
+      "pages": "5 halaman/hari"
+    },
+    "professional": {
+      "name": "Profesional",
+      "price": "RM79/bulan",
+      "pages": "Halaman tanpa had"
+    },
+    "business": {
+      "name": "Perniagaan",
+      "price": "RM199/bulan",
+      "pages": "Tanpa had + Pasukan"
+    },
+    "lifetime": {
+      "name": "Seumur Hidup",
+      "price": "RM499 sekali",
+      "pages": "Tanpa had selama-lamanya"
+    }
+  },
+  "faq": {
+    "title": "Soalan Lazim",
+    "description": "Jawapan pantas kepada soalan lazim tentang penukaran penyata bank."
+  },
+  "cta": {
+    "title": "Bersedia untuk Menukar Penyata Bank Anda?",
+    "description": "Sertai ribuan profesional yang mempercayai ClearlyLedger."
+  }
+}

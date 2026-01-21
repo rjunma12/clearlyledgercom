@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "features": "Features",
+    "howItWorks": "How It Works",
+    "pricing": "Pricing",
+    "blog": "Blog",
+    "security": "Security",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "getStarted": "Get Started",
+    "dashboard": "Dashboard",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode"
+  },
+  "footer": {
+    "product": "Product",
+    "company": "Company",
+    "support": "Support",
+    "aboutUs": "About Us",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "dataProcessing": "Data Processing",
+    "contactUs": "Contact Us",
+    "tagline": "Convert bank statements to Excel with confidence. Fast, secure, and accurate.",
+    "copyright": "© {{year}} ClearlyLedger. All rights reserved."
+  },
+  "cta": {
+    "tryFree": "Try Free",
+    "uploadPdf": "Upload PDF",
+    "viewPricing": "View Pricing",
+    "learnMore": "Learn More",
+    "contactUs": "Contact Us"
+  }
+}

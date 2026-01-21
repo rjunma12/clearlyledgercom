@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "features": "Ciri-ciri",
+    "howItWorks": "Cara Penggunaan",
+    "pricing": "Harga",
+    "blog": "Blog",
+    "security": "Keselamatan",
+    "signIn": "Log Masuk",
+    "signOut": "Log Keluar",
+    "getStarted": "Mula Sekarang",
+    "dashboard": "Papan Pemuka",
+    "lightMode": "Mod Cerah",
+    "darkMode": "Mod Gelap"
+  },
+  "footer": {
+    "product": "Produk",
+    "company": "Syarikat",
+    "support": "Sokongan",
+    "aboutUs": "Tentang Kami",
+    "termsOfService": "Terma Perkhidmatan",
+    "privacyPolicy": "Dasar Privasi",
+    "dataProcessing": "Pemprosesan Data",
+    "contactUs": "Hubungi Kami",
+    "tagline": "Tukar penyata bank kepada Excel dengan yakin. Pantas, selamat dan tepat.",
+    "copyright": "© {{year}} ClearlyLedger. Hak cipta terpelihara."
+  },
+  "cta": {
+    "tryFree": "Cuba Percuma",
+    "uploadPdf": "Muat Naik PDF",
+    "viewPricing": "Lihat Harga",
+    "learnMore": "Ketahui Lebih Lanjut",
+    "contactUs": "Hubungi Kami"
+  }
+}
