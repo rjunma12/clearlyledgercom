@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
+import TableOfContents from "@/components/blog/TableOfContents";
+import AuthorSection from "@/components/blog/AuthorSection";
+import ShareButtons from "@/components/blog/ShareButtons";
+import ReadingProgress from "@/components/blog/ReadingProgress";
 
 const BlogPost2 = () => {
   const articleSchema = {
@@ -41,6 +45,7 @@ const BlogPost2 = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <ReadingProgress />
       <Helmet>
         <title>Best Tools for Converting Indian Bank Statement PDFs to Excel | ClearlyLedger</title>
         <meta name="description" content="If you work with Indian bank statement PDFs, this guide highlights tools, privacy tips, and how to convert to Excel with local formats and security in mind." />
@@ -75,7 +80,7 @@ const BlogPost2 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               Best Tools for Converting Indian Bank Statement PDFs to Excel
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
                 January 12, 2025
@@ -85,7 +90,14 @@ const BlogPost2 = () => {
                 5 min read
               </div>
             </div>
+            <ShareButtons 
+              url="https://clearlyledger.com/blog/indian-bank-statement-converter" 
+              title="Best Tools for Converting Indian Bank Statement PDFs to Excel"
+            />
           </header>
+
+          {/* Table of Contents */}
+          <TableOfContents />
 
           {/* TL;DR Box */}
           <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
@@ -203,6 +215,9 @@ const BlogPost2 = () => {
               <Link to="/contact" className="text-primary hover:underline">Contact us</Link> if you need support for a specific bank format.
             </p>
           </div>
+
+          {/* Author Section */}
+          <AuthorSection />
 
           {/* CTA Section */}
           <div className="mt-12 p-8 bg-muted/50 rounded-xl text-center">

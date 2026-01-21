@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { Calendar, ArrowRight, BookOpen } from "lucide-react";
+import { Calendar, ArrowRight, BookOpen, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
+import { useState } from "react";
 
 const blogPosts = [
   {
@@ -12,7 +13,8 @@ const blogPosts = [
     excerpt: "Learn how to convert PDF bank statements to Excel in minutes. Step-by-step workflow, common issues, and troubleshooting tips to make financial data usable.",
     date: "January 15, 2025",
     category: "Tutorial",
-    readTime: "6 min read"
+    readTime: "6 min read",
+    featured: true
   },
   {
     slug: "indian-bank-statement-converter",
@@ -20,7 +22,8 @@ const blogPosts = [
     excerpt: "If you work with Indian bank statement PDFs, this guide highlights tools, privacy tips, and how to convert to Excel with local formats and security in mind.",
     date: "January 12, 2025",
     category: "Regional",
-    readTime: "5 min read"
+    readTime: "5 min read",
+    featured: false
   },
   {
     slug: "privacy-secure-bank-statement-conversion",
@@ -28,7 +31,8 @@ const blogPosts = [
     excerpt: "Financial documents are sensitive. Learn best practices for secure bank statement conversion, privacy-first workflows, and how to protect your data.",
     date: "January 8, 2025",
     category: "Security",
-    readTime: "5 min read"
+    readTime: "5 min read",
+    featured: true
   },
   {
     slug: "accurate-bank-statement-conversion-workflows",
@@ -36,11 +40,63 @@ const blogPosts = [
     excerpt: "See how accurate bank statement conversion improves financial workflows, reduces manual errors, and frees up time for analysis and decision-making.",
     date: "January 5, 2025",
     category: "Productivity",
-    readTime: "6 min read"
+    readTime: "6 min read",
+    featured: false
   }
 ];
 
+const categories = ["All", "Tutorial", "Regional", "Security", "Productivity"];
+
+// JSON-LD Schema for CollectionPage + ItemList
+const collectionPageSchema = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "ClearlyLedger Blog - Bank Statement to Excel Tips & Guides",
+  "description": "Helpful articles, tips, and insights on converting bank statement PDFs to Excel, privacy practices, multi-region bank statement handling, and financial data automation.",
+  "url": "https://clearlyledger.com/blog",
+  "publisher": {
+    "@type": "Organization",
+    "name": "ClearlyLedger",
+    "url": "https://clearlyledger.com"
+  },
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": blogPosts.map((post, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": `https://clearlyledger.com/blog/${post.slug}`,
+      "name": post.title
+    }))
+  }
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://clearlyledger.com"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Blog",
+      "item": "https://clearlyledger.com/blog"
+    }
+  ]
+};
+
 const Blog = () => {
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const featuredPosts = blogPosts.filter((post) => post.featured);
+  const filteredPosts = activeCategory === "All" 
+    ? blogPosts 
+    : blogPosts.filter((post) => post.category === activeCategory);
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -48,6 +104,12 @@ const Blog = () => {
         <meta name="description" content="Helpful articles, tips, and insights on converting bank statement PDFs to Excel, privacy practices, multi-region bank statement handling, and financial data automation." />
         <meta name="keywords" content="bank statement to Excel, PDF to Excel converter, financial data automation, secure bank statement conversion" />
         <link rel="canonical" href="https://clearlyledger.com/blog" />
+        <script type="application/ld+json">
+          {JSON.stringify(collectionPageSchema)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(breadcrumbSchema)}
+        </script>
       </Helmet>
       
       <Navbar />
@@ -66,6 +128,78 @@ const Blog = () => {
           </p>
         </div>
       </section>
+
+      {/* Category Filters */}
+      <section className="pb-8 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {categories.map((category) => (
+              <Button
+                key={category}
+                variant={activeCategory === category ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveCategory(category)}
+                className="rounded-full"
+              >
+                {category}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Posts Section */}
+      {activeCategory === "All" && featuredPosts.length > 0 && (
+        <section className="pb-12 px-4">
+          <div className="container mx-auto max-w-5xl">
+            <div className="flex items-center gap-2 mb-6">
+              <Star className="w-5 h-5 text-primary fill-primary" />
+              <h2 className="text-xl font-semibold text-foreground">Featured Articles</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {featuredPosts.map((post) => (
+                <article
+                  key={post.slug}
+                  className="bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20 rounded-xl overflow-hidden hover:border-primary/40 transition-colors group"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-xs font-medium bg-primary text-primary-foreground px-2 py-1 rounded">
+                        Featured
+                      </span>
+                      <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">
+                        {post.category}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{post.readTime}</span>
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
+                      <Link to={`/blog/${post.slug}`}>
+                        {post.title}
+                      </Link>
+                    </h3>
+                    <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
+                      {post.excerpt}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {post.date}
+                      </div>
+                      <Link
+                        to={`/blog/${post.slug}`}
+                        className="inline-flex items-center gap-1 text-sm text-primary hover:underline font-medium"
+                      >
+                        Read more
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Quick Links */}
       <section className="pb-8 px-4">
@@ -90,8 +224,18 @@ const Blog = () => {
       {/* Blog Posts Grid */}
       <section className="py-12 px-4">
         <div className="container mx-auto max-w-5xl">
+          {activeCategory !== "All" && (
+            <h2 className="text-xl font-semibold text-foreground mb-6">
+              {activeCategory} Articles
+            </h2>
+          )}
+          {activeCategory === "All" && (
+            <h2 className="text-xl font-semibold text-foreground mb-6">
+              All Articles
+            </h2>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {blogPosts.map((post) => (
+            {filteredPosts.map((post) => (
               <article 
                 key={post.slug}
                 className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors group"
@@ -103,11 +247,11 @@ const Blog = () => {
                     </span>
                     <span className="text-xs text-muted-foreground">{post.readTime}</span>
                   </div>
-                  <h2 className="text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
+                  <h3 className="text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
                     <Link to={`/blog/${post.slug}`}>
                       {post.title}
                     </Link>
-                  </h2>
+                  </h3>
                   <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
                     {post.excerpt}
                   </p>

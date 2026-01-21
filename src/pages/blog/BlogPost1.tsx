@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
+import TableOfContents from "@/components/blog/TableOfContents";
+import AuthorSection from "@/components/blog/AuthorSection";
+import ShareButtons from "@/components/blog/ShareButtons";
+import ReadingProgress from "@/components/blog/ReadingProgress";
 
 const BlogPost1 = () => {
   const articleSchema = {
@@ -79,6 +83,7 @@ const BlogPost1 = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <ReadingProgress />
       <Helmet>
         <title>How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide) | ClearlyLedger</title>
         <meta name="description" content="Learn how to convert PDF bank statements to Excel in minutes. Step-by-step workflow, common issues, and troubleshooting tips to make financial data usable." />
@@ -116,7 +121,7 @@ const BlogPost1 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
                 January 15, 2025
@@ -126,7 +131,14 @@ const BlogPost1 = () => {
                 6 min read
               </div>
             </div>
+            <ShareButtons 
+              url="https://clearlyledger.com/blog/convert-bank-statements-to-excel" 
+              title="How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)"
+            />
           </header>
+
+          {/* Table of Contents */}
+          <TableOfContents />
 
           {/* TL;DR Box */}
           <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
@@ -223,6 +235,9 @@ const BlogPost1 = () => {
               <Link to="/contact" className="text-primary hover:underline">Contact our support team</Link> with details about the issue. We're continuously improving format coverage.
             </p>
           </div>
+
+          {/* Author Section */}
+          <AuthorSection />
 
           {/* CTA Section */}
           <div className="mt-12 p-8 bg-muted/50 rounded-xl text-center">
