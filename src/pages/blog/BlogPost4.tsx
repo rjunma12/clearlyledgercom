@@ -1,11 +1,84 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Upload, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Upload, ChevronRight, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
 
 const BlogPost4 = () => {
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Improve Your Financial Workflows With Accurate Bank Statement Conversion",
+    "description": "How accurate bank statement conversion improves financial workflows and reduces errors.",
+    "author": { "@type": "Organization", "name": "ClearlyLedger" },
+    "publisher": { "@type": "Organization", "name": "ClearlyLedger" },
+    "datePublished": "2025-01-05",
+    "dateModified": "2025-01-05",
+    "about": {
+      "@type": "Thing",
+      "name": "Financial Workflow Automation",
+      "description": "Streamlining accounting and bookkeeping processes through automated data conversion"
+    },
+    "mentions": [
+      { "@type": "SoftwareApplication", "name": "QuickBooks" },
+      { "@type": "SoftwareApplication", "name": "Xero" },
+      { "@type": "SoftwareApplication", "name": "Microsoft Excel" },
+      { "@type": "SoftwareApplication", "name": "Google Sheets" },
+      { "@type": "SoftwareApplication", "name": "Power BI" },
+      { "@type": "SoftwareApplication", "name": "Tableau" }
+    ]
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearlyledger.com" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://clearlyledger.com/blog" },
+      { "@type": "ListItem", "position": 3, "name": "Financial Workflows" }
+    ]
+  };
+
+  const howToSchema = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Improve Financial Workflows with Bank Statement Conversion",
+    "description": "Steps to integrate automated bank statement conversion into your financial workflow.",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "Try a free conversion",
+        "text": "Try a free conversion with a sample statement to evaluate the tool"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "Check balance verification",
+        "text": "Review the balance verification results to ensure accuracy"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 3,
+        "name": "Import into your workflow",
+        "text": "Import the Excel file into QuickBooks, Xero, or your preferred tool"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 4,
+        "name": "Evaluate improvements",
+        "text": "Evaluate time savings and accuracy improvements in your process"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 5,
+        "name": "Scale with a paid plan",
+        "text": "Consider a paid plan for unlimited processing as your needs grow"
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -14,27 +87,13 @@ const BlogPost4 = () => {
         <meta name="keywords" content="automate financial data, bank statement accuracy, balance verification, financial analytics workflow" />
         <link rel="canonical" href="https://clearlyledger.com/blog/accurate-bank-statement-conversion-workflows" />
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            "headline": "Improve Your Financial Workflows With Accurate Bank Statement Conversion",
-            "description": "How accurate bank statement conversion improves financial workflows and reduces errors.",
-            "author": { "@type": "Organization", "name": "ClearlyLedger" },
-            "publisher": { "@type": "Organization", "name": "ClearlyLedger" },
-            "datePublished": "2025-01-05",
-            "dateModified": "2025-01-05"
-          })}
+          {JSON.stringify(articleSchema)}
         </script>
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearlyledger.com" },
-              { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://clearlyledger.com/blog" },
-              { "@type": "ListItem", "position": 3, "name": "Financial Workflows" }
-            ]
-          })}
+          {JSON.stringify(breadcrumbSchema)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(howToSchema)}
         </script>
       </Helmet>
       
@@ -70,6 +129,19 @@ const BlogPost4 = () => {
               </div>
             </div>
           </header>
+
+          {/* TL;DR Box */}
+          <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-foreground mb-1">TL;DR</p>
+                <p className="text-sm text-muted-foreground">
+                  Automated bank statement conversion saves hours vs manual entry, reduces errors from 2-5% to near-zero, and integrates directly with QuickBooks, Xero, and Excel. Balance verification ensures data accuracy before import.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Content */}
           <div className="prose prose-neutral dark:prose-invert max-w-none">

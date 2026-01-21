@@ -1,4 +1,5 @@
 import { Upload, Cog, Download, ArrowDown } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 const steps = [
   {
@@ -22,8 +23,50 @@ const steps = [
 ];
 
 const HowItWorksSection = () => {
+  const howToSchema = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Convert Bank Statement PDF to Excel",
+    "description": "Convert bank statement PDFs to Excel spreadsheets in three simple steps using ClearlyLedger.",
+    "totalTime": "PT1M",
+    "estimatedCost": {
+      "@type": "MonetaryAmount",
+      "currency": "USD",
+      "value": "0"
+    },
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "Upload Your Statements",
+        "text": "Drag and drop PDF bank statements from any supported bank. We handle the rest.",
+        "url": "https://clearlyledger.com/#how-it-works"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "Automatic Processing",
+        "text": "Our rule engine identifies the bank, applies the correct parser, and validates all balances.",
+        "url": "https://clearlyledger.com/#how-it-works"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 3,
+        "name": "Download Clean Data",
+        "text": "Get perfectly formatted Excel or CSV files ready for QuickBooks, Xero, or Sage import.",
+        "url": "https://clearlyledger.com/#how-it-works"
+      }
+    ]
+  };
+
   return (
     <section id="how-it-works" className="py-24 relative bg-surface-elevated/50">
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify(howToSchema)}
+        </script>
+      </Helmet>
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center mb-16">

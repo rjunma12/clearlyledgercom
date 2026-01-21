@@ -1,11 +1,82 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Upload, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Upload, ChevronRight, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
 
 const BlogPost1 = () => {
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)",
+    "description": "Learn how to convert PDF bank statements to Excel in minutes. Step-by-step workflow, common issues, and troubleshooting tips.",
+    "author": { "@type": "Organization", "name": "ClearlyLedger" },
+    "publisher": { "@type": "Organization", "name": "ClearlyLedger" },
+    "datePublished": "2025-01-15",
+    "dateModified": "2025-01-15",
+    "about": {
+      "@type": "Thing",
+      "name": "Bank Statement Conversion",
+      "description": "The process of extracting transaction data from PDF bank statements into spreadsheet format"
+    },
+    "mentions": [
+      { "@type": "SoftwareApplication", "name": "QuickBooks" },
+      { "@type": "SoftwareApplication", "name": "Xero" },
+      { "@type": "SoftwareApplication", "name": "Sage" },
+      { "@type": "SoftwareApplication", "name": "Microsoft Excel" }
+    ]
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearlyledger.com" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://clearlyledger.com/blog" },
+      { "@type": "ListItem", "position": 3, "name": "Convert Bank Statements to Excel" }
+    ]
+  };
+
+  const howToSchema = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Convert Bank Statement PDF to Excel Using ClearlyLedger",
+    "description": "Step-by-step guide to converting PDF bank statements to Excel spreadsheets.",
+    "totalTime": "PT2M",
+    "estimatedCost": {
+      "@type": "MonetaryAmount",
+      "currency": "USD",
+      "value": "0"
+    },
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "Upload your PDF",
+        "text": "Drag and drop or click to select your bank statement (max 10 MB)"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "Wait for processing",
+        "text": "Our system automatically extracts transaction data from your PDF"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 3,
+        "name": "Review the preview",
+        "text": "Check that dates, descriptions, and amounts look correct"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 4,
+        "name": "Download Excel file",
+        "text": "Get a clean, structured spreadsheet ready for use"
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -14,27 +85,13 @@ const BlogPost1 = () => {
         <meta name="keywords" content="bank statement to Excel, PDF to Excel converter, convert bank statement online, financial data automation" />
         <link rel="canonical" href="https://clearlyledger.com/blog/convert-bank-statements-to-excel" />
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            "headline": "How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)",
-            "description": "Learn how to convert PDF bank statements to Excel in minutes. Step-by-step workflow, common issues, and troubleshooting tips.",
-            "author": { "@type": "Organization", "name": "ClearlyLedger" },
-            "publisher": { "@type": "Organization", "name": "ClearlyLedger" },
-            "datePublished": "2025-01-15",
-            "dateModified": "2025-01-15"
-          })}
+          {JSON.stringify(articleSchema)}
         </script>
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearlyledger.com" },
-              { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://clearlyledger.com/blog" },
-              { "@type": "ListItem", "position": 3, "name": "Convert Bank Statements to Excel" }
-            ]
-          })}
+          {JSON.stringify(breadcrumbSchema)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(howToSchema)}
         </script>
       </Helmet>
       
@@ -70,6 +127,19 @@ const BlogPost1 = () => {
               </div>
             </div>
           </header>
+
+          {/* TL;DR Box */}
+          <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-foreground mb-1">TL;DR</p>
+                <p className="text-sm text-muted-foreground">
+                  To convert a bank statement PDF to Excel: upload your PDF to ClearlyLedger, wait for automatic processing, review the extracted transactions, then download your clean Excel file. The process takes under 60 seconds and includes balance verification to ensure accuracy.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Content */}
           <div className="prose prose-neutral dark:prose-invert max-w-none">

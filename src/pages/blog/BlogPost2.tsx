@@ -1,11 +1,44 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Upload, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Upload, ChevronRight, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
 
 const BlogPost2 = () => {
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Best Tools for Converting Indian Bank Statement PDFs to Excel",
+    "description": "Guide for converting Indian bank statement PDFs with tools, privacy tips, and local format support.",
+    "author": { "@type": "Organization", "name": "ClearlyLedger" },
+    "publisher": { "@type": "Organization", "name": "ClearlyLedger" },
+    "datePublished": "2025-01-12",
+    "dateModified": "2025-01-12",
+    "about": {
+      "@type": "Thing",
+      "name": "Indian Bank Statement Conversion",
+      "description": "Converting bank statements from Indian financial institutions to spreadsheet format"
+    },
+    "mentions": [
+      { "@type": "Organization", "name": "State Bank of India (SBI)" },
+      { "@type": "Organization", "name": "ICICI Bank" },
+      { "@type": "Organization", "name": "HDFC Bank" },
+      { "@type": "Organization", "name": "Axis Bank" },
+      { "@type": "Organization", "name": "Kotak Mahindra Bank" }
+    ]
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearlyledger.com" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://clearlyledger.com/blog" },
+      { "@type": "ListItem", "position": 3, "name": "Indian Bank Statement Converter" }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -14,27 +47,10 @@ const BlogPost2 = () => {
         <meta name="keywords" content="India bank statement converter, PDF bank statement India, secure bank statement conversion, Indian financial data formats" />
         <link rel="canonical" href="https://clearlyledger.com/blog/indian-bank-statement-converter" />
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            "headline": "Best Tools for Converting Indian Bank Statement PDFs to Excel",
-            "description": "Guide for converting Indian bank statement PDFs with tools, privacy tips, and local format support.",
-            "author": { "@type": "Organization", "name": "ClearlyLedger" },
-            "publisher": { "@type": "Organization", "name": "ClearlyLedger" },
-            "datePublished": "2025-01-12",
-            "dateModified": "2025-01-12"
-          })}
+          {JSON.stringify(articleSchema)}
         </script>
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearlyledger.com" },
-              { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://clearlyledger.com/blog" },
-              { "@type": "ListItem", "position": 3, "name": "Indian Bank Statement Converter" }
-            ]
-          })}
+          {JSON.stringify(breadcrumbSchema)}
         </script>
       </Helmet>
       
@@ -70,6 +86,19 @@ const BlogPost2 = () => {
               </div>
             </div>
           </header>
+
+          {/* TL;DR Box */}
+          <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-foreground mb-1">TL;DR</p>
+                <p className="text-sm text-muted-foreground">
+                  Indian bank statements from SBI, HDFC, ICICI, Axis, and other banks can be converted to Excel using ClearlyLedger. The tool handles local date formats, lakhs/crores notation, and multi-column layouts automatically while keeping your data private.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Content */}
           <div className="prose prose-neutral dark:prose-invert max-w-none">
