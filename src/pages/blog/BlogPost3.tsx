@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
+import TableOfContents from "@/components/blog/TableOfContents";
+import AuthorSection from "@/components/blog/AuthorSection";
+import ShareButtons from "@/components/blog/ShareButtons";
+import ReadingProgress from "@/components/blog/ReadingProgress";
 
 const BlogPost3 = () => {
   const articleSchema = {
@@ -40,6 +44,7 @@ const BlogPost3 = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <ReadingProgress />
       <Helmet>
         <title>Bank Statement Conversion: Ensuring Privacy & Secure Processing | ClearlyLedger</title>
         <meta name="description" content="Financial documents are sensitive. Learn best practices for secure bank statement conversion, privacy-first workflows, and how to protect your data." />
@@ -74,7 +79,7 @@ const BlogPost3 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               Bank Statement Conversion: Ensuring Privacy & Secure Processing
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
                 January 8, 2025
@@ -84,7 +89,14 @@ const BlogPost3 = () => {
                 5 min read
               </div>
             </div>
+            <ShareButtons 
+              url="https://clearlyledger.com/blog/privacy-secure-bank-statement-conversion" 
+              title="Bank Statement Conversion: Ensuring Privacy & Secure Processing"
+            />
           </header>
+
+          {/* Table of Contents */}
+          <TableOfContents />
 
           {/* TL;DR Box */}
           <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
@@ -197,6 +209,9 @@ const BlogPost3 = () => {
               <li>✓ Transparent about data handling</li>
             </ul>
           </div>
+
+          {/* Author Section */}
+          <AuthorSection />
 
           {/* CTA Section */}
           <div className="mt-12 p-8 bg-muted/50 rounded-xl text-center">
