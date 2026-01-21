@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { 
   FileSpreadsheet, 
   Globe, 
@@ -18,6 +19,31 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 const Features = () => {
+  const schemaOrg = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Features - ClearlyLedger",
+    "description": "Multi-region support, balance verification, privacy-first processing. See all features of our bank statement to Excel converter.",
+    "url": "https://clearlyledger.com/features",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://clearlyledger.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Features",
+          "item": "https://clearlyledger.com/features"
+        }
+      ]
+    }
+  };
+
   const coreFeatures = [
     {
       icon: FileSpreadsheet,
@@ -120,6 +146,30 @@ const Features = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Features - ClearlyLedger | Bank Statement Conversion Tools</title>
+        <meta name="description" content="Multi-region support, balance verification, privacy-first processing. See all features of our bank statement to Excel converter." />
+        <meta name="keywords" content="bank statement features, PDF converter features, balance verification, PII masking, multi-region support" />
+        <link rel="canonical" href="https://clearlyledger.com/features" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://clearlyledger.com/features" />
+        <meta property="og:title" content="Features - ClearlyLedger | Bank Statement Conversion Tools" />
+        <meta property="og:description" content="Multi-region support, balance verification, privacy-first processing. See all features of our bank statement to Excel converter." />
+        <meta property="og:image" content="https://clearlyledger.com/og-image.png" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Features - ClearlyLedger" />
+        <meta name="twitter:description" content="Multi-region support, balance verification, privacy-first processing." />
+        
+        {/* Schema.org JSON-LD */}
+        <script type="application/ld+json">
+          {JSON.stringify(schemaOrg)}
+        </script>
+      </Helmet>
+      
       <Navbar />
       
       {/* Hero Section */}

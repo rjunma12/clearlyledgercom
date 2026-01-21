@@ -1,11 +1,61 @@
 import { ArrowLeft, Shield, Target, Globe, FileCheck, Trash2, Scale, Users, Mail, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 const About = () => {
+  const schemaOrg = {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    "name": "About Us - ClearlyLedger",
+    "description": "Learn about ClearlyLedger's mission to provide accurate, secure, and privacy-first bank statement conversion tools.",
+    "url": "https://clearlyledger.com/about",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://clearlyledger.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "About",
+          "item": "https://clearlyledger.com/about"
+        }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>About Us - ClearlyLedger | Privacy-First Bank Statement Conversion</title>
+        <meta name="description" content="Learn about ClearlyLedger's mission to provide accurate, secure, and privacy-first bank statement conversion tools for individuals and professionals." />
+        <meta name="keywords" content="about ClearlyLedger, bank statement converter company, privacy-first financial tools" />
+        <link rel="canonical" href="https://clearlyledger.com/about" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://clearlyledger.com/about" />
+        <meta property="og:title" content="About Us - ClearlyLedger" />
+        <meta property="og:description" content="Learn about ClearlyLedger's mission to provide accurate, secure, and privacy-first bank statement conversion tools." />
+        <meta property="og:image" content="https://clearlyledger.com/og-image.png" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="About Us - ClearlyLedger" />
+        <meta name="twitter:description" content="Privacy-first bank statement conversion tools." />
+        
+        {/* Schema.org JSON-LD */}
+        <script type="application/ld+json">
+          {JSON.stringify(schemaOrg)}
+        </script>
+      </Helmet>
+      
       <Navbar />
       <main className="py-16 sm:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">

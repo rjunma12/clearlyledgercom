@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,6 +63,31 @@ const Contact = () => {
     },
   });
 
+  const schemaOrg = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "name": "Contact Us - ClearlyLedger",
+    "description": "Get in touch with ClearlyLedger for support, enterprise inquiries, or feedback.",
+    "url": "https://clearlyledger.com/contact",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://clearlyledger.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Contact",
+          "item": "https://clearlyledger.com/contact"
+        }
+      ]
+    }
+  };
+
   // Scroll to form when navigating with state
   useEffect(() => {
     if (prefilledSubject) {
@@ -103,6 +129,10 @@ const Contact = () => {
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>Message Sent - ClearlyLedger</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
         <Navbar />
         <main className="py-24">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -136,6 +166,30 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Contact Us - ClearlyLedger | Support & Enterprise Inquiries</title>
+        <meta name="description" content="Get in touch with ClearlyLedger for support, enterprise inquiries, or feedback. We respond within 24-48 hours." />
+        <meta name="keywords" content="contact ClearlyLedger, customer support, enterprise inquiry, bank statement converter help" />
+        <link rel="canonical" href="https://clearlyledger.com/contact" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://clearlyledger.com/contact" />
+        <meta property="og:title" content="Contact Us - ClearlyLedger" />
+        <meta property="og:description" content="Get in touch with ClearlyLedger for support, enterprise inquiries, or feedback." />
+        <meta property="og:image" content="https://clearlyledger.com/og-image.png" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Contact Us - ClearlyLedger" />
+        <meta name="twitter:description" content="Get in touch for support or enterprise inquiries." />
+        
+        {/* Schema.org JSON-LD */}
+        <script type="application/ld+json">
+          {JSON.stringify(schemaOrg)}
+        </script>
+      </Helmet>
+      
       <Navbar />
       <main className="py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowLeft, Shield } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -10,8 +11,50 @@ const DataProcessing = () => {
     day: "numeric",
   });
 
+  const schemaOrg = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Data Processing Agreement - ClearlyLedger",
+    "description": "Data Processing Agreement (DPA) for ClearlyLedger enterprise customers with GDPR compliance requirements.",
+    "url": "https://clearlyledger.com/data-processing",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://clearlyledger.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Data Processing Agreement",
+          "item": "https://clearlyledger.com/data-processing"
+        }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Data Processing Agreement - ClearlyLedger</title>
+        <meta name="description" content="Data Processing Agreement (DPA) for ClearlyLedger enterprise customers. GDPR compliant data handling terms for bank statement conversion." />
+        <link rel="canonical" href="https://clearlyledger.com/data-processing" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://clearlyledger.com/data-processing" />
+        <meta property="og:title" content="Data Processing Agreement - ClearlyLedger" />
+        <meta property="og:description" content="Data Processing Agreement (DPA) for enterprise customers." />
+        
+        {/* Schema.org JSON-LD */}
+        <script type="application/ld+json">
+          {JSON.stringify(schemaOrg)}
+        </script>
+      </Helmet>
+      
       <Navbar />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-4xl">
         <Link
