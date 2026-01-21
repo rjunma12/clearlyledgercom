@@ -1,5 +1,6 @@
 import { Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { supportedLanguages, type SupportedLanguage } from "@/lib/i18n";
+import { supportedLanguages, type SupportedLanguage, updateDocumentDirection } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 interface LanguageSelectorProps {
@@ -21,6 +22,20 @@ export const LanguageSelector = ({ className, variant = "icon" }: LanguageSelect
   const currentLanguage = supportedLanguages.find(
     (lang) => lang.code === i18n.language
   ) || supportedLanguages[0];
+
+  // Handle RTL direction changes via React effect
+  useEffect(() => {
+    updateDocumentDirection(i18n.language);
+    
+    const handleLanguageChange = (lng: string) => {
+      updateDocumentDirection(lng);
+    };
+    
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n]);
 
   const handleLanguageChange = (langCode: SupportedLanguage) => {
     i18n.changeLanguage(langCode);

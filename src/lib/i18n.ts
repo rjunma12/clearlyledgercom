@@ -47,6 +47,7 @@ const resources = {
   },
 };
 
+// Initialize i18n synchronously without side effects
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -62,15 +63,18 @@ i18n
     interpolation: {
       escapeValue: false,
     },
+    react: {
+      useSuspense: false, // Disable suspense to prevent issues
+    },
   });
 
-// Handle RTL languages
-i18n.on('languageChanged', (lng) => {
+// Helper function to update document direction (call this from a React effect)
+export const updateDocumentDirection = (lng: string) => {
   const language = supportedLanguages.find(l => l.code === lng);
   if (language) {
     document.documentElement.dir = language.dir;
     document.documentElement.lang = lng;
   }
-});
+};
 
 export default i18n;
