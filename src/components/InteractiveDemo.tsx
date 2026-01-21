@@ -1,8 +1,22 @@
 import { useState, useEffect } from "react";
-import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, Download } from "lucide-react";
+import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, Download, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const sampleStatement = [
+interface TransactionRow {
+  date: string;
+  description: string;
+  debit: string;
+  credit: string;
+  balance: string;
+  account?: string;
+  // Validation fields
+  validationStatus?: 'valid' | 'error' | 'warning';
+  expectedBalance?: string;
+  discrepancy?: string;
+}
+
+const sampleStatement: TransactionRow[] = [
   { date: "2025-01-15", description: "SALARY FROM ACME CORP - JOHN SMITH", debit: "", credit: "5,250.00", balance: "12,450.00", account: "****4521" },
   { date: "2025-01-16", description: "TRANSFER TO JANE DOE - ACC 9876543210", debit: "1,200.00", credit: "", balance: "11,250.00", account: "****4521" },
   { date: "2025-01-17", description: "AMAZON PURCHASE - ORDER #123-456", debit: "89.99", credit: "", balance: "11,160.01", account: "****4521" },
@@ -10,7 +24,7 @@ const sampleStatement = [
   { date: "2025-01-19", description: "REFUND FROM WALMART - MARY JOHNSON", debit: "", credit: "45.00", balance: "11,192.51", account: "****4521" },
 ];
 
-const scrubbedStatement = [
+const scrubbedStatement: TransactionRow[] = [
   { date: "2025-01-15", description: "SALARY FROM ACME CORP - [REDACTED]", debit: "", credit: "5,250.00", balance: "12,450.00", account: "****XXXX" },
   { date: "2025-01-16", description: "TRANSFER TO [REDACTED] - ACC ****XXXX", debit: "1,200.00", credit: "", balance: "11,250.00", account: "****XXXX" },
   { date: "2025-01-17", description: "AMAZON PURCHASE - ORDER #XXX-XXX", debit: "89.99", credit: "", balance: "11,160.01", account: "****XXXX" },
@@ -18,12 +32,13 @@ const scrubbedStatement = [
   { date: "2025-01-19", description: "REFUND FROM WALMART - [REDACTED]", debit: "", credit: "45.00", balance: "11,192.51", account: "****XXXX" },
 ];
 
-const normalizedStatement = [
-  { date: "2025-01-15", description: "Salary - ACME CORP", debit: "", credit: "5,250.00", balance: "12,450.00" },
-  { date: "2025-01-16", description: "Bank Transfer - Outgoing", debit: "1,200.00", credit: "", balance: "11,250.00" },
-  { date: "2025-01-17", description: "Online Purchase - Amazon", debit: "89.99", credit: "", balance: "11,160.01" },
-  { date: "2025-01-18", description: "Food & Beverage - Starbucks", debit: "12.50", credit: "", balance: "11,147.51" },
-  { date: "2025-01-19", description: "Refund - Walmart", debit: "", credit: "45.00", balance: "11,192.51" },
+// Normalized statement with validation - includes one error and one warning for demo
+const normalizedStatement: TransactionRow[] = [
+  { date: "2025-01-15", description: "Salary - ACME CORP", debit: "", credit: "5,250.00", balance: "12,450.00", validationStatus: "valid" },
+  { date: "2025-01-16", description: "Bank Transfer - Outgoing", debit: "1,200.00", credit: "", balance: "11,250.00", validationStatus: "valid" },
+  { date: "2025-01-17", description: "Online Purchase - Amazon", debit: "89.99", credit: "", balance: "11,150.01", validationStatus: "error", expectedBalance: "11,160.01", discrepancy: "10.00" },
+  { date: "2025-01-18", description: "Food & Beverage - Starbucks", debit: "12.50", credit: "", balance: "11,137.51", validationStatus: "warning", expectedBalance: "11,137.51", discrepancy: "0.00" },
+  { date: "2025-01-19", description: "Refund - Walmart", debit: "", credit: "45.00", balance: "11,182.51", validationStatus: "valid" },
 ];
 
 const stages = [
@@ -49,7 +64,7 @@ const stages = [
     icon: CheckCircle, 
     label: "Balance Verified", 
     color: "from-primary to-[hsl(185,84%,45%)]",
-    description: "Arithmetic validation passed"
+    description: "Arithmetic validation complete"
   },
 ];
 
@@ -58,7 +73,7 @@ const InteractiveDemo = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
 
-  const getCurrentData = () => {
+  const getCurrentData = (): TransactionRow[] => {
     if (currentStage <= 0) return sampleStatement;
     if (currentStage === 1) return scrubbedStatement;
     return normalizedStatement;
@@ -68,6 +83,15 @@ const InteractiveDemo = () => {
     if (currentStage === 1) return ["description", "account"];
     if (currentStage === 2) return ["description"];
     return [];
+  };
+
+  const getValidationStats = () => {
+    const data = normalizedStatement;
+    const total = data.length;
+    const valid = data.filter(r => r.validationStatus === 'valid').length;
+    const errors = data.filter(r => r.validationStatus === 'error').length;
+    const warnings = data.filter(r => r.validationStatus === 'warning').length;
+    return { total, valid, errors, warnings };
   };
 
   useEffect(() => {
@@ -101,6 +125,8 @@ const InteractiveDemo = () => {
 
   const highlightedFields = getHighlightedFields();
   const currentData = getCurrentData();
+  const validationStats = getValidationStats();
+  const showValidation = currentStage >= 3 || showOutput;
 
   return (
     <section className="py-20 sm:py-32 relative overflow-hidden">
@@ -232,64 +258,174 @@ const InteractiveDemo = () => {
             </div>
 
             {/* Table Content */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/50 bg-muted/30">
-                    <th className="text-left p-3 font-medium text-muted-foreground">Date</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Description</th>
-                    <th className="text-right p-3 font-medium text-muted-foreground">Debit</th>
-                    <th className="text-right p-3 font-medium text-muted-foreground">Credit</th>
-                    <th className="text-right p-3 font-medium text-muted-foreground">Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentData.map((row, index) => (
-                    <tr 
-                      key={index}
-                      className={`
-                        border-b border-border/30 transition-all duration-500
-                        ${currentStage >= 0 ? 'animate-fade-in' : ''}
-                      `}
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <td className="p-3 text-foreground font-mono text-xs">{row.date}</td>
-                      <td className={`p-3 transition-colors duration-300 ${
-                        highlightedFields.includes("description") ? 'text-primary font-medium' : 'text-foreground'
-                      }`}>
-                        {row.description}
-                      </td>
-                      <td className={`p-3 text-right font-mono ${row.debit ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        {row.debit || "—"}
-                      </td>
-                      <td className={`p-3 text-right font-mono ${row.credit ? 'text-primary' : 'text-muted-foreground'}`}>
-                        {row.credit || "—"}
-                      </td>
-                      <td className="p-3 text-right font-mono text-foreground font-medium">{row.balance}</td>
+            <TooltipProvider>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-muted/30">
+                      {showValidation && <th className="w-10 p-3"></th>}
+                      <th className="text-left p-3 font-medium text-muted-foreground">Date</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Description</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">Debit</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">Credit</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground">Balance</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {currentData.map((row, index) => {
+                      const hasError = showValidation && row.validationStatus === 'error';
+                      const hasWarning = showValidation && row.validationStatus === 'warning';
+                      const isValid = showValidation && row.validationStatus === 'valid';
+                      
+                      return (
+                        <tr 
+                          key={index}
+                          className={`
+                            border-b transition-all duration-500
+                            ${currentStage >= 0 ? 'animate-fade-in' : ''}
+                            ${hasError ? 'bg-destructive/10 border-destructive/30' : ''}
+                            ${hasWarning ? 'bg-amber-500/10 border-amber-500/30' : ''}
+                            ${!hasError && !hasWarning ? 'border-border/30' : ''}
+                          `}
+                          style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                          {showValidation && (
+                            <td className="p-3">
+                              {hasError && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <div className="w-6 h-6 rounded-full bg-destructive/20 flex items-center justify-center">
+                                      <XCircle className="w-4 h-4 text-destructive" />
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right" className="max-w-xs">
+                                    <div className="space-y-1">
+                                      <p className="font-semibold text-destructive">Balance Mismatch</p>
+                                      <p className="text-xs">Expected: {row.expectedBalance}</p>
+                                      <p className="text-xs">Actual: {row.balance}</p>
+                                      <p className="text-xs font-medium">Discrepancy: ${row.discrepancy}</p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {hasWarning && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right" className="max-w-xs">
+                                    <div className="space-y-1">
+                                      <p className="font-semibold text-amber-500">Possible Issue</p>
+                                      <p className="text-xs">Balance verified but flagged for review</p>
+                                      <p className="text-xs">Check debit/credit assignment</p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {isValid && (
+                                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                                  <CheckCircle className="w-4 h-4 text-primary" />
+                                </div>
+                              )}
+                            </td>
+                          )}
+                          <td className="p-3 text-foreground font-mono text-xs">{row.date}</td>
+                          <td className={`p-3 transition-colors duration-300 ${
+                            highlightedFields.includes("description") ? 'text-primary font-medium' : 'text-foreground'
+                          }`}>
+                            {row.description}
+                          </td>
+                          <td className={`p-3 text-right font-mono ${row.debit ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            {row.debit || "—"}
+                          </td>
+                          <td className={`p-3 text-right font-mono ${row.credit ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {row.credit || "—"}
+                          </td>
+                          <td className={`p-3 text-right font-mono font-medium ${
+                            hasError ? 'text-destructive' : hasWarning ? 'text-amber-500' : 'text-foreground'
+                          }`}>
+                            {row.balance}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </TooltipProvider>
 
             {/* Validation Result */}
             {showOutput && (
-              <div className="p-4 border-t border-border/50 bg-primary/5 animate-fade-in">
-                <div className="flex items-center justify-between">
+              <div className={`p-4 border-t animate-fade-in ${
+                validationStats.errors > 0 
+                  ? 'bg-destructive/5 border-destructive/30' 
+                  : validationStats.warnings > 0 
+                    ? 'bg-amber-500/5 border-amber-500/30'
+                    : 'bg-primary/5 border-border/50'
+              }`}>
+                <div className="flex items-center justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-primary" />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      validationStats.errors > 0 
+                        ? 'bg-destructive/20' 
+                        : validationStats.warnings > 0 
+                          ? 'bg-amber-500/20'
+                          : 'bg-primary/20'
+                    }`}>
+                      {validationStats.errors > 0 ? (
+                        <XCircle className="w-5 h-5 text-destructive" />
+                      ) : validationStats.warnings > 0 ? (
+                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                      ) : (
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                      )}
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Validation Passed</p>
+                      <p className={`font-medium ${
+                        validationStats.errors > 0 
+                          ? 'text-destructive' 
+                          : validationStats.warnings > 0 
+                            ? 'text-amber-500'
+                            : 'text-foreground'
+                      }`}>
+                        {validationStats.errors > 0 
+                          ? 'Validation Issues Found' 
+                          : validationStats.warnings > 0 
+                            ? 'Validation Passed with Warnings'
+                            : 'Validation Passed'}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        Opening Balance + Credits − Debits = Closing Balance ✓
+                        Balance[n-1] + Credit[n] − Debit[n] = Balance[n]
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">5 transactions</p>
-                    <p className="text-xs text-muted-foreground">Ready for export</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded-full bg-primary/60" />
+                        <span className="text-xs text-muted-foreground">{validationStats.valid} valid</span>
+                      </div>
+                      {validationStats.errors > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                          <span className="text-xs text-destructive">{validationStats.errors} error</span>
+                        </div>
+                      )}
+                      {validationStats.warnings > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-amber-500/60" />
+                          <span className="text-xs text-amber-500">{validationStats.warnings} warning</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-foreground">{validationStats.total} transactions</p>
+                      <p className="text-xs text-muted-foreground">
+                        {validationStats.errors > 0 ? 'Review required' : 'Ready for export'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
