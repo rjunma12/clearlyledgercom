@@ -1,11 +1,61 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowLeft, Shield, Lock, Server, FileCheck, Trash2, Eye, Globe, CheckCircle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 const Security = () => {
+  const schemaOrg = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Security - ClearlyLedger",
+    "description": "Learn about ClearlyLedger's security practices: encryption, automatic file deletion, GDPR compliance, and privacy-first architecture.",
+    "url": "https://clearlyledger.com/security",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://clearlyledger.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Security",
+          "item": "https://clearlyledger.com/security"
+        }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Security - ClearlyLedger | How We Protect Your Data</title>
+        <meta name="description" content="Learn about ClearlyLedger's security practices: encryption, automatic file deletion, GDPR compliance, and privacy-first architecture." />
+        <meta name="keywords" content="bank statement security, data protection, GDPR compliance, secure file processing, privacy-first" />
+        <link rel="canonical" href="https://clearlyledger.com/security" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://clearlyledger.com/security" />
+        <meta property="og:title" content="Security - ClearlyLedger" />
+        <meta property="og:description" content="Learn about ClearlyLedger's security practices: encryption, automatic file deletion, and GDPR compliance." />
+        <meta property="og:image" content="https://clearlyledger.com/og-image.png" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Security - ClearlyLedger" />
+        <meta name="twitter:description" content="How we protect your financial data." />
+        
+        {/* Schema.org JSON-LD */}
+        <script type="application/ld+json">
+          {JSON.stringify(schemaOrg)}
+        </script>
+      </Helmet>
+      
       <Navbar />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-4xl">
         <Link

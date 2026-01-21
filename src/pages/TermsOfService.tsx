@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowLeft, FileText } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -10,8 +11,50 @@ const TermsOfService = () => {
     day: "numeric",
   });
 
+  const schemaOrg = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Terms of Service - ClearlyLedger",
+    "description": "Read the terms of service for ClearlyLedger bank statement converter.",
+    "url": "https://clearlyledger.com/terms",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://clearlyledger.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Terms of Service",
+          "item": "https://clearlyledger.com/terms"
+        }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Terms of Service - ClearlyLedger</title>
+        <meta name="description" content="Read the terms of service for ClearlyLedger bank statement to Excel converter. Includes usage policies, data handling, and user responsibilities." />
+        <link rel="canonical" href="https://clearlyledger.com/terms" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://clearlyledger.com/terms" />
+        <meta property="og:title" content="Terms of Service - ClearlyLedger" />
+        <meta property="og:description" content="Read the terms of service for ClearlyLedger bank statement converter." />
+        
+        {/* Schema.org JSON-LD */}
+        <script type="application/ld+json">
+          {JSON.stringify(schemaOrg)}
+        </script>
+      </Helmet>
+      
       <Navbar />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-4xl">
         <Link

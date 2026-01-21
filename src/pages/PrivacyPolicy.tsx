@@ -1,9 +1,52 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 const PrivacyPolicy = () => {
+  const schemaOrg = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Privacy Policy - ClearlyLedger",
+    "description": "Privacy policy for ClearlyLedger bank statement converter. Learn how we collect, use, and protect your data.",
+    "url": "https://clearlyledger.com/privacy-policy",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://clearlyledger.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Privacy Policy",
+          "item": "https://clearlyledger.com/privacy-policy"
+        }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Privacy Policy - ClearlyLedger</title>
+        <meta name="description" content="Privacy policy for ClearlyLedger bank statement to Excel converter. Learn how we collect, use, process, and protect your data." />
+        <link rel="canonical" href="https://clearlyledger.com/privacy-policy" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://clearlyledger.com/privacy-policy" />
+        <meta property="og:title" content="Privacy Policy - ClearlyLedger" />
+        <meta property="og:description" content="Privacy policy for ClearlyLedger bank statement converter." />
+        
+        {/* Schema.org JSON-LD */}
+        <script type="application/ld+json">
+          {JSON.stringify(schemaOrg)}
+        </script>
+      </Helmet>
+      
       <div className="max-w-4xl mx-auto px-4 py-16">
         <Link 
           to="/" 
