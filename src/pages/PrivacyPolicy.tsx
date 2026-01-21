@@ -98,14 +98,14 @@ const PrivacyPolicy = () => {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-foreground mb-4">11. Contact</h2>
+            <h2 className="text-2xl font-semibold text-foreground mb-4">11. Support & Contact</h2>
             <p className="text-muted-foreground leading-relaxed">
-              For any questions regarding this Privacy Policy, please contact us at{" "}
+              For any questions regarding this Privacy Policy or to exercise your data rights, please contact us at{" "}
               <a 
-                href="mailto:privacy@clearlyledger.com" 
+                href="mailto:helppropsal@outlook.com" 
                 className="text-primary hover:underline"
               >
-                privacy@clearlyledger.com
+                helppropsal@outlook.com
               </a>
             </p>
           </section>

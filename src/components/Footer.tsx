@@ -88,8 +88,17 @@ const Footer = () => {
             <h3 className="font-display text-2xl font-bold text-foreground mb-2">
               Get in Touch
             </h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-2">
               Have a question or feedback? We'd love to hear from you.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Or email us directly at{" "}
+              <a 
+                href="mailto:helppropsal@outlook.com" 
+                className="text-primary hover:underline"
+              >
+                helppropsal@outlook.com
+              </a>
             </p>
           </div>
 
