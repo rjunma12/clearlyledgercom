@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, Download, AlertTriangle, XCircle } from "lucide-react";
+import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+import ExportOptionsDialog, { ExportType, ExportFormat } from "@/components/ExportOptionsDialog";
+import { maskTransactionData, generateExportFilename, type TransactionWithPII } from "@/lib/piiMasker";
+import { toast } from "sonner";
 interface TransactionRow {
   date: string;
   description: string;
@@ -121,6 +123,58 @@ const InteractiveDemo = () => {
     setCurrentStage(-1);
     setIsPlaying(false);
     setShowOutput(false);
+  };
+
+  const handleExport = (type: ExportType, format: ExportFormat) => {
+    // Get the appropriate data based on export type
+    const dataToExport: TransactionWithPII[] = type === 'masked' 
+      ? maskTransactionData(normalizedStatement.map(row => ({
+          date: row.date,
+          description: row.description,
+          debit: row.debit,
+          credit: row.credit,
+          balance: row.balance,
+          account: row.account,
+        })))
+      : normalizedStatement.map(row => ({
+          date: row.date,
+          description: row.description,
+          debit: row.debit,
+          credit: row.credit,
+          balance: row.balance,
+          account: row.account,
+        }));
+
+    // Generate filename
+    const filename = generateExportFilename('statement', type === 'masked', format);
+
+    // Convert to CSV/Excel format
+    const headers = ['Date', 'Description', 'Debit', 'Credit', 'Balance'];
+    const csvContent = [
+      headers.join(','),
+      ...dataToExport.map(row => 
+        [row.date, `"${row.description}"`, row.debit || '', row.credit || '', row.balance].join(',')
+      )
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Show success toast
+    toast.success(`Exported ${type === 'masked' ? 'anonymized' : 'full'} data`, {
+      description: `File saved as ${filename}`,
+    });
+
+    // Log export type for compliance (no PII logged)
+    console.log(`[Export] Type: ${type}, Format: ${format}, Timestamp: ${new Date().toISOString()}`);
   };
 
   const highlightedFields = getHighlightedFields();
@@ -250,10 +304,11 @@ const InteractiveDemo = () => {
                 </span>
               </div>
               {showOutput && (
-                <Button size="sm" variant="ghost" className="gap-2 text-primary">
-                  <Download className="w-4 h-4" />
-                  Export
-                </Button>
+                <ExportOptionsDialog
+                  filename="statement"
+                  onExport={handleExport}
+                  disabled={!showOutput}
+                />
               )}
             </div>
 
