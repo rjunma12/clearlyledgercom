@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Upload } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const CTASection = () => {
   return (
@@ -20,18 +21,22 @@ const CTASection = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button variant="hero" size="xl" className="w-full sm:w-auto group">
-              <Upload className="w-5 h-5" />
-              Start Converting Free
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button variant="glass" size="xl" className="w-full sm:w-auto">
-              Talk to Sales
-            </Button>
+            <Link to="/">
+              <Button variant="hero" size="xl" className="w-full sm:w-auto group">
+                <Upload className="w-5 h-5" />
+                Start Converting Free
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <Link to="/contact">
+              <Button variant="glass" size="xl" className="w-full sm:w-auto">
+                Talk to Sales
+              </Button>
+            </Link>
           </div>
 
           <p className="mt-6 text-sm text-muted-foreground">
-            No credit card required • 50 free pages • Setup in 30 seconds
+            No credit card required • Free tier available • Setup in 30 seconds
           </p>
         </div>
       </div>

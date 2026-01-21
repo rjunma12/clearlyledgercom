@@ -207,7 +207,7 @@ const BlogPost4 = () => {
               <li>Check the balance verification results</li>
               <li>Import the Excel file into your workflow</li>
               <li>Evaluate time savings and accuracy improvements</li>
-              <li>Consider a <Link to="/#pricing" className="text-primary hover:underline">paid plan</Link> for unlimited processing</li>
+              <li>Consider a <Link to="/pricing" className="text-primary hover:underline">paid plan</Link> for unlimited processing</li>
             </ol>
             <p>
               Questions? <Link to="/contact" className="text-primary hover:underline">Contact our support team</Link>.

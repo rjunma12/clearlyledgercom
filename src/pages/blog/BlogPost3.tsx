@@ -141,7 +141,7 @@ const BlogPost3 = () => {
               <li><strong>Selective masking:</strong> Choose which fields to protect</li>
             </ul>
             <p>
-              PII masking is available on <Link to="/#pricing" className="text-primary hover:underline">Pro and Lifetime plans</Link>.
+              PII masking is available on <Link to="/pricing" className="text-primary hover:underline">Pro and Lifetime plans</Link>.
             </p>
 
             <h2>Choosing Tools With Responsible Data Policies</h2>
@@ -185,7 +185,7 @@ const BlogPost3 = () => {
                   Upload PDF
                 </Button>
               </Link>
-              <Link to="/#pricing">
+              <Link to="/pricing">
                 <Button variant="glass">View Pricing</Button>
               </Link>
             </div>

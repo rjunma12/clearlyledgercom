@@ -74,7 +74,7 @@ const Blog = () => {
             <Link to="/features">
               <Button variant="outline" size="sm">Features</Button>
             </Link>
-            <Link to="/#pricing">
+            <Link to="/pricing">
               <Button variant="outline" size="sm">Pricing</Button>
             </Link>
             <Link to="/contact">

@@ -69,7 +69,7 @@ export function PlanCard({
         </div>
         
         {!isPaid && (
-          <Link to="/#pricing">
+          <Link to="/pricing">
             <Button variant="outline" size="sm">
               Upgrade
             </Button>
