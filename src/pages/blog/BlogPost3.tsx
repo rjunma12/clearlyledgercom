@@ -1,11 +1,43 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Upload, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Upload, ChevronRight, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
 
 const BlogPost3 = () => {
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Bank Statement Conversion: Ensuring Privacy & Secure Processing",
+    "description": "Best practices for secure bank statement conversion and privacy-first workflows.",
+    "author": { "@type": "Organization", "name": "ClearlyLedger" },
+    "publisher": { "@type": "Organization", "name": "ClearlyLedger" },
+    "datePublished": "2025-01-08",
+    "dateModified": "2025-01-08",
+    "about": {
+      "@type": "Thing",
+      "name": "Data Privacy in Financial Document Processing",
+      "description": "Protecting sensitive financial information during document conversion"
+    },
+    "mentions": [
+      { "@type": "Thing", "name": "HTTPS Encryption" },
+      { "@type": "Thing", "name": "TLS 1.2" },
+      { "@type": "Thing", "name": "PII Masking" },
+      { "@type": "Thing", "name": "GDPR Compliance" }
+    ]
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearlyledger.com" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://clearlyledger.com/blog" },
+      { "@type": "ListItem", "position": 3, "name": "Privacy & Security" }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -14,27 +46,10 @@ const BlogPost3 = () => {
         <meta name="keywords" content="secure bank statement conversion, privacy-first financial tools, PDF processing security, delete files after use" />
         <link rel="canonical" href="https://clearlyledger.com/blog/privacy-secure-bank-statement-conversion" />
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            "headline": "Bank Statement Conversion: Ensuring Privacy & Secure Processing",
-            "description": "Best practices for secure bank statement conversion and privacy-first workflows.",
-            "author": { "@type": "Organization", "name": "ClearlyLedger" },
-            "publisher": { "@type": "Organization", "name": "ClearlyLedger" },
-            "datePublished": "2025-01-08",
-            "dateModified": "2025-01-08"
-          })}
+          {JSON.stringify(articleSchema)}
         </script>
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearlyledger.com" },
-              { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://clearlyledger.com/blog" },
-              { "@type": "ListItem", "position": 3, "name": "Privacy & Security" }
-            ]
-          })}
+          {JSON.stringify(breadcrumbSchema)}
         </script>
       </Helmet>
       
@@ -70,6 +85,19 @@ const BlogPost3 = () => {
               </div>
             </div>
           </header>
+
+          {/* TL;DR Box */}
+          <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-foreground mb-1">TL;DR</p>
+                <p className="text-sm text-muted-foreground">
+                  When converting bank statements, choose tools that use HTTPS encryption, delete files immediately after processing, never train AI on your data, and offer optional PII masking. Avoid services with vague privacy policies or persistent file storage.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Content */}
           <div className="prose prose-neutral dark:prose-invert max-w-none">

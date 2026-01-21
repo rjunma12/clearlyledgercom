@@ -1,7 +1,35 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PricingSection from "@/components/PricingSection";
+import FAQSection from "@/components/FAQSection";
 import { Helmet } from "react-helmet-async";
+
+const pricingFaqs = [
+  {
+    question: "What's the difference between free and Pro plans?",
+    answer: "Free registered accounts get 5 pages per day with standard features. Pro subscribers ($19/month) get unlimited pages, priority processing, optional PII masking, and email support."
+  },
+  {
+    question: "Is there a money-back guarantee?",
+    answer: "Yes! We offer a 30-day money-back guarantee for Pro subscriptions. If you're not satisfied, contact us for a full refund, no questions asked."
+  },
+  {
+    question: "What does Lifetime access include?",
+    answer: "Lifetime membership ($119 one-time payment) includes everything in Pro—unlimited pages, PII masking, priority support—plus all future features forever. No recurring fees."
+  },
+  {
+    question: "Can I cancel my Pro subscription anytime?",
+    answer: "Absolutely. You can cancel your Pro subscription at any time from your dashboard. You'll retain access until the end of your billing period."
+  },
+  {
+    question: "Do you offer team or enterprise pricing?",
+    answer: "Yes! For teams of 5+ users or enterprise needs, contact us for custom pricing with volume discounts, dedicated support, and SLA guarantees."
+  },
+  {
+    question: "How does the page limit work?",
+    answer: "Each page of a PDF counts as one page. Multi-page statements consume multiple pages from your daily limit. Limits reset every 24 hours at midnight UTC."
+  }
+];
 
 const Pricing = () => {
   const schemaOrg = {
@@ -29,6 +57,47 @@ const Pricing = () => {
     }
   };
 
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "ClearlyLedger Bank Statement Converter",
+    "description": "Convert PDF bank statements to Excel with balance verification and multi-region support.",
+    "brand": {
+      "@type": "Brand",
+      "name": "ClearlyLedger"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Plan",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "priceValidUntil": "2026-12-31",
+        "description": "5 pages per day for registered users"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Plan",
+        "price": "19",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "priceValidUntil": "2026-12-31",
+        "billingIncrement": "P1M",
+        "description": "Unlimited pages, PII masking, priority support"
+      },
+      {
+        "@type": "Offer",
+        "name": "Lifetime Plan",
+        "price": "119",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/LimitedAvailability",
+        "priceValidUntil": "2026-12-31",
+        "description": "One-time payment, unlimited forever, all future features"
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -53,11 +122,20 @@ const Pricing = () => {
         <script type="application/ld+json">
           {JSON.stringify(schemaOrg)}
         </script>
+        <script type="application/ld+json">
+          {JSON.stringify(productSchema)}
+        </script>
       </Helmet>
       
       <Navbar />
       <main className="pt-16">
         <PricingSection />
+        <FAQSection 
+          faqs={pricingFaqs}
+          title="Pricing FAQ"
+          description="Common questions about plans, billing, and features."
+          showSchema={true}
+        />
       </main>
       <Footer />
     </div>
