@@ -22,6 +22,10 @@ const BlogPost1 = lazy(() => import("./pages/blog/BlogPost1"));
 const BlogPost2 = lazy(() => import("./pages/blog/BlogPost2"));
 const BlogPost3 = lazy(() => import("./pages/blog/BlogPost3"));
 const BlogPost4 = lazy(() => import("./pages/blog/BlogPost4"));
+const BlogPostSouthAfrica = lazy(() => import("./pages/blog/BlogPostSouthAfrica"));
+const BlogPostMalaysia = lazy(() => import("./pages/blog/BlogPostMalaysia"));
+const BlogPostUK = lazy(() => import("./pages/blog/BlogPostUK"));
+const BlogPostJapan = lazy(() => import("./pages/blog/BlogPostJapan"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -58,6 +62,10 @@ const App = () => (
               <Route path="/blog/indian-bank-statement-converter" element={<BlogPost2 />} />
               <Route path="/blog/privacy-secure-bank-statement-conversion" element={<BlogPost3 />} />
               <Route path="/blog/accurate-bank-statement-conversion-workflows" element={<BlogPost4 />} />
+              <Route path="/blog/south-africa-bank-statement-converter" element={<BlogPostSouthAfrica />} />
+              <Route path="/blog/malaysia-bank-statement-converter" element={<BlogPostMalaysia />} />
+              <Route path="/blog/uk-bank-statement-converter" element={<BlogPostUK />} />
+              <Route path="/blog/japan-bank-statement-converter" element={<BlogPostJapan />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/dashboard" element={<Dashboard />} />
