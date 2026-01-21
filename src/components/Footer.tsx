@@ -260,9 +260,9 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Security
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
