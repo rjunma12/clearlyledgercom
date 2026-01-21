@@ -13,9 +13,15 @@ import hiCommon from '@/locales/hi/common.json';
 import hiHome from '@/locales/hi/home.json';
 import arCommon from '@/locales/ar/common.json';
 import arHome from '@/locales/ar/home.json';
+import esCommon from '@/locales/es/common.json';
+import esHome from '@/locales/es/home.json';
+import frCommon from '@/locales/fr/common.json';
+import frHome from '@/locales/fr/home.json';
 
 export const supportedLanguages = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧', dir: 'ltr' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', dir: 'ltr' },
+  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', dir: 'ltr' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', dir: 'ltr' },
   { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu', flag: '🇲🇾', dir: 'ltr' },
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳', dir: 'ltr' },
@@ -28,6 +34,14 @@ const resources = {
   en: {
     common: enCommon,
     home: enHome,
+  },
+  es: {
+    common: esCommon,
+    home: esHome,
+  },
+  fr: {
+    common: frCommon,
+    home: frHome,
   },
   ja: {
     common: jaCommon,

@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "features": "Características",
+    "howItWorks": "Cómo Funciona",
+    "pricing": "Precios",
+    "blog": "Blog",
+    "security": "Seguridad",
+    "signIn": "Iniciar Sesión",
+    "signOut": "Cerrar Sesión",
+    "getStarted": "Comenzar",
+    "dashboard": "Panel",
+    "lightMode": "Modo Claro",
+    "darkMode": "Modo Oscuro"
+  },
+  "footer": {
+    "product": "Producto",
+    "company": "Empresa",
+    "support": "Soporte",
+    "aboutUs": "Sobre Nosotros",
+    "termsOfService": "Términos de Servicio",
+    "privacyPolicy": "Política de Privacidad",
+    "dataProcessing": "Procesamiento de Datos",
+    "contactUs": "Contáctenos",
+    "tagline": "Convierte extractos bancarios a Excel con confianza. Rápido, seguro y preciso.",
+    "copyright": "© {{year}} ClearlyLedger. Todos los derechos reservados."
+  },
+  "cta": {
+    "tryFree": "Probar Gratis",
+    "uploadPdf": "Subir PDF",
+    "viewPricing": "Ver Precios",
+    "learnMore": "Saber Más",
+    "contactUs": "Contáctenos"
+  }
+}

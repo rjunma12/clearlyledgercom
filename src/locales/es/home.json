@@ -1,0 +1,93 @@
+{
+  "hero": {
+    "title": "Convierte Extractos Bancarios a Excel — Rápido y Preciso",
+    "subtitle": "Simple, seguro y diseñado para uso regular.",
+    "noSignup": "Sin registro requerido",
+    "supportedFormats": "Compatible con PDF, Excel, CSV hasta 10MB",
+    "dragDrop": "Arrastra y suelta tu archivo aquí, o haz clic para explorar"
+  },
+  "advantages": {
+    "title": "¿Por qué ClearlyLedger?",
+    "speed": {
+      "title": "Velocidad Relámpago",
+      "description": "Convierte extractos en menos de 60 segundos"
+    },
+    "accuracy": {
+      "title": "99.9% de Precisión",
+      "description": "Extracción con IA y verificación de saldo"
+    },
+    "security": {
+      "title": "Seguridad Bancaria",
+      "description": "Tus datos nunca se almacenan"
+    },
+    "global": {
+      "title": "50+ Países",
+      "description": "Soporte para más de 200 bancos en todo el mundo"
+    }
+  },
+  "features": {
+    "title": "Características",
+    "subtitle": "Diseñado para Profesionales Financieros",
+    "speed": {
+      "title": "Velocidad Relámpago",
+      "description": "Procesa extractos de varias páginas en menos de 60 segundos"
+    },
+    "security": {
+      "title": "Privacidad Primero",
+      "description": "Archivos procesados en memoria, nunca almacenados en disco"
+    },
+    "formats": {
+      "title": "Múltiples Formatos",
+      "description": "Exporta a Excel, CSV o formatos de software contable"
+    },
+    "verification": {
+      "title": "Saldo Verificado",
+      "description": "Conciliación automática detecta errores de extracción"
+    },
+    "global": {
+      "title": "Soporte Global",
+      "description": "50+ países, 200+ bancos, manejo multi-moneda"
+    },
+    "updates": {
+      "title": "Siempre Actualizado",
+      "description": "Actualizaciones de formatos bancarios semanalmente"
+    }
+  },
+  "pricing": {
+    "title": "Precios Simples y Transparentes",
+    "description": "Comienza gratis. Actualiza cuando necesites más.",
+    "anonymous": {
+      "name": "Anónimo",
+      "description": "Sin registro requerido",
+      "pages": "1 página/día"
+    },
+    "starter": {
+      "name": "Inicial",
+      "description": "Gratis para siempre",
+      "pages": "5 páginas/día"
+    },
+    "professional": {
+      "name": "Profesional",
+      "price": "$19/mes",
+      "pages": "Páginas ilimitadas"
+    },
+    "business": {
+      "name": "Empresarial",
+      "price": "$49/mes",
+      "pages": "Ilimitado + Equipo"
+    },
+    "lifetime": {
+      "name": "De por Vida",
+      "price": "$119 una vez",
+      "pages": "Ilimitado para siempre"
+    }
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "description": "Respuestas rápidas a preguntas comunes sobre conversión de extractos bancarios."
+  },
+  "cta": {
+    "title": "¿Listo para Convertir tus Extractos Bancarios?",
+    "description": "Únete a miles de profesionales que confían en ClearlyLedger."
+  }
+}
