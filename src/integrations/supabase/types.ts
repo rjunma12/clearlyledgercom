@@ -68,6 +68,48 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_history: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          export_type: string | null
+          file_name: string
+          file_size_bytes: number | null
+          id: string
+          pages_processed: number
+          status: string
+          transactions_extracted: number | null
+          user_id: string
+          validation_errors: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          export_type?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          id?: string
+          pages_processed?: number
+          status?: string
+          transactions_extracted?: number | null
+          user_id: string
+          validation_errors?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          export_type?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          id?: string
+          pages_processed?: number
+          status?: string
+          transactions_extracted?: number | null
+          user_id?: string
+          validation_errors?: number | null
+        }
+        Relationships: []
+      }
       usage_tracking: {
         Row: {
           created_at: string
@@ -156,6 +198,16 @@ export type Database = {
           display_name: string
           pii_masking: Database["public"]["Enums"]["pii_masking_level"]
           plan_name: Database["public"]["Enums"]["plan_type"]
+        }[]
+      }
+      get_user_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          files_this_month: number
+          pages_this_month: number
+          total_files_processed: number
+          total_pages_processed: number
+          total_transactions_extracted: number
         }[]
       }
     }
