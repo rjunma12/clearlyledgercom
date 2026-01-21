@@ -11,6 +11,11 @@ import TermsOfService from "./pages/TermsOfService";
 import DataProcessing from "./pages/DataProcessing";
 import Security from "./pages/Security";
 import Features from "./pages/Features";
+import Blog from "./pages/Blog";
+import BlogPost1 from "./pages/blog/BlogPost1";
+import BlogPost2 from "./pages/blog/BlogPost2";
+import BlogPost3 from "./pages/blog/BlogPost3";
+import BlogPost4 from "./pages/blog/BlogPost4";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
@@ -33,6 +38,11 @@ const App = () => (
             <Route path="/data-processing" element={<DataProcessing />} />
             <Route path="/security" element={<Security />} />
             <Route path="/features" element={<Features />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/convert-bank-statements-to-excel" element={<BlogPost1 />} />
+            <Route path="/blog/indian-bank-statement-converter" element={<BlogPost2 />} />
+            <Route path="/blog/privacy-secure-bank-statement-conversion" element={<BlogPost3 />} />
+            <Route path="/blog/accurate-bank-statement-conversion-workflows" element={<BlogPost4 />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<Dashboard />} />
