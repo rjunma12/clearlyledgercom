@@ -1,21 +1,15 @@
 import { useState, useEffect } from "react";
-import { User, UserPlus, Zap, Users, Rocket, Shield, FileSpreadsheet } from "lucide-react";
-import { PricingCard } from "./pricing/PricingCard";
-import { LifetimeDealCard } from "./pricing/LifetimeDealCard";
+import { User, UserPlus, Zap, Crown, Rocket, Shield, Check, Sparkles, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useUsage } from "@/hooks/use-usage";
+import { Link } from "react-router-dom";
 
 const PricingSection = () => {
-  const { lifetimeSpotsRemaining, isAuthenticated } = useUsage();
-  const [highlightedPlan, setHighlightedPlan] = useState<string | null>(null);
-
-  // Scroll to plan if hash is present
-  useEffect(() => {
-    const hash = window.location.hash.replace('#', '');
-    if (['anonymous', 'registered', 'pro', 'business', 'lifetime'].includes(hash)) {
-      setHighlightedPlan(hash);
-      setTimeout(() => setHighlightedPlan(null), 3000);
-    }
-  }, []);
+  const { lifetimeSpotsRemaining } = useUsage();
+  const spotsRemaining = lifetimeSpotsRemaining ?? 350;
+  const isSoldOut = spotsRemaining <= 0;
+  const isLowStock = spotsRemaining <= 50 && spotsRemaining > 0;
 
   return (
     <section id="pricing" className="py-24 relative">
@@ -25,157 +19,224 @@ const PricingSection = () => {
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center mb-16">
           <span className="text-sm font-semibold text-primary uppercase tracking-wider">
-            Pricing
+            Pricing & Usage
           </span>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mt-3 mb-4">
-            Simple, Transparent Pricing
+            Choose Your Plan
           </h2>
           <p className="text-lg text-muted-foreground">
-            Start free, upgrade when you need more. No hidden fees.
+            Start free. Upgrade when you need more power.
           </p>
         </div>
 
-        {/* Export Comparison Table */}
-        <div className="max-w-4xl mx-auto mb-12">
-          <div className="glass-card p-4 sm:p-6">
-            <h3 className="font-display text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-primary" />
-              Export Capabilities by Plan
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 px-3 text-muted-foreground font-medium">Plan</th>
-                    <th className="text-center py-2 px-3 text-muted-foreground font-medium">Normal Excel</th>
-                    <th className="text-center py-2 px-3 text-muted-foreground font-medium">PII Masking</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-border/50">
-                    <td className="py-2 px-3 text-foreground">Anonymous</td>
-                    <td className="py-2 px-3 text-center text-primary">✓</td>
-                    <td className="py-2 px-3 text-center text-muted-foreground">—</td>
-                  </tr>
-                  <tr className="border-b border-border/50">
-                    <td className="py-2 px-3 text-foreground">Registered</td>
-                    <td className="py-2 px-3 text-center text-primary">✓</td>
-                    <td className="py-2 px-3 text-center text-muted-foreground">—</td>
-                  </tr>
-                  <tr className="border-b border-border/50">
-                    <td className="py-2 px-3 text-foreground">Pro</td>
-                    <td className="py-2 px-3 text-center text-primary">✓</td>
-                    <td className="py-2 px-3 text-center text-primary">Optional</td>
-                  </tr>
-                  <tr className="border-b border-border/50">
-                    <td className="py-2 px-3 text-foreground font-medium">Business</td>
-                    <td className="py-2 px-3 text-center text-primary">✓</td>
-                    <td className="py-2 px-3 text-center text-primary font-medium">Enforced</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-foreground">Lifetime</td>
-                    <td className="py-2 px-3 text-center text-primary">✓</td>
-                    <td className="py-2 px-3 text-center text-primary font-medium">Enforced</td>
-                  </tr>
-                </tbody>
-              </table>
+        {/* Pricing Grid - 2x2 Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          
+          {/* Anonymous - Try It (Small, low emphasis) */}
+          <div className="glass-card p-6 opacity-80">
+            <div className="flex items-center gap-2 mb-3">
+              <User className="w-5 h-5 text-muted-foreground" />
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Anonymous
+              </h3>
+              <span className="text-xs text-muted-foreground">(Try It)</span>
             </div>
+            
+            <ul className="space-y-2 mb-6 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-muted-foreground" />
+                1 page every 24 hours
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-muted-foreground" />
+                Normal Excel only
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-muted-foreground" />
+                No history, no masking
+              </li>
+            </ul>
+
+            <Button variant="outline" className="w-full" size="sm">
+              Try Once Free
+            </Button>
+          </div>
+
+          {/* Registered Free (Neutral emphasis) */}
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <UserPlus className="w-5 h-5 text-primary" />
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Registered
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                Free
+              </span>
+            </div>
+            
+            <ul className="space-y-2 mb-6 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-primary" />
+                5 pages every 24 hours
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-primary" />
+                Normal Excel only
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-primary" />
+                See pages used
+              </li>
+            </ul>
+
+            <Link to="/signup">
+              <Button variant="glass" className="w-full" size="sm">
+                Create Free Account
+              </Button>
+            </Link>
+          </div>
+
+          {/* Pro - Most Popular (HIGHLIGHTED) */}
+          <div className="glass-card p-6 border-2 border-primary/50 glow-primary relative md:col-span-1">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
+                <Sparkles className="w-3 h-3" />
+                Most Popular
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mb-2 mt-2">
+              <Zap className="w-5 h-5 text-primary" />
+              <h3 className="font-display text-xl font-bold text-foreground">
+                Pro
+              </h3>
+            </div>
+            
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="font-display text-3xl font-bold text-foreground">$19</span>
+              <span className="text-muted-foreground">/ month</span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">Designed for real usage</p>
+            
+            <ul className="space-y-2 mb-6 text-sm">
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary" />
+                Unlimited pages
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-primary" />
+                Faster processing
+              </li>
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary" />
+                PII masking option
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-primary" />
+                Full usage tracking
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-primary" />
+                Normal or masked Excel
+              </li>
+            </ul>
+
+            {/* Social proof */}
+            <p className="text-xs text-primary mb-4 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Most users upgrade to Pro
+            </p>
+
+            <Button variant="hero" className="w-full">
+              Upgrade to Pro
+            </Button>
+            
+            <p className="text-xs text-muted-foreground text-center mt-3">
+              Avoid daily limits and manual cleanup
+            </p>
+          </div>
+
+          {/* Lifetime - Best Value */}
+          <div className="glass-card p-6 border border-warning/30 bg-warning/5 relative md:col-span-1">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold border border-warning/30">
+                <Rocket className="w-3 h-3" />
+                Best Value • Limited Spots
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mb-2 mt-2">
+              <Rocket className="w-5 h-5 text-warning" />
+              <h3 className="font-display text-xl font-bold text-foreground">
+                Lifetime
+              </h3>
+            </div>
+            
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="font-display text-3xl font-bold text-foreground">$119</span>
+              <span className="text-muted-foreground">one-time</span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">Everything in Pro, forever.</p>
+            
+            <ul className="space-y-2 mb-4 text-sm">
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-warning" />
+                Unlimited pages
+              </li>
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-warning" />
+                PII masking included
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-warning" />
+                No monthly fees
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-warning" />
+                Priority processing
+              </li>
+            </ul>
+
+            {/* Scarcity indicator */}
+            {!isSoldOut && (
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>Limited to 350 users</span>
+                  <span className={cn(isLowStock && "text-warning font-medium")}>
+                    {spotsRemaining} left
+                  </span>
+                </div>
+                <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-warning to-warning/80 rounded-full transition-all duration-500"
+                    style={{ width: `${((350 - spotsRemaining) / 350) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button 
+              variant="glass" 
+              className={cn(
+                "w-full",
+                !isSoldOut && "bg-warning/10 border-warning/30 hover:border-warning/50 hover:bg-warning/20"
+              )}
+              disabled={isSoldOut}
+            >
+              {isSoldOut ? 'Sold Out' : 'Get Lifetime Access'}
+            </Button>
+            
+            <p className="text-xs text-muted-foreground text-center mt-3">
+              Pay once. Use forever.
+            </p>
           </div>
         </div>
 
-        {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-12">
-          {/* Anonymous */}
-          <PricingCard
-            name="Anonymous"
-            price="Free"
-            badge="No signup required"
-            badgeVariant="free"
-            description="Try instantly without creating an account."
-            icon={<User className="w-5 h-5 text-muted-foreground" />}
-            features={[
-              { text: "1 page every 24 hours" },
-              { text: "Normal Excel / CSV export" },
-              { text: "No history saved" },
-              { text: "Basic processing" }
-            ]}
-            cta="Upload Instantly"
-            ctaVariant="outline"
-            usageIndicator="1 page/day"
-          />
-
-          {/* Registered Free */}
-          <PricingCard
-            name="Registered"
-            price="Free"
-            description="Create an account to unlock more pages and history."
-            icon={<UserPlus className="w-5 h-5 text-primary" />}
-            features={[
-              { text: "5 pages every 24 hours", highlight: true },
-              { text: "Normal Excel / CSV export" },
-              { text: "Processing history" },
-              { text: "Email support" }
-            ]}
-            cta="Create Free Account"
-            ctaVariant="glass"
-            usageIndicator="5 pages/day"
-          />
-
-          {/* Pro */}
-          <PricingCard
-            name="Pro"
-            price="$19"
-            period="/month"
-            description="For professionals who need unlimited processing."
-            icon={<Zap className="w-5 h-5 text-primary" />}
-            features={[
-              { text: "Unlimited pages", highlight: true },
-              { text: "Normal Excel processing" },
-              { text: "Optional PII masking", highlight: true },
-              { text: "Full data export" },
-              { text: "Faster processing" }
-            ]}
-            cta="Upgrade to Pro"
-            ctaVariant="glass"
-          />
-
-          {/* Business - Most Popular */}
-          <PricingCard
-            name="Business"
-            price="$49"
-            period="/month"
-            badge="Most Popular"
-            badgeVariant="popular"
-            description="For teams needing compliance-ready workflows."
-            icon={<Users className="w-5 h-5 text-primary" />}
-            isPopular={true}
-            features={[
-              { text: "Everything in Pro", highlight: true },
-              { text: "Team access" },
-              { text: "Enforced PII masking", highlight: true },
-              { text: "Export audit logs" },
-              { text: "Custom PII rules" },
-              { text: "Priority processing" },
-              { text: "Compliance-ready workflows", highlight: true }
-            ]}
-            cta="Start Business Plan"
-            ctaVariant="hero"
-          />
-        </div>
-
-        {/* Lifetime Deal Card */}
-        <div className="max-w-4xl mx-auto">
-          <LifetimeDealCard
-            spotsRemaining={lifetimeSpotsRemaining}
-            totalSpots={350}
-          />
-        </div>
-
-        {/* Trust indicators */}
+        {/* Trust footer */}
         <div className="mt-12 text-center">
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
             <Shield className="w-4 h-4 text-primary" />
-            All plans include secure processing • No raw data stored after export
+            Secure payment • Cancel anytime • No hidden fees
           </p>
         </div>
       </div>
