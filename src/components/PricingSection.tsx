@@ -1,4 +1,4 @@
-import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText } from "lucide-react";
+import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUsage } from "@/hooks/use-usage";
@@ -33,8 +33,8 @@ const PricingSection = () => {
           </p>
         </div>
 
-        {/* Pricing Grid - 2x2 Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        {/* Free Tier Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
           
           {/* Anonymous (No Signup) */}
           <div className="glass-card p-6 opacity-80">
@@ -75,7 +75,7 @@ const PricingSection = () => {
             <div className="flex items-center gap-2 mb-3">
               <UserPlus className="w-5 h-5 text-primary" />
               <h3 className="font-display text-lg font-semibold text-foreground">
-                Registered
+                Starter
               </h3>
               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                 Free
@@ -109,9 +109,57 @@ const PricingSection = () => {
               </Button>
             </Link>
           </div>
+        </div>
 
-          {/* Pro (Most Popular) */}
-          <div className="glass-card p-6 border-2 border-primary/50 glow-primary relative md:col-span-1">
+        {/* Paid Plans Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-6">
+
+          {/* Professional */}
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Briefcase className="w-5 h-5 text-primary" />
+              <h3 className="font-display text-xl font-bold text-foreground">
+                Professional
+              </h3>
+            </div>
+            
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className="font-display text-3xl font-bold text-foreground">$30</span>
+              <span className="text-muted-foreground">/ month</span>
+            </div>
+
+            <p className="text-xs text-muted-foreground mb-3">1,000 pages per month</p>
+            
+            <ul className="space-y-2 mb-6 text-sm">
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-primary" />
+                Everything in Starter
+              </li>
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary" />
+                Batch uploads
+              </li>
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary" />
+                Faster processing queue
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-primary" />
+                Priority rule updates
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-primary" />
+                Optional PII masking
+              </li>
+            </ul>
+
+            <Button variant="glass" className="w-full">
+              Get Professional
+            </Button>
+          </div>
+
+          {/* Business (Most Popular) */}
+          <div className="glass-card p-6 border-2 border-primary/50 glow-primary relative">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
                 <Sparkles className="w-3 h-3" />
@@ -120,47 +168,49 @@ const PricingSection = () => {
             </div>
 
             <div className="flex items-center gap-2 mb-2 mt-2">
-              <Zap className="w-5 h-5 text-primary" />
+              <Crown className="w-5 h-5 text-primary" />
               <h3 className="font-display text-xl font-bold text-foreground">
-                Pro
+                Business
               </h3>
             </div>
             
             <div className="flex items-baseline gap-1 mb-4">
-              <span className="font-display text-3xl font-bold text-foreground">$19</span>
+              <span className="font-display text-3xl font-bold text-foreground">$50</span>
               <span className="text-muted-foreground">/ month</span>
             </div>
+
+            <p className="text-xs text-muted-foreground mb-3">4,000 pages per month</p>
             
             <ul className="space-y-2 mb-6 text-sm">
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary" />
-                Unlimited pages
-              </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Check className="w-4 h-4 text-primary" />
-                Faster processing
+                Everything in Professional
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-primary" />
-                Normal or PII-masked Excel
+                Multi-bank batch processing
+              </li>
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary" />
+                Dedicated parsing profiles
+              </li>
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary" />
+                Priority email support
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Check className="w-4 h-4 text-primary" />
-                Usage dashboard
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <FileText className="w-4 h-4 text-primary" />
-                Max file size: 10 MB
+                Usage dashboard & analytics
               </li>
             </ul>
 
             <Button variant="hero" className="w-full">
-              Upgrade to Pro
+              Get Business
             </Button>
           </div>
 
           {/* Lifetime (Best Value) */}
-          <div className="glass-card p-6 border border-warning/30 bg-warning/5 relative md:col-span-1">
+          <div className="glass-card p-6 border border-warning/30 bg-warning/5 relative">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold border border-warning/30">
                 <Rocket className="w-3 h-3" />
@@ -179,6 +229,8 @@ const PricingSection = () => {
               <span className="font-display text-3xl font-bold text-foreground">$119</span>
               <span className="text-muted-foreground">one-time</span>
             </div>
+
+            <p className="text-xs text-muted-foreground mb-3">Unlimited pages forever</p>
             
             <ul className="space-y-2 mb-4 text-sm">
               <li className="flex items-center gap-2 text-foreground font-medium">
@@ -191,11 +243,11 @@ const PricingSection = () => {
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-warning" />
-                PII masking included
+                All Business features
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Check className="w-4 h-4 text-warning" />
-                No monthly fees
+                No monthly fees ever
               </li>
             </ul>
 
@@ -231,7 +283,7 @@ const PricingSection = () => {
         </div>
 
         {/* Enterprise - Full Width */}
-        <div className="max-w-4xl mx-auto mt-6">
+        <div className="max-w-6xl mx-auto">
           <div className="glass-card p-6 border border-muted/30">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
