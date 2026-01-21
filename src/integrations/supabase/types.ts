@@ -14,16 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      lifetime_spots: {
+        Row: {
+          id: string
+          sold_count: number
+          total_spots: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          sold_count?: number
+          total_spots?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          sold_count?: number
+          total_spots?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      plans: {
+        Row: {
+          created_at: string
+          daily_page_limit: number | null
+          display_name: string
+          id: string
+          is_recurring: boolean
+          name: Database["public"]["Enums"]["plan_type"]
+          pii_masking: Database["public"]["Enums"]["pii_masking_level"]
+          price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          daily_page_limit?: number | null
+          display_name: string
+          id?: string
+          is_recurring?: boolean
+          name: Database["public"]["Enums"]["plan_type"]
+          pii_masking?: Database["public"]["Enums"]["pii_masking_level"]
+          price_cents?: number
+        }
+        Update: {
+          created_at?: string
+          daily_page_limit?: number | null
+          display_name?: string
+          id?: string
+          is_recurring?: boolean
+          name?: Database["public"]["Enums"]["plan_type"]
+          pii_masking?: Database["public"]["Enums"]["pii_masking_level"]
+          price_cents?: number
+        }
+        Relationships: []
+      }
+      usage_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          pages_processed: number
+          session_fingerprint: string | null
+          updated_at: string
+          usage_date: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pages_processed?: number
+          session_fingerprint?: string | null
+          updated_at?: string
+          usage_date?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pages_processed?: number
+          session_fingerprint?: string | null
+          updated_at?: string
+          usage_date?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_id: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_lifetime_spots_remaining: { Args: never; Returns: number }
+      get_remaining_pages: {
+        Args: { p_session_fingerprint?: string; p_user_id?: string }
+        Returns: number
+      }
+      get_user_plan: {
+        Args: { p_user_id?: string }
+        Returns: {
+          daily_limit: number
+          display_name: string
+          pii_masking: Database["public"]["Enums"]["pii_masking_level"]
+          plan_name: Database["public"]["Enums"]["plan_type"]
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      pii_masking_level: "none" | "optional" | "enforced"
+      plan_type:
+        | "anonymous"
+        | "registered_free"
+        | "pro"
+        | "business"
+        | "lifetime"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +293,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      pii_masking_level: ["none", "optional", "enforced"],
+      plan_type: [
+        "anonymous",
+        "registered_free",
+        "pro",
+        "business",
+        "lifetime",
+      ],
+    },
   },
 } as const
