@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_preferences: {
+        Row: {
+          created_at: string
+          email: string
+          feature_announcements: boolean
+          id: string
+          last_usage_alert_at: string | null
+          marketing: boolean
+          updated_at: string
+          usage_alerts: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          feature_announcements?: boolean
+          id?: string
+          last_usage_alert_at?: string | null
+          marketing?: boolean
+          updated_at?: string
+          usage_alerts?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          feature_announcements?: boolean
+          id?: string
+          last_usage_alert_at?: string | null
+          marketing?: boolean
+          updated_at?: string
+          usage_alerts?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      feature_announcements: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sent_at: string | null
+          target_plans: string[]
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sent_at?: string | null
+          target_plans?: string[]
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sent_at?: string | null
+          target_plans?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
       lifetime_spots: {
         Row: {
           id: string
@@ -186,6 +249,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_lifetime_members_for_announcement: {
+        Args: never
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       get_lifetime_spots_remaining: { Args: never; Returns: number }
       get_remaining_pages: {
         Args: { p_session_fingerprint?: string; p_user_id?: string }
@@ -208,6 +278,16 @@ export type Database = {
           total_files_processed: number
           total_pages_processed: number
           total_transactions_extracted: number
+        }[]
+      }
+      get_users_needing_usage_alert: {
+        Args: never
+        Returns: {
+          daily_limit: number
+          email: string
+          pages_used: number
+          percent_used: number
+          user_id: string
         }[]
       }
     }

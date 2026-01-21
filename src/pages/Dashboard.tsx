@@ -16,6 +16,7 @@ import { useProcessingHistory } from "@/hooks/use-processing-history";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { PlanCard } from "@/components/dashboard/PlanCard";
 import { HistoryTable } from "@/components/dashboard/HistoryTable";
+import { EmailPreferencesCard } from "@/components/dashboard/EmailPreferencesCard";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -93,7 +94,7 @@ export default function Dashboard() {
         {/* Plan + History Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Plan Card */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             {plan && usage && (
               <PlanCard
                 planName={plan.planName}
@@ -104,6 +105,9 @@ export default function Dashboard() {
                 isUnlimited={usage.isUnlimited}
               />
             )}
+            
+            {/* Email Preferences */}
+            <EmailPreferencesCard />
           </div>
 
           {/* Processing History */}
