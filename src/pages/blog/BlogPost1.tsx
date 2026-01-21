@@ -140,7 +140,7 @@ const BlogPost1 = () => {
 
             <h3>Q: How many pages can I convert for free?</h3>
             <p>
-              Anonymous users get 1 page per 24 hours. <Link to="/#pricing" className="text-primary hover:underline">Registered accounts</Link> get 5 pages daily, while paid plans offer unlimited conversions.
+              Anonymous users get 1 page per 24 hours. <Link to="/pricing" className="text-primary hover:underline">Registered accounts</Link> get 5 pages daily, while paid plans offer unlimited conversions.
             </p>
 
             <h3>Q: Is my data secure?</h3>
@@ -169,7 +169,7 @@ const BlogPost1 = () => {
                   Upload PDF
                 </Button>
               </Link>
-              <Link to="/#pricing">
+              <Link to="/pricing">
                 <Button variant="glass">View Pricing</Button>
               </Link>
             </div>

@@ -55,7 +55,7 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">Your processing overview</p>
             </div>
           </div>
-          <Link to="/#demo">
+          <Link to="/">
             <Button variant="hero" size="sm" className="gap-2">
               Process Files
               <ArrowRight className="w-4 h-4" />
@@ -147,7 +147,7 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
-              <Link to="/#pricing">
+              <Link to="/pricing">
                 <Button variant="hero" className="flex-shrink-0">
                   View Plans
                 </Button>

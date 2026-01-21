@@ -135,13 +135,13 @@ const Features = () => {
             Convert PDF bank statements into structured Excel files with accuracy, privacy, and clear usage limits—built for individuals and professionals worldwide.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/#upload">
+            <Link to="/">
               <Button variant="hero" size="lg" className="gap-2">
                 <Upload className="w-5 h-5" />
                 Upload PDF
               </Button>
             </Link>
-            <Link to="/#pricing">
+            <Link to="/pricing">
               <Button variant="glass" size="lg">
                 View Pricing
               </Button>
@@ -247,7 +247,7 @@ const Features = () => {
           </div>
           
           <div className="text-center mt-8">
-            <Link to="/#pricing">
+            <Link to="/pricing">
               <Button variant="glass">
                 View Full Pricing
               </Button>
@@ -334,7 +334,7 @@ const Features = () => {
           <p className="text-muted-foreground mb-8">
             No complex setup. Upload your PDF and get structured Excel output.
           </p>
-          <Link to="/#upload">
+          <Link to="/">
             <Button variant="hero" size="lg" className="gap-2">
               <Upload className="w-5 h-5" />
               Upload PDF

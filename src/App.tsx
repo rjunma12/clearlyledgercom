@@ -11,6 +11,7 @@ import TermsOfService from "./pages/TermsOfService";
 import DataProcessing from "./pages/DataProcessing";
 import Security from "./pages/Security";
 import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
 import Blog from "./pages/Blog";
 import BlogPost1 from "./pages/blog/BlogPost1";
 import BlogPost2 from "./pages/blog/BlogPost2";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/data-processing" element={<DataProcessing />} />
             <Route path="/security" element={<Security />} />
             <Route path="/features" element={<Features />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/convert-bank-statements-to-excel" element={<BlogPost1 />} />
             <Route path="/blog/indian-bank-statement-converter" element={<BlogPost2 />} />
