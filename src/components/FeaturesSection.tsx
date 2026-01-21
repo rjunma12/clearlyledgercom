@@ -1,8 +1,8 @@
-import { Zap, ShieldCheck, FileSpreadsheet, CheckCircle2, Globe2, RefreshCw } from "lucide-react";
+import { ShieldCheck, FileSpreadsheet, CheckCircle2, Globe2, RefreshCw, Gauge } from "lucide-react";
 const features = [{
-  icon: Zap,
-  title: "Zero AI Costs",
-  description: "Deterministic rule-based parsing means predictable costs and no per-page API fees. 80%+ gross margins guaranteed."
+  icon: Gauge,
+  title: "Fast Processing",
+  description: "Upload your PDF and get structured Excel output in seconds. Optimized for speed and reliability."
 }, {
   icon: ShieldCheck,
   title: "Privacy-First Processing",
