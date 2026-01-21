@@ -18,7 +18,7 @@ export default function Signup() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -28,9 +28,18 @@ export default function Signup() {
 
       if (error) {
         toast.error(error.message);
-      } else {
+      } else if (data.user) {
+        // Initialize email preferences for the new user
+        await supabase.from('email_preferences').insert({
+          user_id: data.user.id,
+          email: email,
+          usage_alerts: true,
+          feature_announcements: true,
+          marketing: false,
+        });
+        
         toast.success("Account created successfully!");
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (error) {
       toast.error("An error occurred during signup");
