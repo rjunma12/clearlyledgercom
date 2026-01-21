@@ -265,6 +265,15 @@ const Contact = () => {
               <p className="text-xs text-muted-foreground text-center mt-6">
                 Email-only support • No account required
               </p>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Or reach us directly at{" "}
+                <a 
+                  href="mailto:helppropsal@outlook.com" 
+                  className="text-primary hover:underline"
+                >
+                  helppropsal@outlook.com
+                </a>
+              </p>
             </div>
           </div>
         </div>
