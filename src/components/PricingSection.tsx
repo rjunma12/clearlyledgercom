@@ -1,15 +1,20 @@
 import { useState, useEffect } from "react";
-import { User, UserPlus, Zap, Crown, Rocket, Shield, Check, Sparkles, Clock } from "lucide-react";
+import { User, UserPlus, Zap, Crown, Rocket, Shield, Check, Sparkles, Clock, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUsage } from "@/hooks/use-usage";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const PricingSection = () => {
+  const navigate = useNavigate();
   const { lifetimeSpotsRemaining } = useUsage();
   const spotsRemaining = lifetimeSpotsRemaining ?? 350;
   const isSoldOut = spotsRemaining <= 0;
   const isLowStock = spotsRemaining <= 50 && spotsRemaining > 0;
+
+  const handleEnterpriseClick = () => {
+    navigate("/contact", { state: { subject: "Enterprise inquiry" } });
+  };
 
   return (
     <section id="pricing" className="py-24 relative">
@@ -229,6 +234,34 @@ const PricingSection = () => {
             <p className="text-xs text-muted-foreground text-center mt-3">
               Pay once. Use forever.
             </p>
+          </div>
+        </div>
+
+        {/* Enterprise - Full Width */}
+        <div className="max-w-4xl mx-auto mt-6">
+          <div className="glass-card p-6 border border-muted/30">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-muted/20 flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-semibold text-foreground">
+                    Enterprise
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    For teams, high-volume usage, or custom requirements
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleEnterpriseClick}
+                className="sm:flex-shrink-0"
+              >
+                Contact Us
+              </Button>
+            </div>
           </div>
         </div>
 
