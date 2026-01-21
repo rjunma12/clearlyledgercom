@@ -1,4 +1,4 @@
-import { CheckCircle2, Shield, Trash2, Users, FileText } from "lucide-react";
+import { FileText, Globe, Scale, Shield } from "lucide-react";
 import FileUpload from "./FileUpload";
 
 const HeroSection = () => {
@@ -17,7 +17,7 @@ const HeroSection = () => {
           {/* Headline */}
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-slide-up text-balance">
             Convert Bank Statements to Excel —{" "}
-            <span className="gradient-text">Without Manual Work</span>
+            <span className="gradient-text">Fast and Accurate</span>
           </h1>
 
           {/* Subheadline */}
@@ -25,12 +25,12 @@ const HeroSection = () => {
             className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-slide-up text-balance"
             style={{ animationDelay: "0.1s" }}
           >
-            Built for people who handle statements regularly. Fast, accurate, and privacy-safe.
+            Simple, secure, and built for regular use.
           </p>
 
           {/* File Upload Component */}
           <div
-            className="animate-slide-up mb-6"
+            className="animate-slide-up mb-4"
             style={{ animationDelay: "0.15s" }}
           >
             <FileUpload />
@@ -41,35 +41,22 @@ const HeroSection = () => {
             className="text-sm text-muted-foreground mb-8 animate-fade-in"
             style={{ animationDelay: "0.2s" }}
           >
-            Works instantly. No signup required.
+            No signup required
           </p>
 
-          {/* Trust Signals */}
-          <div
-            className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 animate-fade-in"
+          {/* File Upload Info */}
+          <div 
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-muted-foreground animate-fade-in"
             style={{ animationDelay: "0.3s" }}
           >
-            <div className="flex items-center gap-2 px-4 py-2 glass-card">
-              <Trash2 className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Files auto-deleted after processing</span>
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-primary" />
+              <span>Supported formats: PDF, Excel, CSV</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 glass-card">
-              <Shield className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Secure processing</span>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground hidden sm:block" />
+              <span>Maximum file size: 10 MB per file</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 glass-card">
-              <Users className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Used by professionals handling sensitive data</span>
-            </div>
-          </div>
-
-          {/* File Limit Notice */}
-          <div 
-            className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground animate-fade-in"
-            style={{ animationDelay: "0.4s" }}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Maximum file size: 10 MB per file</span>
           </div>
         </div>
       </div>

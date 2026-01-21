@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { User, UserPlus, Zap, Crown, Rocket, Shield, Check, Sparkles, Clock, Building2 } from "lucide-react";
+import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUsage } from "@/hooks/use-usage";
@@ -37,14 +36,14 @@ const PricingSection = () => {
         {/* Pricing Grid - 2x2 Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           
-          {/* Anonymous - Try It (Small, low emphasis) */}
+          {/* Anonymous (No Signup) */}
           <div className="glass-card p-6 opacity-80">
             <div className="flex items-center gap-2 mb-3">
               <User className="w-5 h-5 text-muted-foreground" />
               <h3 className="font-display text-lg font-semibold text-foreground">
                 Anonymous
               </h3>
-              <span className="text-xs text-muted-foreground">(Try It)</span>
+              <span className="text-xs text-muted-foreground">(No Signup)</span>
             </div>
             
             <ul className="space-y-2 mb-6 text-sm text-muted-foreground">
@@ -54,11 +53,15 @@ const PricingSection = () => {
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-muted-foreground" />
-                Normal Excel only
+                Normal Excel output only
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-muted-foreground" />
-                No history, no masking
+                No PII masking
+              </li>
+              <li className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                Max file size: 10 MB
               </li>
             </ul>
 
@@ -67,7 +70,7 @@ const PricingSection = () => {
             </Button>
           </div>
 
-          {/* Registered Free (Neutral emphasis) */}
+          {/* Registered (Free) */}
           <div className="glass-card p-6">
             <div className="flex items-center gap-2 mb-3">
               <UserPlus className="w-5 h-5 text-primary" />
@@ -79,6 +82,8 @@ const PricingSection = () => {
               </span>
             </div>
             
+            <p className="text-xs text-muted-foreground mb-3">Registration is free</p>
+            
             <ul className="space-y-2 mb-6 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-primary" />
@@ -86,11 +91,15 @@ const PricingSection = () => {
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-primary" />
-                Normal Excel only
+                Normal Excel output only
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-primary" />
-                See pages used
+                Usage tracking
+              </li>
+              <li className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                Max file size: 10 MB
               </li>
             </ul>
 
@@ -101,7 +110,7 @@ const PricingSection = () => {
             </Link>
           </div>
 
-          {/* Pro - Most Popular (HIGHLIGHTED) */}
+          {/* Pro (Most Popular) */}
           <div className="glass-card p-6 border-2 border-primary/50 glow-primary relative md:col-span-1">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
@@ -117,11 +126,10 @@ const PricingSection = () => {
               </h3>
             </div>
             
-            <div className="flex items-baseline gap-1 mb-1">
+            <div className="flex items-baseline gap-1 mb-4">
               <span className="font-display text-3xl font-bold text-foreground">$19</span>
               <span className="text-muted-foreground">/ month</span>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">Designed for real usage</p>
             
             <ul className="space-y-2 mb-6 text-sm">
               <li className="flex items-center gap-2 text-foreground font-medium">
@@ -134,39 +142,29 @@ const PricingSection = () => {
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-primary" />
-                PII masking option
+                Normal or PII-masked Excel
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Check className="w-4 h-4 text-primary" />
-                Full usage tracking
+                Usage dashboard
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-primary" />
-                Normal or masked Excel
+                <FileText className="w-4 h-4 text-primary" />
+                Max file size: 10 MB
               </li>
             </ul>
-
-            {/* Social proof */}
-            <p className="text-xs text-primary mb-4 flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
-              Most users upgrade to Pro
-            </p>
 
             <Button variant="hero" className="w-full">
               Upgrade to Pro
             </Button>
-            
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              Avoid daily limits and manual cleanup
-            </p>
           </div>
 
-          {/* Lifetime - Best Value */}
+          {/* Lifetime (Best Value) */}
           <div className="glass-card p-6 border border-warning/30 bg-warning/5 relative md:col-span-1">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold border border-warning/30">
                 <Rocket className="w-3 h-3" />
-                Best Value • Limited Spots
+                Best Value • Limited
               </div>
             </div>
 
@@ -177,13 +175,16 @@ const PricingSection = () => {
               </h3>
             </div>
             
-            <div className="flex items-baseline gap-1 mb-1">
+            <div className="flex items-baseline gap-1 mb-4">
               <span className="font-display text-3xl font-bold text-foreground">$119</span>
               <span className="text-muted-foreground">one-time</span>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">Everything in Pro, forever.</p>
             
             <ul className="space-y-2 mb-4 text-sm">
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-warning" />
+                Lifetime access
+              </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-warning" />
                 Unlimited pages
@@ -195,10 +196,6 @@ const PricingSection = () => {
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Check className="w-4 h-4 text-warning" />
                 No monthly fees
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-warning" />
-                Priority processing
               </li>
             </ul>
 
@@ -230,10 +227,6 @@ const PricingSection = () => {
             >
               {isSoldOut ? 'Sold Out' : 'Get Lifetime Access'}
             </Button>
-            
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              Pay once. Use forever.
-            </p>
           </div>
         </div>
 
