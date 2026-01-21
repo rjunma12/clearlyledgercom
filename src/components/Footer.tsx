@@ -228,9 +228,9 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Blog
-                </a>
+                </Link>
               </li>
               <li>
                 <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">

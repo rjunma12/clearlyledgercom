@@ -43,6 +43,9 @@ const Navbar = () => {
             <a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Pricing
             </a>
+            <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Blog
+            </Link>
             <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Security
             </Link>
@@ -140,6 +143,9 @@ const Navbar = () => {
               <a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Pricing
               </a>
+              <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Blog
+              </Link>
               <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Security
               </Link>
