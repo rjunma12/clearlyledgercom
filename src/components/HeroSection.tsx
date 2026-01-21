@@ -1,10 +1,9 @@
-import { CheckCircle2 } from "lucide-react";
-import PipelineVisualizer from "./PipelineVisualizer";
+import { CheckCircle2, Shield, Trash2, Users, FileText } from "lucide-react";
 import FileUpload from "./FileUpload";
 
 const HeroSection = () => {
   return (
-    <section className="relative pt-32 pb-20 overflow-hidden">
+    <section className="relative pt-32 pb-16 overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 bg-grid-pattern opacity-30" />
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px] animate-pulse-slow" />
@@ -15,59 +14,63 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 glass-card mb-8 animate-fade-in">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-sm text-muted-foreground">
-              Trusted by 2,000+ financial professionals
-            </span>
-          </div>
-
           {/* Headline */}
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-slide-up text-balance">
-            Bank Statements to{" "}
-            <span className="gradient-text">Structured Data</span> in Seconds
+            Convert Bank Statements to Excel —{" "}
+            <span className="gradient-text">Without Manual Work</span>
           </h1>
 
           {/* Subheadline */}
           <p
-            className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto animate-slide-up text-balance"
+            className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-slide-up text-balance"
             style={{ animationDelay: "0.1s" }}
           >
-            Transform messy PDFs into clean Excel and CSV files.
+            Built for people who handle statements regularly. Fast, accurate, and privacy-safe.
           </p>
 
           {/* File Upload Component */}
           <div
-            className="animate-slide-up mb-10"
+            className="animate-slide-up mb-6"
             style={{ animationDelay: "0.15s" }}
           >
             <FileUpload />
           </div>
 
-          {/* Trust Indicators */}
+          {/* Secondary Text */}
+          <p 
+            className="text-sm text-muted-foreground mb-8 animate-fade-in"
+            style={{ animationDelay: "0.2s" }}
+          >
+            Works instantly. No signup required.
+          </p>
+
+          {/* Trust Signals */}
           <div
-            className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground animate-fade-in"
+            className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 animate-fade-in"
             style={{ animationDelay: "0.3s" }}
           >
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-              <span>No credit card required</span>
+            <div className="flex items-center gap-2 px-4 py-2 glass-card">
+              <Trash2 className="w-4 h-4 text-primary" />
+              <span className="text-sm text-muted-foreground">Files auto-deleted after processing</span>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-              <span>50 pages free</span>
+            <div className="flex items-center gap-2 px-4 py-2 glass-card">
+              <Shield className="w-4 h-4 text-primary" />
+              <span className="text-sm text-muted-foreground">Secure processing</span>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-              <span>100% balance verified</span>
+            <div className="flex items-center gap-2 px-4 py-2 glass-card">
+              <Users className="w-4 h-4 text-primary" />
+              <span className="text-sm text-muted-foreground">Used by professionals handling sensitive data</span>
             </div>
           </div>
-        </div>
 
-        {/* Pipeline Visualizer */}
-        <div className="mt-16 animate-slide-up" style={{ animationDelay: "0.4s" }}>
-          <PipelineVisualizer />
+          {/* File Limit Notice */}
+          <div 
+            className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground animate-fade-in"
+            style={{ animationDelay: "0.4s" }}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Maximum file size: 10 MB per file</span>
+          </div>
         </div>
       </div>
     </section>
