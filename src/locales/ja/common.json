@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "features": "機能",
+    "howItWorks": "使い方",
+    "pricing": "料金",
+    "blog": "ブログ",
+    "security": "セキュリティ",
+    "signIn": "ログイン",
+    "signOut": "ログアウト",
+    "getStarted": "始める",
+    "dashboard": "ダッシュボード",
+    "lightMode": "ライトモード",
+    "darkMode": "ダークモード"
+  },
+  "footer": {
+    "product": "製品",
+    "company": "会社情報",
+    "support": "サポート",
+    "aboutUs": "会社概要",
+    "termsOfService": "利用規約",
+    "privacyPolicy": "プライバシーポリシー",
+    "dataProcessing": "データ処理",
+    "contactUs": "お問い合わせ",
+    "tagline": "銀行取引明細書を自信を持ってExcelに変換。高速、安全、正確。",
+    "copyright": "© {{year}} ClearlyLedger. 無断複写・転載を禁じます。"
+  },
+  "cta": {
+    "tryFree": "無料で試す",
+    "uploadPdf": "PDFをアップロード",
+    "viewPricing": "料金を見る",
+    "learnMore": "詳細を見る",
+    "contactUs": "お問い合わせ"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "hero": {
+    "title": "Convert Bank Statements to Excel — Fast and Accurate",
+    "subtitle": "Simple, secure, and built for regular use.",
+    "noSignup": "No signup required",
+    "supportedFormats": "Supports PDF, Excel, CSV up to 10MB",
+    "dragDrop": "Drag and drop your file here, or click to browse"
+  },
+  "advantages": {
+    "title": "Why ClearlyLedger?",
+    "speed": {
+      "title": "Lightning Fast",
+      "description": "Convert statements in under 60 seconds"
+    },
+    "accuracy": {
+      "title": "99.9% Accuracy",
+      "description": "AI-powered extraction with balance verification"
+    },
+    "security": {
+      "title": "Bank-Grade Security",
+      "description": "Your data is never stored"
+    },
+    "global": {
+      "title": "50+ Countries",
+      "description": "Support for 200+ banks worldwide"
+    }
+  },
+  "features": {
+    "title": "Features",
+    "subtitle": "Built for Financial Professionals",
+    "speed": {
+      "title": "Lightning Fast",
+      "description": "Process multi-page statements in under 60 seconds"
+    },
+    "security": {
+      "title": "Privacy First",
+      "description": "Files processed in memory, never stored on disk"
+    },
+    "formats": {
+      "title": "Multiple Formats",
+      "description": "Export to Excel, CSV, or accounting software formats"
+    },
+    "verification": {
+      "title": "Balance Verified",
+      "description": "Automatic reconciliation catches extraction errors"
+    },
+    "global": {
+      "title": "Global Support",
+      "description": "50+ countries, 200+ banks, multi-currency handling"
+    },
+    "updates": {
+      "title": "Always Current",
+      "description": "Bank format updates deployed weekly"
+    }
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "description": "Start free. Upgrade when you need more.",
+    "anonymous": {
+      "name": "Anonymous",
+      "description": "No signup required",
+      "pages": "1 page/day"
+    },
+    "starter": {
+      "name": "Starter",
+      "description": "Free forever",
+      "pages": "5 pages/day"
+    },
+    "professional": {
+      "name": "Professional",
+      "price": "$19/month",
+      "pages": "Unlimited pages"
+    },
+    "business": {
+      "name": "Business",
+      "price": "$49/month",
+      "pages": "Unlimited + Team"
+    },
+    "lifetime": {
+      "name": "Lifetime",
+      "price": "$119 once",
+      "pages": "Unlimited forever"
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "description": "Quick answers to common questions about bank statement conversion."
+  },
+  "cta": {
+    "title": "Ready to Convert Your Bank Statements?",
+    "description": "Join thousands of professionals who trust ClearlyLedger."
+  }
+}

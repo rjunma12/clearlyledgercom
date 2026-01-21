@@ -1,0 +1,93 @@
+{
+  "hero": {
+    "title": "銀行取引明細書をExcelに変換 — 高速で正確",
+    "subtitle": "シンプル、安全、定期利用に最適。",
+    "noSignup": "登録不要",
+    "supportedFormats": "PDF、Excel、CSV対応（最大10MB）",
+    "dragDrop": "ファイルをここにドラッグ&ドロップ、またはクリックして選択"
+  },
+  "advantages": {
+    "title": "ClearlyLedgerを選ぶ理由",
+    "speed": {
+      "title": "超高速処理",
+      "description": "60秒以内に明細書を変換"
+    },
+    "accuracy": {
+      "title": "99.9%の精度",
+      "description": "AI搭載の抽出と残高検証"
+    },
+    "security": {
+      "title": "銀行レベルのセキュリティ",
+      "description": "データは保存されません"
+    },
+    "global": {
+      "title": "50か国以上対応",
+      "description": "世界200以上の銀行をサポート"
+    }
+  },
+  "features": {
+    "title": "機能",
+    "subtitle": "金融プロフェッショナル向けに構築",
+    "speed": {
+      "title": "超高速処理",
+      "description": "複数ページの明細書を60秒以内に処理"
+    },
+    "security": {
+      "title": "プライバシー優先",
+      "description": "ファイルはメモリ内で処理、ディスクに保存されません"
+    },
+    "formats": {
+      "title": "複数フォーマット対応",
+      "description": "Excel、CSV、会計ソフト形式でエクスポート"
+    },
+    "verification": {
+      "title": "残高検証済み",
+      "description": "自動照合で抽出エラーを検出"
+    },
+    "global": {
+      "title": "グローバルサポート",
+      "description": "50か国以上、200以上の銀行、多通貨対応"
+    },
+    "updates": {
+      "title": "常に最新",
+      "description": "銀行フォーマットの更新は毎週実施"
+    }
+  },
+  "pricing": {
+    "title": "シンプルで透明な料金体系",
+    "description": "無料で開始。必要に応じてアップグレード。",
+    "anonymous": {
+      "name": "匿名",
+      "description": "登録不要",
+      "pages": "1ページ/日"
+    },
+    "starter": {
+      "name": "スターター",
+      "description": "永久無料",
+      "pages": "5ページ/日"
+    },
+    "professional": {
+      "name": "プロフェッショナル",
+      "price": "¥2,900/月",
+      "pages": "無制限"
+    },
+    "business": {
+      "name": "ビジネス",
+      "price": "¥7,400/月",
+      "pages": "無制限 + チーム"
+    },
+    "lifetime": {
+      "name": "ライフタイム",
+      "price": "¥17,900（一回払い）",
+      "pages": "永久無制限"
+    }
+  },
+  "faq": {
+    "title": "よくある質問",
+    "description": "銀行取引明細書の変換に関するよくある質問への回答。"
+  },
+  "cta": {
+    "title": "銀行取引明細書を変換する準備はできましたか？",
+    "description": "ClearlyLedgerを信頼する数千人のプロフェッショナルに参加しましょう。"
+  }
+}
