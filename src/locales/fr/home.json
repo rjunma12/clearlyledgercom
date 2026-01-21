@@ -1,0 +1,93 @@
+{
+  "hero": {
+    "title": "Convertissez vos Relevés Bancaires en Excel — Rapide et Précis",
+    "subtitle": "Simple, sécurisé et conçu pour une utilisation régulière.",
+    "noSignup": "Aucune inscription requise",
+    "supportedFormats": "Prend en charge PDF, Excel, CSV jusqu'à 10 Mo",
+    "dragDrop": "Glissez-déposez votre fichier ici, ou cliquez pour parcourir"
+  },
+  "advantages": {
+    "title": "Pourquoi ClearlyLedger ?",
+    "speed": {
+      "title": "Ultra Rapide",
+      "description": "Convertissez vos relevés en moins de 60 secondes"
+    },
+    "accuracy": {
+      "title": "Précision de 99,9%",
+      "description": "Extraction par IA avec vérification du solde"
+    },
+    "security": {
+      "title": "Sécurité Bancaire",
+      "description": "Vos données ne sont jamais stockées"
+    },
+    "global": {
+      "title": "50+ Pays",
+      "description": "Support pour plus de 200 banques dans le monde"
+    }
+  },
+  "features": {
+    "title": "Fonctionnalités",
+    "subtitle": "Conçu pour les Professionnels de la Finance",
+    "speed": {
+      "title": "Ultra Rapide",
+      "description": "Traitez des relevés multi-pages en moins de 60 secondes"
+    },
+    "security": {
+      "title": "Confidentialité d'abord",
+      "description": "Fichiers traités en mémoire, jamais stockés sur disque"
+    },
+    "formats": {
+      "title": "Formats Multiples",
+      "description": "Exportez vers Excel, CSV ou formats de logiciels comptables"
+    },
+    "verification": {
+      "title": "Solde Vérifié",
+      "description": "Réconciliation automatique détecte les erreurs d'extraction"
+    },
+    "global": {
+      "title": "Support Mondial",
+      "description": "50+ pays, 200+ banques, gestion multi-devises"
+    },
+    "updates": {
+      "title": "Toujours à Jour",
+      "description": "Mises à jour des formats bancaires chaque semaine"
+    }
+  },
+  "pricing": {
+    "title": "Tarification Simple et Transparente",
+    "description": "Commencez gratuitement. Mettez à niveau quand vous en avez besoin.",
+    "anonymous": {
+      "name": "Anonyme",
+      "description": "Aucune inscription requise",
+      "pages": "1 page/jour"
+    },
+    "starter": {
+      "name": "Débutant",
+      "description": "Gratuit pour toujours",
+      "pages": "5 pages/jour"
+    },
+    "professional": {
+      "name": "Professionnel",
+      "price": "19€/mois",
+      "pages": "Pages illimitées"
+    },
+    "business": {
+      "name": "Entreprise",
+      "price": "49€/mois",
+      "pages": "Illimité + Équipe"
+    },
+    "lifetime": {
+      "name": "À Vie",
+      "price": "119€ une fois",
+      "pages": "Illimité pour toujours"
+    }
+  },
+  "faq": {
+    "title": "Questions Fréquentes",
+    "description": "Réponses rapides aux questions courantes sur la conversion de relevés bancaires."
+  },
+  "cta": {
+    "title": "Prêt à Convertir vos Relevés Bancaires ?",
+    "description": "Rejoignez des milliers de professionnels qui font confiance à ClearlyLedger."
+  }
+}
