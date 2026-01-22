@@ -66,6 +66,17 @@ export {
   type AuditFlag,
 } from './balanceValidator';
 
+// OCR Correction
+export {
+  correctOCRNumber,
+  correctCurrencySymbol,
+  correctOCRWord,
+  correctTextElement,
+  correctOCRElements,
+  isValidCorrectedNumber,
+  getConfidenceBoost,
+} from './ocrCorrection';
+
 // Number & Date Parsing
 export {
   detectNumberFormat,

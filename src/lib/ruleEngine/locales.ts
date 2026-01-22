@@ -416,3 +416,34 @@ export function detectLocale(headers: string[], sampleNumbers: string[]): Locale
   // Default to en-US
   return 'en-US';
 }
+
+// =============================================================================
+// TESSERACT LANGUAGE MAPPING
+// =============================================================================
+
+/**
+ * Map locales to Tesseract.js language codes
+ */
+export const TESSERACT_LANGUAGE_MAP: Partial<Record<Locale, string[]>> = {
+  'en-US': ['eng'],
+  'en-GB': ['eng'],
+  'en-IN': ['eng'],
+  'en-AE': ['eng'],
+  'es-ES': ['spa'],
+  'es-MX': ['spa'],
+  'fr-FR': ['fra'],
+  'de-DE': ['deu'],
+  'ar-AE': ['ara', 'eng'],
+  'ar-SA': ['ara', 'eng'],
+  'hi-IN': ['hin', 'eng'],
+  'zh-CN': ['chi_sim'],
+  'ja-JP': ['jpn'],
+  'auto': ['eng'],
+};
+
+/**
+ * Get Tesseract language codes for a locale
+ */
+export function getTesseractLanguages(locale: Locale): string[] {
+  return TESSERACT_LANGUAGE_MAP[locale] || ['eng'];
+}

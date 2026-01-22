@@ -19,6 +19,7 @@ export interface TextElement {
   boundingBox: BoundingBox;
   pageNumber: number;
   confidence?: number;
+  source?: 'text-layer' | 'ocr';
 }
 
 export interface ColumnAnchor {
