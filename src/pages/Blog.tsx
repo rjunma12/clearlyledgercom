@@ -17,6 +17,15 @@ const blogPosts = [
     featured: true
   },
   {
+    slug: "australia-bank-statement-converter",
+    title: "Convert Australian Bank Statement PDFs to Excel - CBA, ANZ, Westpac, NAB & More",
+    excerpt: "Complete guide to converting CBA, ANZ, Westpac, NAB, ING, and Macquarie bank statements to Excel. MYOB and Xero compatible exports with AUD formatting.",
+    date: "January 23, 2025",
+    category: "Regional",
+    readTime: "7 min read",
+    featured: true
+  },
+  {
     slug: "convert-bank-statements-to-excel",
     title: "How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)",
     excerpt: "Learn how to convert PDF bank statements to Excel in minutes. Step-by-step workflow, common issues, and troubleshooting tips to make financial data usable.",
@@ -77,7 +86,7 @@ const blogPosts = [
     date: "January 21, 2025",
     category: "Regional",
     readTime: "5 min read",
-    featured: true
+    featured: false
   },
   {
     slug: "japan-bank-statement-converter",
