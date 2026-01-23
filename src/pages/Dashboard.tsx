@@ -108,6 +108,9 @@ export default function Dashboard() {
               />
             )}
             
+            {/* Subscription Management */}
+            <SubscriptionCard />
+            
             {/* Email Preferences */}
             <EmailPreferencesCard />
           </div>
