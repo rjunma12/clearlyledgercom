@@ -20,6 +20,20 @@ import { supabase } from "@/integrations/supabase/client";
 
 type PlanType = 'anonymous' | 'registered_free' | 'starter' | 'pro' | 'business' | 'lifetime';
 
+interface PlanDetails {
+  name: string;
+  display_name: string;
+  price_cents: number;
+  is_recurring: boolean;
+}
+
+interface SubscriptionRow {
+  status: string;
+  expires_at: string | null;
+  cancel_at_period_end: boolean | null;
+  plans: PlanDetails | null;
+}
+
 interface SubscriptionData {
   planName: PlanType;
   displayName: string;
@@ -53,9 +67,9 @@ export function SubscriptionCard() {
         return;
       }
 
-      // Get active subscription with plan details
+      // Get active subscription with plan details (using sanitized view that hides payment provider IDs)
       const { data, error } = await supabase
-        .from('user_subscriptions')
+        .from('user_subscriptions_public' as any)
         .select(`
           status,
           expires_at,
@@ -71,7 +85,7 @@ export function SubscriptionCard() {
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle() as { data: SubscriptionRow | null; error: any };
 
       if (error) {
         console.error('Error fetching subscription:', error);
