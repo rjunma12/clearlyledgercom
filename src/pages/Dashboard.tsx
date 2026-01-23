@@ -100,6 +100,7 @@ export default function Dashboard() {
                 planName={plan.planName}
                 displayName={plan.displayName}
                 dailyLimit={plan.dailyLimit}
+                monthlyLimit={plan.monthlyLimit}
                 piiMasking={plan.piiMasking}
                 pagesUsedToday={usage.pagesUsedToday}
                 isUnlimited={usage.isUnlimited}
