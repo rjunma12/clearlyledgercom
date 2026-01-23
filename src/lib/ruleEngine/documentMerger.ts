@@ -9,12 +9,22 @@ import {
   DocumentSegment, 
   ValidationStatus 
 } from './types';
+import { 
+  detectDuplicates, 
+  flagDuplicatesInTransactions,
+  DuplicateDetectionOptions,
+  DuplicateDetectionResult,
+  DEFAULT_DUPLICATE_OPTIONS,
+  DuplicateGroup
+} from './duplicateDetector';
 
 export interface MergeOptions {
   sortByDate: boolean;
   addSourceColumn: boolean;
   validateContinuity: boolean;
   handleGaps: 'warn' | 'ignore' | 'flag';
+  /** Duplicate detection options */
+  duplicateDetection: Partial<DuplicateDetectionOptions>;
 }
 
 export const DEFAULT_MERGE_OPTIONS: MergeOptions = {
@@ -22,6 +32,7 @@ export const DEFAULT_MERGE_OPTIONS: MergeOptions = {
   addSourceColumn: true,
   validateContinuity: false,
   handleGaps: 'warn',
+  duplicateDetection: DEFAULT_DUPLICATE_OPTIONS,
 };
 
 export interface MergeResult {
@@ -37,6 +48,12 @@ export interface MergeResult {
     beforeFile: string;
     gapDays: number;
   }>;
+  /** Duplicate detection results */
+  duplicates: {
+    detected: boolean;
+    groups: DuplicateGroup[];
+    totalFlagged: number;
+  };
 }
 
 // Extended transaction type for merged documents (internal use)
@@ -64,6 +81,7 @@ export function mergeDocuments(
       sourceFiles: [],
       dateRange: { earliest: null, latest: null },
       gaps: [],
+      duplicates: { detected: false, groups: [], totalFlagged: 0 },
     };
   }
 
@@ -75,11 +93,12 @@ export function mergeDocuments(
       sourceFiles: fileNames,
       dateRange: getDateRange(doc),
       gaps: [],
+      duplicates: { detected: false, groups: [], totalFlagged: 0 },
     };
   }
 
   // Collect all transactions from all documents
-  const allTransactions: MergedTransaction[] = [];
+  let allTransactions: MergedTransaction[] = [];
   
   documents.forEach((doc, docIndex) => {
     const fileName = fileNames[docIndex] || `File ${docIndex + 1}`;
@@ -88,11 +107,9 @@ export function mergeDocuments(
       segment.transactions.forEach(tx => {
         const mergedTx: MergedTransaction = {
           ...tx,
+          sourceFileName: opts.addSourceColumn ? fileName : undefined,
+          fileIndex: docIndex,
         };
-        if (opts.addSourceColumn) {
-          mergedTx.sourceFileName = fileName;
-          mergedTx.fileIndex = docIndex;
-        }
         allTransactions.push(mergedTx);
       });
     });
@@ -148,6 +165,21 @@ export function mergeDocuments(
     }
   }
 
+  // Detect duplicate transactions
+  let duplicateResult: DuplicateDetectionResult = { duplicateGroups: [], totalFlagged: 0, warnings: [] };
+  
+  if (opts.duplicateDetection?.enabled !== false) {
+    duplicateResult = detectDuplicates(allTransactions, opts.duplicateDetection);
+    
+    // Add duplicate warnings
+    duplicateResult.warnings.forEach(w => warnings.push(w));
+    
+    // Flag duplicates in transactions
+    if (duplicateResult.totalFlagged > 0) {
+      allTransactions = flagDuplicatesInTransactions(allTransactions, duplicateResult) as MergedTransaction[];
+    }
+  }
+
   // Re-index transactions after sorting
   allTransactions.forEach((tx, idx) => {
     tx.rowIndex = idx;
@@ -164,7 +196,7 @@ export function mergeDocuments(
     transactions: allTransactions,
   };
 
-  // Count validation statuses
+  // Count validation statuses (including duplicate-flagged warnings)
   const validCount = allTransactions.filter(tx => tx.validationStatus === 'valid').length;
   const errorCount = allTransactions.filter(tx => tx.validationStatus === 'error').length;
   const warningCount = allTransactions.filter(tx => tx.validationStatus === 'warning').length;
@@ -205,6 +237,11 @@ export function mergeDocuments(
     sourceFiles: fileNames,
     dateRange,
     gaps,
+    duplicates: {
+      detected: duplicateResult.totalFlagged > 0,
+      groups: duplicateResult.duplicateGroups,
+      totalFlagged: duplicateResult.totalFlagged,
+    },
   };
 }
 
@@ -305,3 +342,11 @@ function getMergedPeriod(documents: ParsedDocument[]): { from: string; to: strin
     to: formatDate(new Date(Math.max(...allEnds.map(d => d.getTime())))),
   };
 }
+
+// Re-export duplicate detection types for convenience
+export type { 
+  DuplicateDetectionOptions, 
+  DuplicateDetectionResult, 
+  DuplicateGroup,
+} from './duplicateDetector';
+export { DEFAULT_DUPLICATE_OPTIONS } from './duplicateDetector';
