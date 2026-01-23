@@ -296,6 +296,7 @@ export type Database = {
       plan_type:
         | "anonymous"
         | "registered_free"
+        | "starter"
         | "pro"
         | "business"
         | "lifetime"
@@ -430,6 +431,7 @@ export const Constants = {
       plan_type: [
         "anonymous",
         "registered_free",
+        "starter",
         "pro",
         "business",
         "lifetime",
