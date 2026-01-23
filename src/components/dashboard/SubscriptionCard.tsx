@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,19 +16,18 @@ import { CreditCard, Calendar, AlertTriangle, RefreshCw, Loader2, ExternalLink }
 import { useSubscriptionManagement } from "@/hooks/use-subscription-management";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 type PlanType = 'anonymous' | 'registered_free' | 'starter' | 'pro' | 'business' | 'lifetime';
 
-interface SubscriptionCardProps {
+interface SubscriptionData {
   planName: PlanType;
   displayName: string;
   status: string;
   expiresAt: string | null;
   cancelAtPeriodEnd: boolean;
-  cancelledAt: string | null;
   priceCents: number;
   isRecurring: boolean;
-  onRefresh?: () => void;
 }
 
 const planPriceDisplay: Record<string, string> = {
@@ -38,37 +37,86 @@ const planPriceDisplay: Record<string, string> = {
   lifetime: '$119 one-time',
 };
 
-export function SubscriptionCard({
-  planName,
-  displayName,
-  status,
-  expiresAt,
-  cancelAtPeriodEnd,
-  cancelledAt,
-  priceCents,
-  isRecurring,
-  onRefresh
-}: SubscriptionCardProps) {
+export function SubscriptionCard() {
   const navigate = useNavigate();
-  const { isLoading, cancelSubscription, reactivateSubscription } = useSubscriptionManagement();
+  const { isLoading: actionLoading, cancelSubscription, reactivateSubscription } = useSubscriptionManagement();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const isPaidPlan = ['starter', 'pro', 'business', 'lifetime'].includes(planName);
-  const isLifetime = planName === 'lifetime';
-  const isCancelling = cancelAtPeriodEnd && !isLifetime;
+  const fetchSubscription = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setSubscription(null);
+        setIsLoading(false);
+        return;
+      }
+
+      // Get active subscription with plan details
+      const { data, error } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          status,
+          expires_at,
+          cancel_at_period_end,
+          plans (
+            name,
+            display_name,
+            price_cents,
+            is_recurring
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        setSubscription(null);
+      } else if (data && data.plans) {
+        setSubscription({
+          planName: data.plans.name as PlanType,
+          displayName: data.plans.display_name,
+          status: data.status,
+          expiresAt: data.expires_at,
+          cancelAtPeriodEnd: data.cancel_at_period_end || false,
+          priceCents: data.plans.price_cents,
+          isRecurring: data.plans.is_recurring,
+        });
+      } else {
+        setSubscription(null);
+      }
+    } catch (err) {
+      console.error('Subscription fetch error:', err);
+      setSubscription(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubscription();
+  }, []);
+
+  const isPaidPlan = subscription && ['starter', 'pro', 'business', 'lifetime'].includes(subscription.planName);
+  const isLifetime = subscription?.planName === 'lifetime';
+  const isCancelling = subscription?.cancelAtPeriodEnd && !isLifetime;
 
   const handleCancel = async () => {
     const success = await cancelSubscription();
     if (success) {
       setShowCancelDialog(false);
-      onRefresh?.();
+      fetchSubscription();
     }
   };
 
   const handleReactivate = async () => {
     const success = await reactivateSubscription();
     if (success) {
-      onRefresh?.();
+      fetchSubscription();
     }
   };
 
@@ -86,8 +134,27 @@ export function SubscriptionCard({
     });
   };
 
-  // Don't show card for free plans
-  if (!isPaidPlan) {
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card className="border-muted/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-muted-foreground" />
+            Subscription
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // No subscription or free plan
+  if (!subscription || !isPaidPlan) {
     return (
       <Card className="border-muted/30">
         <CardHeader className="pb-3">
@@ -123,7 +190,7 @@ export function SubscriptionCard({
             <Badge variant={isCancelling ? "outline" : "default"} className={cn(
               isCancelling && "border-warning text-warning"
             )}>
-              {isCancelling ? 'Cancelling' : status === 'active' ? 'Active' : status}
+              {isCancelling ? 'Cancelling' : subscription.status === 'active' ? 'Active' : subscription.status}
             </Badge>
           </div>
         </CardHeader>
@@ -131,24 +198,24 @@ export function SubscriptionCard({
           {/* Plan Details */}
           <div className="flex items-center justify-between py-2 border-b border-muted/20">
             <span className="text-sm text-muted-foreground">Plan</span>
-            <span className="text-sm font-medium text-foreground">{displayName}</span>
+            <span className="text-sm font-medium text-foreground">{subscription.displayName}</span>
           </div>
 
           <div className="flex items-center justify-between py-2 border-b border-muted/20">
             <span className="text-sm text-muted-foreground">Price</span>
             <span className="text-sm font-medium text-foreground">
-              {planPriceDisplay[planName] || `$${(priceCents / 100).toFixed(2)}`}
+              {planPriceDisplay[subscription.planName] || `$${(subscription.priceCents / 100).toFixed(2)}`}
             </span>
           </div>
 
-          {isRecurring && expiresAt && (
+          {subscription.isRecurring && subscription.expiresAt && (
             <div className="flex items-center justify-between py-2 border-b border-muted/20">
               <span className="text-sm text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {isCancelling ? 'Access until' : 'Next billing'}
               </span>
               <span className="text-sm font-medium text-foreground">
-                {formatDate(expiresAt)}
+                {formatDate(subscription.expiresAt)}
               </span>
             </div>
           )}
@@ -167,7 +234,7 @@ export function SubscriptionCard({
               <div className="text-sm">
                 <p className="font-medium text-warning">Subscription ending</p>
                 <p className="text-muted-foreground">
-                  Your subscription will end on {formatDate(expiresAt)}. 
+                  Your subscription will end on {formatDate(subscription.expiresAt)}. 
                   You can reactivate anytime before then.
                 </p>
               </div>
@@ -181,9 +248,9 @@ export function SubscriptionCard({
                 variant="default" 
                 className="w-full"
                 onClick={handleReactivate}
-                disabled={isLoading}
+                disabled={actionLoading}
               >
-                {isLoading ? (
+                {actionLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Reactivating...
@@ -209,7 +276,7 @@ export function SubscriptionCard({
                   variant="ghost" 
                   className="w-full text-muted-foreground hover:text-destructive"
                   onClick={() => setShowCancelDialog(true)}
-                  disabled={isLoading}
+                  disabled={actionLoading}
                 >
                   Cancel Subscription
                 </Button>
@@ -225,20 +292,20 @@ export function SubscriptionCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your subscription will remain active until {formatDate(expiresAt)}. 
+              Your subscription will remain active until {formatDate(subscription.expiresAt)}. 
               After that, you'll be downgraded to the free plan with limited features.
               <br /><br />
               You can reactivate anytime before your subscription ends.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Keep Subscription</AlertDialogCancel>
+            <AlertDialogCancel disabled={actionLoading}>Keep Subscription</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleCancel}
-              disabled={isLoading}
+              disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isLoading ? (
+              {actionLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Cancelling...
