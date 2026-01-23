@@ -266,6 +266,7 @@ export type Database = {
         Returns: {
           daily_limit: number
           display_name: string
+          monthly_limit: number
           pii_masking: Database["public"]["Enums"]["pii_masking_level"]
           plan_name: Database["public"]["Enums"]["plan_type"]
         }[]
