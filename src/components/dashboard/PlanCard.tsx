@@ -17,6 +17,7 @@ interface PlanCardProps {
 const planIcons: Record<PlanType, typeof Zap> = {
   anonymous: Zap,
   registered_free: Zap,
+  starter: Zap,
   pro: Zap,
   business: Crown,
   lifetime: Rocket,
@@ -25,6 +26,7 @@ const planIcons: Record<PlanType, typeof Zap> = {
 const planColors: Record<PlanType, string> = {
   anonymous: 'text-muted-foreground',
   registered_free: 'text-primary',
+  starter: 'text-primary',
   pro: 'text-primary',
   business: 'text-primary',
   lifetime: 'text-warning',
@@ -40,7 +42,7 @@ export function PlanCard({
 }: PlanCardProps) {
   const Icon = planIcons[planName];
   const iconColor = planColors[planName];
-  const isPaid = ['pro', 'business', 'lifetime'].includes(planName);
+  const isPaid = ['starter', 'pro', 'business', 'lifetime'].includes(planName);
   
   const usagePercent = !isUnlimited && dailyLimit 
     ? Math.min(100, Math.round((pagesUsedToday / dailyLimit) * 100))

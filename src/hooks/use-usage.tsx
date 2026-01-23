@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PlanType = 'anonymous' | 'registered_free' | 'pro' | 'business' | 'lifetime';
+export type PlanType = 'anonymous' | 'registered_free' | 'starter' | 'pro' | 'business' | 'lifetime';
 export type PiiMaskingLevel = 'none' | 'optional' | 'enforced';
 
 export interface UserPlan {

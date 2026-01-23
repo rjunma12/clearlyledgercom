@@ -75,7 +75,7 @@ const PricingSection = () => {
             <div className="flex items-center gap-2 mb-3">
               <UserPlus className="w-5 h-5 text-primary" />
               <h3 className="font-display text-lg font-semibold text-foreground">
-                Starter
+                Registered
               </h3>
               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                 Free
@@ -112,7 +112,51 @@ const PricingSection = () => {
         </div>
 
         {/* Paid Plans Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-6">
+
+          {/* Starter (Paid) */}
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-5 h-5 text-primary" />
+              <h3 className="font-display text-xl font-bold text-foreground">
+                Starter
+              </h3>
+            </div>
+            
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className="font-display text-3xl font-bold text-foreground">$15</span>
+              <span className="text-muted-foreground">/ month</span>
+            </div>
+
+            <p className="text-xs text-muted-foreground mb-3">400 pages per month</p>
+            
+            <ul className="space-y-2 mb-6 text-sm">
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-primary" />
+                Convert up to 400 pages/month
+              </li>
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary" />
+                Excel & CSV output
+              </li>
+              <li className="flex items-center gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary" />
+                Automatic balance validation
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="w-4 h-4 text-primary" />
+                Accounting software compatible
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Shield className="w-4 h-4 text-primary" />
+                PII masking toggle
+              </li>
+            </ul>
+
+            <Button variant="glass" className="w-full">
+              Get Starter
+            </Button>
+          </div>
 
           {/* Professional */}
           <div className="glass-card p-6">
@@ -148,8 +192,8 @@ const PricingSection = () => {
                 Priority rule updates
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-primary" />
-                Optional PII masking
+                <Shield className="w-4 h-4 text-primary" />
+                PII masking toggle
               </li>
             </ul>
 
@@ -199,8 +243,8 @@ const PricingSection = () => {
                 Priority email support
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-primary" />
-                Usage dashboard & analytics
+                <Shield className="w-4 h-4 text-primary" />
+                PII masking toggle
               </li>
             </ul>
 
@@ -244,6 +288,10 @@ const PricingSection = () => {
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-warning" />
                 All Business features
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Shield className="w-4 h-4 text-warning" />
+                PII masking toggle
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Check className="w-4 h-4 text-warning" />
