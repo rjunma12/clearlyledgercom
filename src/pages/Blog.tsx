@@ -8,6 +8,15 @@ import { useState } from "react";
 
 const blogPosts = [
   {
+    slug: "why-banks-dont-provide-csv-excel-statements",
+    title: "Why Banks Don't Provide Past Transactions in Excel or CSV Format",
+    excerpt: "Learn why banks globally only provide historical statements as PDFs, why generic converters fail, and how specialized tools solve this universal problem.",
+    date: "January 23, 2026",
+    category: "Thought Leadership",
+    readTime: "12 min read",
+    featured: true
+  },
+  {
     slug: "convert-bank-statements-to-excel",
     title: "How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)",
     excerpt: "Learn how to convert PDF bank statements to Excel in minutes. Step-by-step workflow, common issues, and troubleshooting tips to make financial data usable.",
@@ -81,7 +90,7 @@ const blogPosts = [
   }
 ];
 
-const categories = ["All", "Tutorial", "Regional", "Security", "Productivity"];
+const categories = ["All", "Thought Leadership", "Tutorial", "Regional", "Security", "Productivity"];
 
 // JSON-LD Schema for CollectionPage + ItemList
 const collectionPageSchema = {
