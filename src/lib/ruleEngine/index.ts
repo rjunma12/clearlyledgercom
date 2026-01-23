@@ -11,6 +11,9 @@
  * 3. Mathematical Integrity - 100% arithmetic validation with audit flags
  * 4. Regional Auto-Aliasing - International header & number format support
  * 5. Uniform Schema Output - Standardized 5-column format
+ * 6. Chronological Order - Auto-reverses descending dates to ascending
+ * 7. Transaction Categorization - Keyword-based category assignment
+ * 8. Multi-Currency Support - Detects and converts foreign currencies
  */
 
 // Types
@@ -88,6 +91,61 @@ export {
   determineAmountType,
 } from './numberParser';
 
+// Chronological Order Handling
+export {
+  detectDateOrder,
+  calculateOrderConfidence,
+  findOutOfOrderIndices,
+  validateChronologicalSequence,
+  reverseTransactions,
+  recalculateBalances,
+  analyzeChronologicalOrder,
+  processSegmentChronology,
+  shouldAutoReverse,
+  type DateOrder,
+  type ChronologicalAnalysis,
+  type DateSequenceWarning,
+} from './chronologicalOrder';
+
+// Transaction Categorization
+export {
+  categorizeDescription,
+  categorizeTransaction,
+  categorizeAllTransactions,
+  getCategoryStatistics,
+  getAvailableCategories,
+  type TransactionCategory,
+  type CategoryMatch,
+  type CategorizedTransaction,
+} from './transactionCategorizer';
+
+// Multi-Currency Handling
+export {
+  detectCurrencyInText,
+  detectCurrencyFromAmount,
+  detectCurrencyFromDescription,
+  convertTransactionToLocal,
+  processMultiCurrencyTransactions,
+  getCurrencySummary,
+  isMultiCurrencyDocument,
+  CURRENCY_INFO,
+  type CurrencyCode,
+  type CurrencyInfo,
+  type CurrencyDetectionResult,
+  type MultiCurrencyTransaction,
+} from './currencyHandler';
+
+// Exchange Rates
+export {
+  getExchangeRate,
+  convertAmount,
+  getRatesForCurrency,
+  formatWithCurrency,
+  EXCHANGE_RATES,
+  isCurrencySupported,
+  getSupportedCurrencies,
+} from './exchangeRates';
+
 // =============================================================================
 // MAIN PROCESSING PIPELINE
 // =============================================================================
@@ -107,6 +165,9 @@ import { applyLookBackStitching, convertToRawTransactions, getOriginalLines } fr
 import { validateDocument, detectSegmentBoundaries, splitIntoSegments } from './balanceValidator';
 import { detectNumberFormat, parseNumber, parseDate } from './numberParser';
 import { detectLocale, LOCALE_CONFIGS } from './locales';
+import { analyzeChronologicalOrder, type DateOrder } from './chronologicalOrder';
+import { categorizeDescription } from './transactionCategorizer';
+import { processMultiCurrencyTransactions, isMultiCurrencyDocument, type CurrencyCode } from './currencyHandler';
 
 /**
  * Main processing pipeline - converts raw text elements to validated transactions
@@ -173,23 +234,44 @@ export async function processDocument(
     const numberFormat = detectNumberFormat(sampleNumbers);
     
     // Parse transactions
-    const parsedTransactions: ParsedTransaction[] = rawTransactions.map((raw, index) => {
+    let parsedTransactions: ParsedTransaction[] = rawTransactions.map((raw, index) => {
       const stitched = stitchedRows[index];
+      const description = stitched?.stitchedDescription ?? raw.rawDescription ?? '';
+      
+      // Categorize transaction
+      const categoryMatch = fullConfig.enableCategorization 
+        ? categorizeDescription(description)
+        : null;
       
       return {
         id: `tx-${index}`,
         rowIndex: index,
         date: parseDate(raw.rawDate ?? '', detectedLocale) ?? '',
-        description: stitched?.stitchedDescription ?? raw.rawDescription ?? '',
+        description,
         debit: parseNumber(raw.rawDebit ?? '', numberFormat),
         credit: parseNumber(raw.rawCredit ?? '', numberFormat),
         balance: parseNumber(raw.rawBalance ?? '', numberFormat) ?? 0,
+        category: categoryMatch?.category,
+        categoryConfidence: categoryMatch?.confidence,
         validationStatus: 'unchecked',
         sourcePageNumbers: [raw.pageNumber],
         isStitchedRow: stitched?.isStitched ?? false,
         originalLines: stitched ? getOriginalLines(stitched) : [],
       };
     });
+    
+    // Stage 4b: Apply chronological ordering
+    if (fullConfig.autoReverseChronological) {
+      const chronoResult = analyzeChronologicalOrder(parsedTransactions, true);
+      parsedTransactions = chronoResult.transactions;
+      
+      if (chronoResult.analysis.wasReversed) {
+        warnings.push('Transactions were automatically reversed to chronological order (oldest first)');
+      }
+      if (chronoResult.warnings.length > 0) {
+        chronoResult.warnings.forEach(w => warnings.push(w.message));
+      }
+    }
     
     stages[3] = { ...stages[3], status: 'complete', progress: 100 };
     
@@ -203,6 +285,24 @@ export async function processDocument(
     
     const segments = splitIntoSegments(parsedTransactions, boundaries);
     
+    // Apply multi-currency handling if enabled
+    const localCurrency = fullConfig.localCurrency as CurrencyCode;
+    let hasMultipleCurrencies = false;
+    
+    if (fullConfig.enableCurrencyDetection) {
+      for (const segment of segments) {
+        const multiCurrencyTx = processMultiCurrencyTransactions(
+          segment.transactions,
+          localCurrency,
+          true
+        );
+        segment.transactions = multiCurrencyTx as ParsedTransaction[];
+      }
+      
+      const allTx = segments.flatMap(s => s.transactions);
+      hasMultipleCurrencies = isMultiCurrencyDocument(allTx as any);
+    }
+    
     // Create document
     let document: ParsedDocument = {
       fileName,
@@ -214,6 +314,10 @@ export async function processDocument(
       errorTransactions: 0,
       warningTransactions: 0,
       overallValidation: 'unchecked',
+      dateOrder: fullConfig.autoReverseChronological ? 'ascending' : undefined,
+      wasReversed: false,
+      hasMultipleCurrencies,
+      localCurrency: fullConfig.localCurrency,
     };
     
     // Validate document

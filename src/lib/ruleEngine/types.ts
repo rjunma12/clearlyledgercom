@@ -54,12 +54,24 @@ export interface ParsedTransaction {
   credit: number | null;           // Positive float or null
   balance: number;                 // Running balance
   
+  // Categorization
+  category?: string;               // Transaction category (Transfer, Salary, etc.)
+  categoryConfidence?: number;     // 0-1 confidence score for category
+  
+  // Multi-currency support
+  originalCurrency?: string;       // Original currency code (USD, EUR, etc.)
+  originalDebit?: number | null;   // Amount in original currency
+  originalCredit?: number | null;  // Amount in original currency
+  exchangeRate?: number;           // Conversion rate used
+  localCurrency?: string;          // Target/local currency
+  
   // Audit metadata
   validationStatus: ValidationStatus;
   validationMessage?: string;
   sourcePageNumbers: number[];
   isStitchedRow: boolean;          // True if multi-line description was merged
   originalLines: string[];         // For audit trail
+  notes?: string[];                // Manual review suggestions
 }
 
 export type ValidationStatus = 'valid' | 'error' | 'warning' | 'unchecked';
@@ -91,6 +103,8 @@ export interface DocumentSegment {
   transactions: ParsedTransaction[];
 }
 
+export type DateOrder = 'ascending' | 'descending' | 'mixed' | 'unknown';
+
 export interface ParsedDocument {
   fileName: string;
   totalPages: number;
@@ -101,6 +115,14 @@ export interface ParsedDocument {
   errorTransactions: number;
   warningTransactions: number;
   overallValidation: ValidationStatus;
+  
+  // Chronological order tracking
+  dateOrder?: DateOrder;            // Detected date order
+  wasReversed?: boolean;            // True if transactions were auto-reversed
+  
+  // Multi-currency summary
+  hasMultipleCurrencies?: boolean;  // True if multiple currencies detected
+  localCurrency?: string;           // Primary/local currency
 }
 
 // =============================================================================
@@ -149,6 +171,17 @@ export interface RuleEngineConfig {
   localeDetection: 'auto' | Locale;
   columnDetection: 'anchor' | 'fixed' | 'auto';
   
+  // Chronological ordering
+  autoReverseChronological: boolean;  // Auto-reverse descending dates
+  validateDateSequence: boolean;      // Check for out-of-order dates
+  
+  // Categorization
+  enableCategorization: boolean;      // Enable transaction categorization
+  
+  // Multi-currency
+  enableCurrencyDetection: boolean;   // Enable per-transaction currency detection
+  localCurrency: string;              // Target currency for conversion (e.g., 'USD')
+  
   // Thresholds
   columnOverlapThreshold: number;  // % overlap required for column assignment
   rowGapThreshold: number;         // Max Y-gap before new row
@@ -161,6 +194,11 @@ export const DEFAULT_CONFIG: RuleEngineConfig = {
   detectMergedPDFs: true,
   localeDetection: 'auto',
   columnDetection: 'auto',
+  autoReverseChronological: true,
+  validateDateSequence: true,
+  enableCategorization: true,
+  enableCurrencyDetection: true,
+  localCurrency: 'USD',
   columnOverlapThreshold: 0.3,
   rowGapThreshold: 20,
   confidenceThreshold: 0.7,
