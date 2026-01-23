@@ -98,13 +98,60 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_events: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          currency: string | null
+          dodo_customer_id: string | null
+          dodo_payment_id: string | null
+          dodo_subscription_id: string | null
+          event_type: string
+          id: string
+          plan_name: string | null
+          raw_payload: Json | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          dodo_customer_id?: string | null
+          dodo_payment_id?: string | null
+          dodo_subscription_id?: string | null
+          event_type: string
+          id?: string
+          plan_name?: string | null
+          raw_payload?: Json | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          dodo_customer_id?: string | null
+          dodo_payment_id?: string | null
+          dodo_subscription_id?: string | null
+          event_type?: string
+          id?: string
+          plan_name?: string | null
+          raw_payload?: Json | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
           daily_page_limit: number | null
           display_name: string
+          dodo_product_id: string | null
           id: string
           is_recurring: boolean
+          monthly_page_limit: number | null
           name: Database["public"]["Enums"]["plan_type"]
           pii_masking: Database["public"]["Enums"]["pii_masking_level"]
           price_cents: number
@@ -113,8 +160,10 @@ export type Database = {
           created_at?: string
           daily_page_limit?: number | null
           display_name: string
+          dodo_product_id?: string | null
           id?: string
           is_recurring?: boolean
+          monthly_page_limit?: number | null
           name: Database["public"]["Enums"]["plan_type"]
           pii_masking?: Database["public"]["Enums"]["pii_masking_level"]
           price_cents?: number
@@ -123,8 +172,10 @@ export type Database = {
           created_at?: string
           daily_page_limit?: number | null
           display_name?: string
+          dodo_product_id?: string | null
           id?: string
           is_recurring?: boolean
+          monthly_page_limit?: number | null
           name?: Database["public"]["Enums"]["plan_type"]
           pii_masking?: Database["public"]["Enums"]["pii_masking_level"]
           price_cents?: number
@@ -205,7 +256,12 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          cancel_at_period_end: boolean | null
+          cancelled_at: string | null
           created_at: string
+          dodo_customer_id: string | null
+          dodo_payment_id: string | null
+          dodo_subscription_id: string | null
           expires_at: string | null
           id: string
           plan_id: string
@@ -215,7 +271,12 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          cancel_at_period_end?: boolean | null
+          cancelled_at?: string | null
           created_at?: string
+          dodo_customer_id?: string | null
+          dodo_payment_id?: string | null
+          dodo_subscription_id?: string | null
           expires_at?: string | null
           id?: string
           plan_id: string
@@ -225,7 +286,12 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          cancel_at_period_end?: boolean | null
+          cancelled_at?: string | null
           created_at?: string
+          dodo_customer_id?: string | null
+          dodo_payment_id?: string | null
+          dodo_subscription_id?: string | null
           expires_at?: string | null
           id?: string
           plan_id?: string

@@ -1,18 +1,24 @@
-import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown } from "lucide-react";
+import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUsage } from "@/hooks/use-usage";
+import { useCheckout, PlanName } from "@/hooks/use-checkout";
 import { Link, useNavigate } from "react-router-dom";
 
 const PricingSection = () => {
   const navigate = useNavigate();
   const { lifetimeSpotsRemaining } = useUsage();
+  const { isLoading, loadingPlan, initiateCheckout } = useCheckout();
   const spotsRemaining = lifetimeSpotsRemaining ?? 350;
   const isSoldOut = spotsRemaining <= 0;
   const isLowStock = spotsRemaining <= 50 && spotsRemaining > 0;
 
   const handleEnterpriseClick = () => {
     navigate("/contact", { state: { subject: "Enterprise inquiry" } });
+  };
+
+  const handlePlanClick = (planName: PlanName) => {
+    initiateCheckout(planName);
   };
 
   return (
@@ -29,7 +35,7 @@ const PricingSection = () => {
             Choose Your Plan
           </h2>
           <p className="text-lg text-muted-foreground">
-            Start free. Upgrade when you need more power.
+            Start free. Upgrade when you need more power. All prices in USD.
           </p>
         </div>
 
@@ -153,8 +159,20 @@ const PricingSection = () => {
               </li>
             </ul>
 
-            <Button variant="glass" className="w-full">
-              Get Starter
+            <Button 
+              variant="glass" 
+              className="w-full"
+              onClick={() => handlePlanClick('starter')}
+              disabled={isLoading}
+            >
+              {loadingPlan === 'starter' ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Get Starter'
+              )}
             </Button>
           </div>
 
@@ -197,8 +215,20 @@ const PricingSection = () => {
               </li>
             </ul>
 
-            <Button variant="glass" className="w-full">
-              Get Professional
+            <Button 
+              variant="glass" 
+              className="w-full"
+              onClick={() => handlePlanClick('pro')}
+              disabled={isLoading}
+            >
+              {loadingPlan === 'pro' ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Get Professional'
+              )}
             </Button>
           </div>
 
@@ -248,8 +278,20 @@ const PricingSection = () => {
               </li>
             </ul>
 
-            <Button variant="hero" className="w-full">
-              Get Business
+            <Button 
+              variant="hero" 
+              className="w-full"
+              onClick={() => handlePlanClick('business')}
+              disabled={isLoading}
+            >
+              {loadingPlan === 'business' ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Get Business'
+              )}
             </Button>
           </div>
 
@@ -274,7 +316,7 @@ const PricingSection = () => {
               <span className="text-muted-foreground">one-time</span>
             </div>
 
-            <p className="text-xs text-muted-foreground mb-3">Unlimited pages forever</p>
+            <p className="text-xs text-muted-foreground mb-3">500 pages per month, forever</p>
             
             <ul className="space-y-2 mb-4 text-sm">
               <li className="flex items-center gap-2 text-foreground font-medium">
@@ -283,7 +325,7 @@ const PricingSection = () => {
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-warning" />
-                Unlimited pages
+                500 pages/month
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-warning" />
@@ -323,9 +365,19 @@ const PricingSection = () => {
                 "w-full",
                 !isSoldOut && "bg-warning/10 border-warning/30 hover:border-warning/50 hover:bg-warning/20"
               )}
-              disabled={isSoldOut}
+              disabled={isSoldOut || isLoading}
+              onClick={() => handlePlanClick('lifetime')}
             >
-              {isSoldOut ? 'Sold Out' : 'Get Lifetime Access'}
+              {loadingPlan === 'lifetime' ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : isSoldOut ? (
+                'Sold Out'
+              ) : (
+                'Get Lifetime Access'
+              )}
             </Button>
           </div>
         </div>
@@ -362,7 +414,7 @@ const PricingSection = () => {
         <div className="mt-12 text-center">
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
             <Shield className="w-4 h-4 text-primary" />
-            Secure payment • Cancel anytime • No hidden fees
+            Secure payment via Dodo • Cancel anytime • No hidden fees
           </p>
         </div>
       </div>
