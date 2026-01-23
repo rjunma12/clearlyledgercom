@@ -199,11 +199,11 @@ const PricingSection = () => {
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-primary" />
-                Batch uploads
+                Batch upload (up to 10 files)
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-primary" />
-                Faster processing queue
+                Merged output file
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Check className="w-4 h-4 text-primary" />
@@ -262,11 +262,11 @@ const PricingSection = () => {
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-primary" />
-                Multi-bank batch processing
+                Batch upload (up to 20 files)
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-primary" />
-                Dedicated parsing profiles
+                Multi-bank merged output
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-primary" />

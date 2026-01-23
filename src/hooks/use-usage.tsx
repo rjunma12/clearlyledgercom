@@ -20,6 +20,16 @@ export interface UsageInfo {
   isUnlimited: boolean;
 }
 
+// Batch upload limits by plan
+const BATCH_LIMITS: Record<PlanType, number> = {
+  anonymous: 1,
+  registered_free: 1,
+  starter: 1,
+  pro: 10,
+  business: 20,
+  lifetime: 10,
+};
+
 interface UseUsageReturn {
   plan: UserPlan | null;
   usage: UsageInfo | null;
@@ -31,6 +41,8 @@ interface UseUsageReturn {
   canProcess: boolean;
   canUsePiiMasking: boolean;
   isPiiMaskingEnforced: boolean;
+  canBatchUpload: boolean;
+  maxBatchFiles: number;
   refreshUsage: () => Promise<void>;
   incrementUsage: (pages: number) => Promise<boolean>;
 }
@@ -194,6 +206,10 @@ export function useUsage(): UseUsageReturn {
   const canProcess = usage?.isUnlimited || (usage?.pagesRemaining ?? 0) > 0;
   const canUsePiiMasking = plan?.piiMasking === 'optional' || plan?.piiMasking === 'enforced';
   const isPiiMaskingEnforced = plan?.piiMasking === 'enforced';
+  
+  // Batch upload is available for Pro, Business, and Lifetime plans
+  const canBatchUpload = ['pro', 'business', 'lifetime'].includes(plan?.planName ?? '');
+  const maxBatchFiles = plan?.planName ? BATCH_LIMITS[plan.planName] : 1;
 
   return {
     plan,
@@ -206,6 +222,8 @@ export function useUsage(): UseUsageReturn {
     canProcess,
     canUsePiiMasking,
     isPiiMaskingEnforced,
+    canBatchUpload,
+    maxBatchFiles,
     refreshUsage,
     incrementUsage
   };
