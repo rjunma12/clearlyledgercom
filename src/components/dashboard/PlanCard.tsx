@@ -9,8 +9,10 @@ interface PlanCardProps {
   planName: PlanType;
   displayName: string;
   dailyLimit: number | null;
+  monthlyLimit: number | null;
   piiMasking: PiiMaskingLevel;
   pagesUsedToday: number;
+  pagesUsedThisMonth?: number;
   isUnlimited: boolean;
 }
 
@@ -36,17 +38,29 @@ export function PlanCard({
   planName,
   displayName,
   dailyLimit,
+  monthlyLimit,
   piiMasking,
   pagesUsedToday,
+  pagesUsedThisMonth = 0,
   isUnlimited
 }: PlanCardProps) {
   const Icon = planIcons[planName];
   const iconColor = planColors[planName];
   const isPaid = ['starter', 'pro', 'business', 'lifetime'].includes(planName);
   
-  const usagePercent = !isUnlimited && dailyLimit 
-    ? Math.min(100, Math.round((pagesUsedToday / dailyLimit) * 100))
+  // Determine if this plan uses monthly or daily limits
+  const isMonthlyPlan = monthlyLimit !== null && dailyLimit === null;
+  
+  // Calculate usage based on limit type
+  const currentUsage = isMonthlyPlan ? pagesUsedThisMonth : pagesUsedToday;
+  const currentLimit = isMonthlyPlan ? monthlyLimit : dailyLimit;
+  
+  const usagePercent = !isUnlimited && currentLimit 
+    ? Math.min(100, Math.round((currentUsage / currentLimit) * 100))
     : 0;
+
+  const usageLabel = isMonthlyPlan ? 'Monthly Usage' : 'Daily Usage';
+  const limitLabel = isMonthlyPlan ? 'pages/month' : 'pages/day';
 
   return (
     <div className={cn(
@@ -82,12 +96,12 @@ export function PlanCard({
       {/* Usage Progress */}
       <div className="mb-4">
         <div className="flex justify-between text-sm mb-2">
-          <span className="text-muted-foreground">Daily Usage</span>
+          <span className="text-muted-foreground">{usageLabel}</span>
           <span className="text-foreground font-medium">
             {isUnlimited ? (
               'Unlimited'
             ) : (
-              `${pagesUsedToday} / ${dailyLimit} pages`
+              `${currentUsage} / ${currentLimit} pages`
             )}
           </span>
         </div>
@@ -106,6 +120,12 @@ export function PlanCard({
             <div className="h-full w-full bg-gradient-to-r from-primary to-primary/50 rounded-full" />
           </div>
         )}
+        {/* Show when limit resets */}
+        {!isUnlimited && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {isMonthlyPlan ? 'Resets on the 1st of each month' : 'Resets at midnight UTC'}
+          </p>
+        )}
       </div>
 
       {/* Features */}
@@ -113,7 +133,7 @@ export function PlanCard({
         <div className="flex items-center gap-2 text-sm">
           <Check className="w-4 h-4 text-primary" />
           <span className="text-muted-foreground">
-            {isUnlimited ? 'Unlimited pages' : `${dailyLimit} pages/day`}
+            {isUnlimited ? 'Unlimited pages' : `${currentLimit} ${limitLabel}`}
           </span>
         </div>
         <div className="flex items-center gap-2 text-sm">
@@ -140,9 +160,8 @@ export function PlanCard({
       {!isPaid && (
         <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
           <p className="text-xs text-muted-foreground">
-            Upgrade to <span className="text-primary font-medium">Pro</span> or{' '}
-            <span className="text-primary font-medium">Business</span> for unlimited pages 
-            and PII masking.
+            Upgrade to <span className="text-primary font-medium">Starter</span> for 400 pages/month 
+            with PII masking.
           </p>
         </div>
       )}
