@@ -4,7 +4,13 @@
  */
 
 import { processPDF, PDFProcessingOptions } from './pdfProcessor';
-import { mergeDocuments, MergeOptions, MergeResult, DEFAULT_MERGE_OPTIONS } from './ruleEngine/documentMerger';
+import { 
+  mergeDocuments, 
+  MergeOptions, 
+  MergeResult, 
+  DEFAULT_MERGE_OPTIONS,
+  DuplicateGroup
+} from './ruleEngine/documentMerger';
 import { ParsedDocument, ProcessingResult } from './ruleEngine/types';
 
 export interface BatchProcessingOptions extends Partial<PDFProcessingOptions> {
@@ -35,6 +41,12 @@ export interface BatchProcessingResult {
   totalProcessingTime: number;
   errors: string[];
   warnings: string[];
+  /** Duplicate detection summary */
+  duplicates: {
+    detected: boolean;
+    groups: DuplicateGroup[];
+    totalFlagged: number;
+  };
 }
 
 /**
@@ -126,6 +138,7 @@ export async function processBatchPDFs(
       totalProcessingTime: performance.now() - startTime,
       errors: errors.length > 0 ? errors : ['No files were successfully processed'],
       warnings,
+      duplicates: { detected: false, groups: [], totalFlagged: 0 },
     };
   }
 
@@ -155,6 +168,7 @@ export async function processBatchPDFs(
     totalProcessingTime: performance.now() - startTime,
     errors,
     warnings,
+    duplicates: mergeResult.duplicates,
   };
 }
 
