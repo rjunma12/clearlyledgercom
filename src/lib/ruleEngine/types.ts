@@ -130,7 +130,7 @@ export interface ParsedDocument {
 // =============================================================================
 
 export type Locale = 
-  | 'en-US' | 'en-GB' | 'en-IN' | 'en-AE'
+  | 'en-US' | 'en-GB' | 'en-IN' | 'en-AE' | 'en-AU' | 'en-NZ'
   | 'es-ES' | 'es-MX'
   | 'fr-FR'
   | 'de-DE'
@@ -138,6 +138,7 @@ export type Locale =
   | 'hi-IN'
   | 'zh-CN'
   | 'ja-JP'
+  | 'ms-MY'
   | 'auto';
 
 export interface NumberFormat {

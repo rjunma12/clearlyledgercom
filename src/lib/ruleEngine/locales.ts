@@ -338,6 +338,42 @@ export const LOCALE_CONFIGS: Record<Locale, LocaleConfig> = {
     headerAliases: HEADER_ALIASES,
     rtl: false,
   },
+  'ms-MY': {
+    locale: 'ms-MY',
+    numberFormat: {
+      thousandsSeparator: ',',
+      decimalSeparator: '.',
+      currencySymbol: 'RM',
+      currencyPosition: 'prefix',
+    },
+    dateFormats: ['DD/MM/YYYY', 'D/M/YYYY', 'DD-MM-YYYY'],
+    headerAliases: HEADER_ALIASES,
+    rtl: false,
+  },
+  'en-AU': {
+    locale: 'en-AU',
+    numberFormat: {
+      thousandsSeparator: ',',
+      decimalSeparator: '.',
+      currencySymbol: '$',
+      currencyPosition: 'prefix',
+    },
+    dateFormats: ['DD/MM/YYYY', 'D/M/YYYY', 'DD-MM-YYYY', 'DD MMM YYYY', 'DD MMM YY'],
+    headerAliases: HEADER_ALIASES,
+    rtl: false,
+  },
+  'en-NZ': {
+    locale: 'en-NZ',
+    numberFormat: {
+      thousandsSeparator: ',',
+      decimalSeparator: '.',
+      currencySymbol: '$',
+      currencyPosition: 'prefix',
+    },
+    dateFormats: ['DD/MM/YYYY', 'D/M/YYYY', 'DD-MM-YYYY', 'DD MMM YYYY'],
+    headerAliases: HEADER_ALIASES,
+    rtl: false,
+  },
   'auto': {
     locale: 'auto',
     numberFormat: {
@@ -429,6 +465,8 @@ export const TESSERACT_LANGUAGE_MAP: Partial<Record<Locale, string[]>> = {
   'en-GB': ['eng'],
   'en-IN': ['eng'],
   'en-AE': ['eng'],
+  'en-AU': ['eng'],
+  'en-NZ': ['eng'],
   'es-ES': ['spa'],
   'es-MX': ['spa'],
   'fr-FR': ['fra'],
@@ -438,6 +476,7 @@ export const TESSERACT_LANGUAGE_MAP: Partial<Record<Locale, string[]>> = {
   'hi-IN': ['hin', 'eng'],
   'zh-CN': ['chi_sim'],
   'ja-JP': ['jpn'],
+  'ms-MY': ['msa', 'eng'],
   'auto': ['eng'],
 };
 

@@ -13,6 +13,14 @@ import { barclaysUKProfile } from './profiles/barclays-uk';
 import { hsbcUKProfile } from './profiles/hsbc-uk';
 import { bofaUSProfile } from './profiles/bofa-us';
 import { iciciIndiaProfile } from './profiles/icici-india';
+// Australian bank profiles
+import { cbaAustraliaProfile } from './profiles/cba-australia';
+import { anzAustraliaProfile } from './profiles/anz-australia';
+import { westpacAustraliaProfile } from './profiles/westpac-australia';
+import { nabAustraliaProfile } from './profiles/nab-australia';
+import { ingAustraliaProfile } from './profiles/ing-australia';
+import { macquarieAustraliaProfile } from './profiles/macquarie-australia';
+import { bendigoAustraliaProfile } from './profiles/bendigo-australia';
 
 // Re-export types
 export * from './types';
@@ -25,12 +33,24 @@ const registeredProfiles: Map<string, BankProfile> = new Map();
 
 // Register default profiles
 const defaultProfiles: BankProfile[] = [
+  // US Banks
   chaseUSProfile,
-  hdfcIndiaProfile,
-  barclaysUKProfile,
-  hsbcUKProfile,
   bofaUSProfile,
+  // UK Banks
+  hsbcUKProfile,
+  barclaysUKProfile,
+  // India Banks
+  hdfcIndiaProfile,
   iciciIndiaProfile,
+  // Australian Banks
+  cbaAustraliaProfile,
+  anzAustraliaProfile,
+  westpacAustraliaProfile,
+  nabAustraliaProfile,
+  ingAustraliaProfile,
+  macquarieAustraliaProfile,
+  bendigoAustraliaProfile,
+  // Fallback
   genericProfile, // Always last as fallback
 ];
 

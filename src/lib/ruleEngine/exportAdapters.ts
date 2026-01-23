@@ -15,7 +15,8 @@ export type ExportFormatType =
   | 'xero'        // Xero
   | 'sage'        // Sage 50/100
   | 'wave'        // Wave Accounting
-  | 'freshbooks'; // FreshBooks
+  | 'freshbooks'  // FreshBooks
+  | 'myob';       // MYOB (Australia)
 
 export interface ExportFormat {
   id: ExportFormatType;
@@ -335,6 +336,42 @@ const FRESHBOOKS_FORMAT: ExportFormat = {
   },
 };
 
+// MYOB Format - Australian accounting software
+const MYOB_FORMAT: ExportFormat = {
+  id: 'myob',
+  name: 'MYOB',
+  description: 'Compatible with MYOB AccountRight and Essentials (Australia)',
+  fileExtension: 'csv',
+  dateFormat: 'DD/MM/YYYY',
+  columns: [
+    { 
+      header: 'Date', 
+      source: 'date',
+      transform: (v) => formatDate(v as string, 'DD/MM/YYYY'),
+      width: 12,
+    },
+    { header: 'Co./Last Name', source: 'description', width: 40 },
+    { header: 'Memo', source: 'description', width: 50 },
+    { 
+      header: 'Debit Amount', 
+      source: 'debit',
+      transform: (v) => formatAmount(v as number | null),
+      width: 15,
+    },
+    { 
+      header: 'Credit Amount', 
+      source: 'credit',
+      transform: (v) => formatAmount(v as number | null),
+      width: 15,
+    },
+  ],
+  options: {
+    includeBalance: false,
+    amountFormat: 'separate',
+    includeHeaders: true,
+  },
+};
+
 // =============================================================================
 // FORMAT REGISTRY
 // =============================================================================
@@ -346,6 +383,7 @@ const FORMAT_REGISTRY: Map<ExportFormatType, ExportFormat> = new Map([
   ['sage', SAGE_FORMAT],
   ['wave', WAVE_FORMAT],
   ['freshbooks', FRESHBOOKS_FORMAT],
+  ['myob', MYOB_FORMAT],
 ]);
 
 /**
@@ -360,6 +398,7 @@ export function getAvailableFormats(): ExportFormat[] {
     SAGE_FORMAT,
     WAVE_FORMAT,
     FRESHBOOKS_FORMAT,
+    MYOB_FORMAT,
   ];
 }
 
@@ -496,6 +535,14 @@ export function getFormatNotes(formatType: ExportFormatType): string[] {
         'Import via Expenses > Import Expenses',
         'Separate credit and debit columns',
         'Date format: YYYY-MM-DD',
+      ];
+    case 'myob':
+      return [
+        'Import via File > Import Data > Bank Statement',
+        'Separate debit and credit columns',
+        'Date format: DD/MM/YYYY (Australian standard)',
+        'Compatible with MYOB AccountRight and Essentials',
+        'Co./Last Name and Memo columns for payee details',
       ];
     default:
       return [
