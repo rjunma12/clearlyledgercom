@@ -12,12 +12,20 @@ import {
   Download,
   Copy,
   FileText,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import BatchFileUpload from '@/components/BatchFileUpload';
+import DuplicateReviewPanel from '@/components/dashboard/DuplicateReviewPanel';
 import { useUsage } from '@/hooks/use-usage';
 import { 
   processBatchPDFs, 
@@ -38,6 +46,7 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
   const [fileStatuses, setFileStatuses] = useState<BatchFileStatus[]>([]);
   const [result, setResult] = useState<BatchProcessingResult | null>(null);
   const [overallProgress, setOverallProgress] = useState(0);
+  const [excludedTransactions, setExcludedTransactions] = useState<Set<number>>(new Set());
 
   const handleFilesSelected = (selectedFiles: File[]) => {
     setFiles(selectedFiles);
@@ -47,6 +56,7 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
       progress: 0,
     })));
     setResult(null);
+    setExcludedTransactions(new Set());
   };
 
   const handleProcessBatch = async () => {
@@ -55,6 +65,7 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
     setIsProcessing(true);
     setOverallProgress(0);
     setResult(null);
+    setExcludedTransactions(new Set());
 
     try {
       const batchResult = await processBatchPDFs(files, {
@@ -125,10 +136,14 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
     }
   };
 
-  const handleExportMerged = () => {
+  const handleExportMerged = (excludeIndices?: Set<number>) => {
     if (!result?.mergedDocument) return;
 
-    const transactions = result.mergedDocument.segments.flatMap(s => s.transactions);
+    const allTransactions = result.mergedDocument.segments.flatMap(s => s.transactions);
+    const exclusions = excludeIndices || excludedTransactions;
+    
+    // Filter out excluded transactions
+    const transactions = allTransactions.filter((_, idx) => !exclusions.has(idx));
     
     // Build CSV with source file column
     const hasSourceColumn = transactions.some(tx => (tx as any).sourceFileName);
@@ -165,8 +180,11 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
+    const excludedCount = exclusions.size;
     toast.success('Export complete', {
-      description: `Downloaded merged_statements.csv`,
+      description: excludedCount > 0 
+        ? `Downloaded ${transactions.length} transactions (${excludedCount} excluded)`
+        : `Downloaded ${transactions.length} transactions`,
     });
   };
 
@@ -175,6 +193,11 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
     setFileStatuses([]);
     setResult(null);
     setOverallProgress(0);
+    setExcludedTransactions(new Set());
+  };
+
+  const handleExcludeFromExport = (indices: number[]) => {
+    setExcludedTransactions(new Set(indices));
   };
 
   // Don't show for non-premium users (they'll see BatchFileUpload's upgrade prompt)
@@ -239,8 +262,10 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
       ) : (
         <BatchResultsDisplay 
           result={result} 
-          onExport={handleExportMerged}
+          excludedTransactions={excludedTransactions}
+          onExport={() => handleExportMerged()}
           onProcessAnother={handleClearResults}
+          onExcludeFromExport={handleExcludeFromExport}
         />
       )}
     </div>
@@ -249,14 +274,26 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
 
 interface BatchResultsDisplayProps {
   result: BatchProcessingResult;
+  excludedTransactions: Set<number>;
   onExport: () => void;
   onProcessAnother: () => void;
+  onExcludeFromExport: (indices: number[]) => void;
 }
 
-function BatchResultsDisplay({ result, onExport, onProcessAnother }: BatchResultsDisplayProps) {
+function BatchResultsDisplay({ 
+  result, 
+  excludedTransactions,
+  onExport, 
+  onProcessAnother,
+  onExcludeFromExport 
+}: BatchResultsDisplayProps) {
+  const [showDuplicateReview, setShowDuplicateReview] = useState(false);
   const hasDuplicates = result.duplicates?.detected;
   const hasErrors = result.errors.length > 0;
   const hasWarnings = result.warnings.length > 0 || hasDuplicates;
+
+  const allTransactions = result.mergedDocument?.segments.flatMap(s => s.transactions) || [];
+  const exportCount = allTransactions.length - excludedTransactions.size;
 
   return (
     <div className="space-y-4">
@@ -317,23 +354,57 @@ function BatchResultsDisplay({ result, onExport, onProcessAnother }: BatchResult
         </div>
       </div>
 
-      {/* Duplicate Warning */}
+      {/* Duplicate Review Section */}
       {hasDuplicates && (
-        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-amber-600 dark:text-amber-400">
-                {result.duplicates.totalFlagged} Potential Duplicate{result.duplicates.totalFlagged !== 1 ? 's' : ''} Detected
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {result.duplicates.groups.length} group{result.duplicates.groups.length !== 1 ? 's' : ''} of 
-                transactions with matching dates, amounts, and similar descriptions were found 
-                across different files. Review these in the exported file (marked as warnings).
-              </p>
-            </div>
+        <Collapsible open={showDuplicateReview} onOpenChange={setShowDuplicateReview}>
+          <div className="rounded-lg border border-amber-500/30 overflow-hidden">
+            <CollapsibleTrigger asChild>
+              <button className="w-full p-4 flex items-center justify-between bg-amber-500/10 hover:bg-amber-500/15 transition-colors">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  <div className="text-left">
+                    <p className="font-medium text-amber-600 dark:text-amber-400">
+                      {result.duplicates.totalFlagged} Potential Duplicate{result.duplicates.totalFlagged !== 1 ? 's' : ''} Detected
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Click to review and manage duplicates before export
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-amber-600 border-amber-500/50">
+                    {result.duplicates.groups.length} group{result.duplicates.groups.length !== 1 ? 's' : ''}
+                  </Badge>
+                  {showDuplicateReview ? (
+                    <ChevronUp className="w-4 h-4 text-amber-500" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-amber-500" />
+                  )}
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="p-4 border-t border-amber-500/20 bg-card">
+                <DuplicateReviewPanel
+                  duplicateGroups={result.duplicates.groups}
+                  transactions={allTransactions}
+                  onDismissGroup={(groupIndex) => {
+                    // Mark group as not duplicates (no action needed for export)
+                    console.log('Dismissed group:', groupIndex);
+                  }}
+                  onDismissTransaction={(groupIndex, txIndex) => {
+                    console.log('Dismissed transaction:', groupIndex, txIndex);
+                  }}
+                  onRestoreGroup={(groupIndex) => {
+                    console.log('Restored group:', groupIndex);
+                  }}
+                  onExcludeFromExport={onExcludeFromExport}
+                />
+              </div>
+            </CollapsibleContent>
           </div>
-        </div>
+        </Collapsible>
       )}
 
       {/* File Status List */}
@@ -371,6 +442,16 @@ function BatchResultsDisplay({ result, onExport, onProcessAnother }: BatchResult
         </div>
       </div>
 
+      {/* Export Summary */}
+      {excludedTransactions.size > 0 && (
+        <div className="p-3 rounded-lg bg-muted/50 border border-border">
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">{exportCount}</strong> of {allTransactions.length} transactions will be exported
+            <span className="text-muted-foreground"> ({excludedTransactions.size} excluded)</span>
+          </p>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex gap-3 pt-2">
         <Button 
@@ -380,7 +461,7 @@ function BatchResultsDisplay({ result, onExport, onProcessAnother }: BatchResult
           disabled={!result.success}
         >
           <Download className="w-4 h-4" />
-          Export Merged CSV
+          Export {exportCount} Transactions
         </Button>
         <Button 
           onClick={onProcessAnother} 
