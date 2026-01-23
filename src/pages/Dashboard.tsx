@@ -18,6 +18,7 @@ import { PlanCard } from "@/components/dashboard/PlanCard";
 import { HistoryTable } from "@/components/dashboard/HistoryTable";
 import { EmailPreferencesCard } from "@/components/dashboard/EmailPreferencesCard";
 import { SubscriptionCard } from "@/components/dashboard/SubscriptionCard";
+import { BatchProcessingSection } from "@/components/dashboard/BatchProcessingSection";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -92,9 +93,9 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Plan + History Grid */}
+        {/* Plan + Batch Processing + History Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Plan Card */}
+          {/* Left Column - Plan & Settings */}
           <div className="lg:col-span-1 space-y-6">
             {plan && usage && (
               <PlanCard
@@ -115,22 +116,28 @@ export default function Dashboard() {
             <EmailPreferencesCard />
           </div>
 
-          {/* Processing History */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-muted-foreground" />
-                <h2 className="font-display text-lg font-semibold text-foreground">
-                  Processing History
-                </h2>
+          {/* Right Column - Batch Processing & History */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Batch Processing Section */}
+            <BatchProcessingSection />
+
+            {/* Processing History */}
+            <div className="glass-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <History className="w-5 h-5 text-muted-foreground" />
+                  <h2 className="font-display text-lg font-semibold text-foreground">
+                    Processing History
+                  </h2>
+                </div>
+                {history.length > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    Last 50 files
+                  </span>
+                )}
               </div>
-              {history.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  Last 50 files
-                </span>
-              )}
+              <HistoryTable items={history} isLoading={historyLoading} />
             </div>
-            <HistoryTable items={history} isLoading={historyLoading} />
           </div>
         </div>
 
