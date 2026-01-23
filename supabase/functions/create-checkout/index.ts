@@ -110,7 +110,7 @@ serve(async (req) => {
     }
 
     // Build the return URLs
-    const baseUrl = successUrl?.split('/checkout')[0] || 'https://clearlyapp.lovable.app';
+    const baseUrl = successUrl?.split('/checkout')[0] || 'https://clearlyledger.com';
     const returnUrl = `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&plan=${planName}`;
     const cancelReturnUrl = cancelUrl || `${baseUrl}/pricing`;
 
