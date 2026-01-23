@@ -7,7 +7,8 @@ export type PiiMaskingLevel = 'none' | 'optional' | 'enforced';
 export interface UserPlan {
   planName: PlanType;
   displayName: string;
-  dailyLimit: number | null; // null = unlimited
+  dailyLimit: number | null; // null = no daily limit
+  monthlyLimit: number | null; // null = no monthly limit
   piiMasking: PiiMaskingLevel;
 }
 
@@ -15,6 +16,7 @@ export interface UsageInfo {
   pagesUsedToday: number;
   pagesRemaining: number; // -1 = unlimited
   dailyLimit: number | null;
+  monthlyLimit: number | null;
   isUnlimited: boolean;
 }
 
@@ -72,6 +74,7 @@ export function useUsage(): UseUsageReturn {
           planName: 'anonymous',
           displayName: 'Anonymous',
           dailyLimit: 1,
+          monthlyLimit: null,
           piiMasking: 'none'
         });
       } else if (planData && planData.length > 0) {
@@ -80,6 +83,7 @@ export function useUsage(): UseUsageReturn {
           planName: p.plan_name as PlanType,
           displayName: p.display_name,
           dailyLimit: p.daily_limit,
+          monthlyLimit: p.monthly_limit,
           piiMasking: p.pii_masking as PiiMaskingLevel
         });
       }
@@ -111,6 +115,7 @@ export function useUsage(): UseUsageReturn {
         pagesUsedToday: pagesUsed,
         pagesRemaining: remaining,
         dailyLimit: planData?.[0]?.daily_limit ?? null,
+        monthlyLimit: planData?.[0]?.monthly_limit ?? null,
         isUnlimited
       });
 
