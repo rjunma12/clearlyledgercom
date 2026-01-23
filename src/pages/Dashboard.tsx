@@ -17,6 +17,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { PlanCard } from "@/components/dashboard/PlanCard";
 import { HistoryTable } from "@/components/dashboard/HistoryTable";
 import { EmailPreferencesCard } from "@/components/dashboard/EmailPreferencesCard";
+import { SubscriptionCard } from "@/components/dashboard/SubscriptionCard";
 
 export default function Dashboard() {
   const navigate = useNavigate();
