@@ -3,6 +3,7 @@ import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2 } from "lucide-
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { processPDF } from "@/lib/pdfProcessor";
+import { loadPdfDocument } from "@/lib/pdfUtils";
 import type { ProcessingResult, ProcessingStage } from "@/lib/ruleEngine/types";
 import { exportDocument } from "@/lib/ruleEngine/exportAdapters";
 import ExportOptionsDialog from "@/components/ExportOptionsDialog";
@@ -29,7 +30,7 @@ const FileUpload = () => {
   const processingRef = useRef<Map<string, boolean>>(new Map());
   
   // Get usage context for plan-aware exports
-  const { plan, isAuthenticated, canProcess, allowedFormats } = useUsageContext();
+  const { plan, isAuthenticated, canProcess, allowedFormats, refreshUsage } = useUsageContext();
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -68,6 +69,44 @@ const FileUpload = () => {
     processingRef.current.set(fileId, true);
 
     try {
+      // Update to checking quota status
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileId
+            ? { ...f, status: "uploading" as const, progress: 0, stage: "Checking quota..." }
+            : f
+        )
+      );
+
+      // CRITICAL: Get page count FIRST before processing
+      const { document: pdfDoc, totalPages } = await loadPdfDocument(file);
+      
+      // CRITICAL: Check and decrement quota BEFORE processing begins
+      const { data: usageResult, error: usageError } = await supabase.functions.invoke('track-usage', {
+        body: { pages: totalPages }
+      });
+
+      if (usageError || !usageResult?.success) {
+        const errorMessage = usageResult?.error || usageError?.message || 'Quota check failed';
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === fileId
+              ? { ...f, status: "error" as const, error: errorMessage }
+              : f
+          )
+        );
+        toast({
+          variant: "destructive",
+          title: "Page limit reached",
+          description: usageResult?.quotaExceeded 
+            ? `You have ${usageResult.remaining} page(s) remaining. This file has ${totalPages} pages.`
+            : errorMessage,
+        });
+        // Refresh usage to update UI
+        refreshUsage();
+        return;
+      }
+
       // Update to processing status
       setFiles((prev) =>
         prev.map((f) =>
@@ -94,6 +133,10 @@ const FileUpload = () => {
       });
 
       if (result.success && result.document) {
+        // Check if there are validation errors
+        const hasErrors = result.document.errorTransactions > 0;
+        const hasWarnings = result.document.warningTransactions > 0;
+        
         setFiles((prev) =>
           prev.map((f) =>
             f.id === fileId
@@ -101,16 +144,38 @@ const FileUpload = () => {
                   ...f,
                   status: "complete" as const,
                   progress: 100,
-                  stage: `${result.document?.totalTransactions || 0} transactions extracted`,
+                  stage: hasErrors 
+                    ? `${result.document?.totalTransactions || 0} transactions (${result.document?.errorTransactions} errors)`
+                    : hasWarnings
+                      ? `${result.document?.totalTransactions || 0} transactions (${result.document?.warningTransactions} warnings)`
+                      : `${result.document?.totalTransactions || 0} transactions extracted`,
                   result,
                 }
               : f
           )
         );
-        toast({
-          title: "Processing complete",
-          description: `Extracted ${result.document.totalTransactions} transactions from ${file.name}`,
-        });
+        
+        // Show appropriate toast
+        if (hasErrors) {
+          toast({
+            variant: "destructive",
+            title: "Validation errors detected",
+            description: `${result.document.errorTransactions} transaction(s) failed balance validation. Export is blocked until resolved.`,
+          });
+        } else if (hasWarnings) {
+          toast({
+            title: "Processing complete with warnings",
+            description: `Extracted ${result.document.totalTransactions} transactions. ${result.document.warningTransactions} have balance warnings.`,
+          });
+        } else {
+          toast({
+            title: "Processing complete",
+            description: `Extracted ${result.document.totalTransactions} transactions from ${file.name}`,
+          });
+        }
+        
+        // Refresh usage to reflect new quota
+        refreshUsage();
       } else {
         const errorMessage = result.errors?.[0]?.message || "Failed to process PDF";
         setFiles((prev) =>
@@ -139,9 +204,19 @@ const FileUpload = () => {
     } finally {
       processingRef.current.delete(fileId);
     }
-  }, [toast]);
+  }, [toast, refreshUsage]);
 
-  const handleFiles = useCallback((fileList: FileList) => {
+  const handleFiles = useCallback(async (fileList: FileList) => {
+    // Check if user can process before accepting files
+    if (!canProcess) {
+      toast({
+        variant: "destructive",
+        title: "Page limit reached",
+        description: "You've used all your pages for today. Upgrade for more capacity.",
+      });
+      return;
+    }
+
     const newFiles: UploadedFile[] = [];
 
     Array.from(fileList).forEach((file, index) => {
@@ -169,7 +244,7 @@ const FileUpload = () => {
         setTimeout(() => processFile(newFile.file!, newFile.id), 100);
       }
     });
-  }, [processFile]);
+  }, [processFile, canProcess, toast]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -216,16 +291,30 @@ const FileUpload = () => {
       if (!file.result?.document) return;
 
       try {
+        // Check for validation errors before allowing export
+        if (file.result.document.errorTransactions > 0) {
+          toast({
+            variant: "destructive",
+            title: "Export blocked",
+            description: `${file.result.document.errorTransactions} transaction(s) have balance errors. Fix validation issues before exporting.`,
+          });
+          return;
+        }
+
         // Export the document data
         const exportedData = exportDocument(file.result.document, "standard");
 
-        // Prepare transactions for backend
-        const transactions = exportedData.rows.map((row) => ({
+        // Get all transactions with validation status
+        const allTransactions = file.result.document.segments.flatMap(s => s.transactions);
+
+        // Prepare transactions for backend with validation status
+        const transactions = exportedData.rows.map((row, index) => ({
           date: String(row[0] || ""),
           description: String(row[1] || ""),
           debit: String(row[2] || ""),
           credit: String(row[3] || ""),
           balance: String(row[4] || ""),
+          validationStatus: allTransactions[index]?.validationStatus || 'unchecked',
         }));
 
         // Call backend to generate export (enforces authentication and plan checks)
@@ -236,6 +325,7 @@ const FileUpload = () => {
             format,
             filename: file.name,
             pageCount: file.result.document.totalPages,
+            timestamp: Date.now(), // Add timestamp for replay protection
           }
         });
 
@@ -251,7 +341,13 @@ const FileUpload = () => {
 
         if (!data?.success) {
           // Handle specific error cases
-          if (data?.requiresAuth) {
+          if (data?.validationFailed) {
+            toast({
+              variant: "destructive",
+              title: "Export blocked",
+              description: data.error || "Balance validation failed. Fix errors before exporting.",
+            });
+          } else if (data?.requiresAuth) {
             toast({
               variant: "destructive",
               title: "Authentication required",
@@ -268,6 +364,12 @@ const FileUpload = () => {
               variant: "destructive",
               title: "Quota exceeded",
               description: data.error || "You have reached your usage limit",
+            });
+          } else if (data?.expired) {
+            toast({
+              variant: "destructive",
+              title: "Request expired",
+              description: "Please try the export again",
             });
           } else {
             toast({
@@ -336,7 +438,7 @@ const FileUpload = () => {
   const getStatusText = (file: UploadedFile) => {
     switch (file.status) {
       case "uploading":
-        return "Preparing...";
+        return file.stage || "Preparing...";
       case "processing":
         return file.stage || "Processing...";
       case "complete":
@@ -344,6 +446,11 @@ const FileUpload = () => {
       case "error":
         return file.error;
     }
+  };
+
+  // Check if export should be disabled due to validation errors
+  const hasValidationErrors = (file: UploadedFile): boolean => {
+    return (file.result?.document?.errorTransactions ?? 0) > 0;
   };
 
   return (
@@ -358,7 +465,8 @@ const FileUpload = () => {
           "bg-card/50 backdrop-blur-sm hover:bg-card/70",
           isDragging
             ? "border-primary bg-primary/10 scale-[1.02]"
-            : "border-border/50 hover:border-primary/50"
+            : "border-border/50 hover:border-primary/50",
+          !canProcess && "opacity-50 cursor-not-allowed"
         )}
       >
         <input
@@ -367,6 +475,7 @@ const FileUpload = () => {
           multiple
           onChange={handleFileInput}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          disabled={!canProcess}
         />
 
         <div
@@ -384,9 +493,15 @@ const FileUpload = () => {
         </div>
 
         <p className="text-lg font-medium text-foreground mb-1">
-          {isDragging ? "Drop your files here" : "Drag & drop bank statements"}
+          {!canProcess 
+            ? "Page limit reached" 
+            : isDragging 
+              ? "Drop your files here" 
+              : "Drag & drop bank statements"}
         </p>
-        <p className="text-sm text-muted-foreground mb-3">or click to browse</p>
+        <p className="text-sm text-muted-foreground mb-3">
+          {!canProcess ? "Upgrade for more pages" : "or click to browse"}
+        </p>
         <p className="text-xs text-muted-foreground/70">
           PDF files only • Max 50MB per file
         </p>
@@ -400,20 +515,29 @@ const FileUpload = () => {
               key={file.id}
               className={cn(
                 "glass-card p-4 rounded-xl transition-all duration-300",
-                file.status === "error" && "border-destructive/50"
+                file.status === "error" && "border-destructive/50",
+                hasValidationErrors(file) && file.status === "complete" && "border-orange-500/50"
               )}
             >
               <div className="flex items-start gap-3">
                 <div
                   className={cn(
                     "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                    file.status === "error" ? "bg-destructive/10" : "bg-primary/10"
+                    file.status === "error" 
+                      ? "bg-destructive/10" 
+                      : hasValidationErrors(file) && file.status === "complete"
+                        ? "bg-orange-500/10"
+                        : "bg-primary/10"
                   )}
                 >
                   <FileText
                     className={cn(
                       "w-5 h-5",
-                      file.status === "error" ? "text-destructive" : "text-primary"
+                      file.status === "error" 
+                        ? "text-destructive" 
+                        : hasValidationErrors(file) && file.status === "complete"
+                          ? "text-orange-500"
+                          : "text-primary"
                     )}
                   />
                 </div>
@@ -439,14 +563,18 @@ const FileUpload = () => {
                     <span
                       className={cn(
                         "text-xs flex items-center gap-1",
-                        file.status === "complete"
+                        file.status === "complete" && !hasValidationErrors(file)
                           ? "text-emerald-400"
-                          : file.status === "error"
-                          ? "text-destructive"
-                          : "text-muted-foreground"
+                          : file.status === "complete" && hasValidationErrors(file)
+                            ? "text-orange-500"
+                            : file.status === "error"
+                              ? "text-destructive"
+                              : "text-muted-foreground"
                       )}
                     >
-                      {getStatusIcon(file.status)}
+                      {file.status === "complete" && hasValidationErrors(file) 
+                        ? <AlertCircle className="w-4 h-4 text-orange-500" />
+                        : getStatusIcon(file.status)}
                       {getStatusText(file)}
                     </span>
                   </div>
@@ -460,6 +588,13 @@ const FileUpload = () => {
                     </div>
                   )}
 
+                  {/* Validation error message */}
+                  {file.status === "complete" && hasValidationErrors(file) && (
+                    <p className="text-xs text-orange-500 mt-2">
+                      ⚠️ Export blocked: Fix {file.result?.document?.errorTransactions} balance error(s) before downloading
+                    </p>
+                  )}
+
                   {/* Export Button - Show when complete */}
                   {file.status === "complete" && file.result?.document && (
                     <div className="mt-3">
@@ -470,7 +605,7 @@ const FileUpload = () => {
                         isAuthenticated={isAuthenticated}
                         planName={plan?.displayName}
                         allowedFormats={allowedFormats}
-                        disabled={!canProcess}
+                        disabled={!canProcess || hasValidationErrors(file)}
                       />
                     </div>
                   )}
