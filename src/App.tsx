@@ -36,7 +36,16 @@ const Contact = lazy(() => import("./pages/Contact"));
 const About = lazy(() => import("./pages/About"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000, // 30 seconds - prevents refetching on every mount
+      gcTime: 5 * 60 * 1000, // 5 minutes - cache garbage collection time
+      retry: 1, // Only retry once on failure
+      refetchOnWindowFocus: false, // Don't refetch when tab regains focus
+    },
+  },
+});
 
 // Minimal loading fallback
 const PageLoader = () => (

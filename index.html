@@ -44,6 +44,13 @@
     <!-- Preconnect to CDN for PDF.js worker -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
     
+    <!-- Preload critical fonts with font-display: swap for non-blocking load -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" />
+    </noscript>
+    
     <!-- Prefetch likely navigation targets -->
     <link rel="prefetch" href="/pricing" as="document" />
     <link rel="prefetch" href="/dashboard" as="document" />

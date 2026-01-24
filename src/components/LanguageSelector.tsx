@@ -1,6 +1,6 @@
 import { Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { supportedLanguages, type SupportedLanguage, updateDocumentDirection } from "@/lib/i18n";
+import { supportedLanguages, type SupportedLanguage, updateDocumentDirection, loadLanguage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 interface LanguageSelectorProps {
@@ -37,9 +37,11 @@ export const LanguageSelector = ({ className, variant = "icon" }: LanguageSelect
     };
   }, [i18n]);
 
-  const handleLanguageChange = (langCode: SupportedLanguage) => {
+  const handleLanguageChange = useCallback(async (langCode: SupportedLanguage) => {
+    // Load translations before switching language
+    await loadLanguage(langCode);
     i18n.changeLanguage(langCode);
-  };
+  }, [i18n]);
 
   return (
     <DropdownMenu>

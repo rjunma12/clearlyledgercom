@@ -6,14 +6,14 @@ import AdvantagesSection from "@/components/AdvantagesSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import PricingSection from "@/components/PricingSection";
-import SecuritySection from "@/components/SecuritySection";
-import CTASection from "@/components/CTASection";
-import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
 import DemoSkeleton from "@/components/DemoSkeleton";
 
-// Lazy load heavy InteractiveDemo component
+// Lazy load heavy components that are below the fold
 const InteractiveDemo = lazy(() => import("@/components/InteractiveDemo"));
+const SecuritySection = lazy(() => import("@/components/SecuritySection"));
+const CTASection = lazy(() => import("@/components/CTASection"));
+const FAQSection = lazy(() => import("@/components/FAQSection"));
 
 const homepageFaqs = [
   {
@@ -158,13 +158,19 @@ const Index = () => {
         </Suspense>
         <FeaturesSection />
         <HowItWorksSection />
-        <FAQSection 
-          faqs={homepageFaqs}
-          title="Frequently Asked Questions"
-          description="Quick answers to common questions about bank statement conversion."
-        />
-        <SecuritySection />
-        <CTASection />
+        <Suspense fallback={<div className="py-16 animate-pulse bg-surface-elevated/30" />}>
+          <FAQSection 
+            faqs={homepageFaqs}
+            title="Frequently Asked Questions"
+            description="Quick answers to common questions about bank statement conversion."
+          />
+        </Suspense>
+        <Suspense fallback={<div className="py-24 animate-pulse bg-surface-elevated/50" />}>
+          <SecuritySection />
+        </Suspense>
+        <Suspense fallback={<div className="py-24 animate-pulse" />}>
+          <CTASection />
+        </Suspense>
       </main>
       <Footer />
     </div>

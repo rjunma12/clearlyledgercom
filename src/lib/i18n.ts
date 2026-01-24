@@ -2,21 +2,9 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-// Import translation files
+// Only import English translations statically - others are lazy-loaded
 import enCommon from '@/locales/en/common.json';
 import enHome from '@/locales/en/home.json';
-import jaCommon from '@/locales/ja/common.json';
-import jaHome from '@/locales/ja/home.json';
-import msCommon from '@/locales/ms/common.json';
-import msHome from '@/locales/ms/home.json';
-import hiCommon from '@/locales/hi/common.json';
-import hiHome from '@/locales/hi/home.json';
-import arCommon from '@/locales/ar/common.json';
-import arHome from '@/locales/ar/home.json';
-import esCommon from '@/locales/es/common.json';
-import esHome from '@/locales/es/home.json';
-import frCommon from '@/locales/fr/common.json';
-import frHome from '@/locales/fr/home.json';
 
 export const supportedLanguages = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧', dir: 'ltr' },
@@ -30,38 +18,35 @@ export const supportedLanguages = [
 
 export type SupportedLanguage = typeof supportedLanguages[number]['code'];
 
+// Cache for loaded languages to prevent duplicate loads
+const loadedLanguages = new Set<string>(['en']);
+
+// Lazy load translations for non-English languages
+export const loadLanguage = async (lng: string): Promise<void> => {
+  if (lng === 'en' || loadedLanguages.has(lng)) return;
+  
+  try {
+    const [common, home] = await Promise.all([
+      import(`../locales/${lng}/common.json`),
+      import(`../locales/${lng}/home.json`),
+    ]);
+    
+    i18n.addResourceBundle(lng, 'common', common.default, true, true);
+    i18n.addResourceBundle(lng, 'home', home.default, true, true);
+    loadedLanguages.add(lng);
+  } catch (error) {
+    console.warn(`Failed to load language: ${lng}`, error);
+  }
+};
+
 const resources = {
   en: {
     common: enCommon,
     home: enHome,
   },
-  es: {
-    common: esCommon,
-    home: esHome,
-  },
-  fr: {
-    common: frCommon,
-    home: frHome,
-  },
-  ja: {
-    common: jaCommon,
-    home: jaHome,
-  },
-  ms: {
-    common: msCommon,
-    home: msHome,
-  },
-  hi: {
-    common: hiCommon,
-    home: hiHome,
-  },
-  ar: {
-    common: arCommon,
-    home: arHome,
-  },
 };
 
-// Initialize i18n synchronously without side effects
+// Initialize i18n synchronously with English only
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -78,9 +63,15 @@ i18n
       escapeValue: false,
     },
     react: {
-      useSuspense: false, // Disable suspense to prevent issues
+      useSuspense: false,
     },
   });
+
+// Load detected language if not English
+const detectedLng = i18n.language;
+if (detectedLng && detectedLng !== 'en') {
+  loadLanguage(detectedLng);
+}
 
 // Helper function to update document direction (call this from a React effect)
 export const updateDocumentDirection = (lng: string) => {
