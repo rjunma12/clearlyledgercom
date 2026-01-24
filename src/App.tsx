@@ -1,10 +1,11 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
+import { registerServiceWorker } from "@/lib/serviceWorker";
 
 // Eager load the main landing page for fast initial render
 import Index from "./pages/Index";
@@ -44,47 +45,60 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/data-processing" element={<DataProcessing />} />
-              <Route path="/security" element={<Security />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/convert-bank-statements-to-excel" element={<BlogPost1 />} />
-              <Route path="/blog/indian-bank-statement-converter" element={<BlogPost2 />} />
-              <Route path="/blog/privacy-secure-bank-statement-conversion" element={<BlogPost3 />} />
-              <Route path="/blog/accurate-bank-statement-conversion-workflows" element={<BlogPost4 />} />
-              <Route path="/blog/south-africa-bank-statement-converter" element={<BlogPostSouthAfrica />} />
-              <Route path="/blog/malaysia-bank-statement-converter" element={<BlogPostMalaysia />} />
-              <Route path="/blog/uk-bank-statement-converter" element={<BlogPostUK />} />
-              <Route path="/blog/japan-bank-statement-converter" element={<BlogPostJapan />} />
-              <Route path="/blog/why-banks-dont-provide-csv-excel-statements" element={<BlogPostWhyBanksDontProvideCSV />} />
-              <Route path="/blog/australia-bank-statement-converter" element={<BlogPostAustralia />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/checkout/success" element={<CheckoutSuccess />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Register service worker for offline PDF processing
+  useEffect(() => {
+    if (import.meta.env.PROD) {
+      registerServiceWorker().then((status) => {
+        if (status.registered) {
+          console.log('Offline processing ready');
+        }
+      });
+    }
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/data-processing" element={<DataProcessing />} />
+                <Route path="/security" element={<Security />} />
+                <Route path="/features" element={<Features />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/convert-bank-statements-to-excel" element={<BlogPost1 />} />
+                <Route path="/blog/indian-bank-statement-converter" element={<BlogPost2 />} />
+                <Route path="/blog/privacy-secure-bank-statement-conversion" element={<BlogPost3 />} />
+                <Route path="/blog/accurate-bank-statement-conversion-workflows" element={<BlogPost4 />} />
+                <Route path="/blog/south-africa-bank-statement-converter" element={<BlogPostSouthAfrica />} />
+                <Route path="/blog/malaysia-bank-statement-converter" element={<BlogPostMalaysia />} />
+                <Route path="/blog/uk-bank-statement-converter" element={<BlogPostUK />} />
+                <Route path="/blog/japan-bank-statement-converter" element={<BlogPostJapan />} />
+                <Route path="/blog/why-banks-dont-provide-csv-excel-statements" element={<BlogPostWhyBanksDontProvideCSV />} />
+                <Route path="/blog/australia-bank-statement-converter" element={<BlogPostAustralia />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/checkout/success" element={<CheckoutSuccess />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
