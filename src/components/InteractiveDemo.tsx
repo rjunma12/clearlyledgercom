@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -70,7 +70,7 @@ const stages = [
   },
 ];
 
-const InteractiveDemo = () => {
+const InteractiveDemo = memo(() => {
   const [currentStage, setCurrentStage] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
@@ -498,6 +498,8 @@ const InteractiveDemo = () => {
       </div>
     </section>
   );
-};
+});
+
+InteractiveDemo.displayName = 'InteractiveDemo';
 
 export default InteractiveDemo;
