@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { processPDF } from "@/lib/pdfProcessor";
 import { loadPdfDocument } from "@/lib/pdfUtils";
-import type { ProcessingResult, ProcessingStage } from "@/lib/ruleEngine/types";
+import type { ProcessingResult, ProcessingStage, ParsedTransaction } from "@/lib/ruleEngine/types";
 import { exportDocument } from "@/lib/ruleEngine/exportAdapters";
+import { preExportCheck, validateExport, getValidationSummary as getExportValidationSummary, type ExportedRow, type ExportValidationResult } from "@/lib/ruleEngine/exportValidator";
 import ExportOptionsDialog from "@/components/ExportOptionsDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useUsageContext } from "@/contexts/UsageContext";
@@ -301,11 +302,35 @@ const FileUpload = () => {
           return;
         }
 
-        // Export the document data
-        const exportedData = exportDocument(file.result.document, "standard");
-
         // Get all transactions with validation status
         const allTransactions = file.result.document.segments.flatMap(s => s.transactions);
+
+        // ========================================
+        // PRE-EXPORT VALIDATION CHECK
+        // ========================================
+        console.log('[Export Validator] Starting pre-export check...');
+        console.log('[Export Validator] Total transactions from PDF:', allTransactions.length);
+
+        const preCheck = preExportCheck(allTransactions);
+        
+        if (!preCheck.canExport) {
+          console.error('[Export Validator] Pre-export check failed:', preCheck.reason);
+          toast({
+            variant: "destructive",
+            title: "Export validation failed",
+            description: preCheck.reason || "No valid transactions to export",
+          });
+          return;
+        }
+
+        console.log('[Export Validator] Pre-export check passed. Valid transactions:', preCheck.transactionCount);
+
+        // Export the document data
+        const exportedData = exportDocument(file.result.document, "standard");
+        console.log('[Export Validator] exportDocument returned:', {
+          headers: exportedData.headers,
+          rowCount: exportedData.rows.length
+        });
 
         // Prepare transactions for backend with validation status
         // Use fallback mapping if exportedData.rows is empty or mismatched
@@ -320,6 +345,7 @@ const FileUpload = () => {
 
         if (exportedData.rows.length > 0 && exportedData.rows.length === allTransactions.length) {
           // Use exportedData when available and matching
+          console.log('[Export Validator] Using exportedData.rows for export');
           transactions = exportedData.rows.map((row, index) => ({
             date: String(row[0] || ""),
             description: String(row[1] || ""),
@@ -330,7 +356,7 @@ const FileUpload = () => {
           }));
         } else {
           // Fallback: map directly from allTransactions
-          console.log(`Export fallback: exportedData.rows=${exportedData.rows.length}, allTransactions=${allTransactions.length}`);
+          console.log(`[Export Validator] Fallback mode: exportedData.rows=${exportedData.rows.length}, allTransactions=${allTransactions.length}`);
           transactions = allTransactions.map((tx) => ({
             date: tx.date || "",
             description: tx.description || "",
@@ -341,6 +367,58 @@ const FileUpload = () => {
           }));
         }
 
+        // ========================================
+        // POST-MAPPING VALIDATION
+        // ========================================
+        const exportedRows: ExportedRow[] = transactions.map(t => ({
+          date: t.date,
+          description: t.description,
+          debit: t.debit,
+          credit: t.credit,
+          balance: t.balance,
+          validationStatus: t.validationStatus
+        }));
+
+        const validationResult: ExportValidationResult = validateExport(
+          allTransactions,
+          exportedRows,
+          file.result.document.totalPages
+        );
+
+        console.log('[Export Validator] Validation result:', JSON.stringify(validationResult, null, 2));
+
+        // Check validation result
+        if (validationResult.verdict === 'EXPORT_INCOMPLETE') {
+          console.error('[Export Validator] EXPORT_INCOMPLETE detected!', {
+            missing: validationResult.missing_transactions.length,
+            corrupted: validationResult.corrupted_transactions.length,
+            duplicates: validationResult.duplicates_in_csv.length
+          });
+          
+          // Only block export if there are missing rows
+          if (validationResult.export_validation.missing_rows > 0) {
+            toast({
+              variant: "destructive",
+              title: "Export validation failed",
+              description: `${validationResult.export_validation.missing_rows} transaction(s) would be missing from export. Please try again.`,
+            });
+            return;
+          }
+          
+          // Log warning for other issues but proceed
+          if (validationResult.export_validation.corrupted_rows > 0 || validationResult.export_validation.duplicate_rows > 0) {
+            console.warn('[Export Validator] Export proceeding with warnings:', getExportValidationSummary(validationResult));
+          }
+        } else {
+          console.log('[Export Validator] ✓ EXPORT_COMPLETE - All transactions validated');
+        }
+
+        console.log('[Export Validator] Sending to backend:', {
+          transactionCount: transactions.length,
+          firstTx: transactions[0],
+          lastTx: transactions[transactions.length - 1]
+        });
+
         // Call backend to generate export (enforces authentication and plan checks)
         const { data, error } = await supabase.functions.invoke('generate-export', {
           body: {
@@ -350,6 +428,12 @@ const FileUpload = () => {
             filename: file.name,
             pageCount: file.result.document.totalPages,
             timestamp: Date.now(), // Add timestamp for replay protection
+            validationResult: {
+              verdict: validationResult.verdict,
+              confidence: validationResult.confidence_score,
+              pdfTransactions: validationResult.export_validation.pdf_transactions,
+              exportedRows: validationResult.export_validation.exported_rows
+            }
           }
         });
 
