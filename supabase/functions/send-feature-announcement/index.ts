@@ -14,15 +14,42 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // SECURITY: Require service role authentication
+    // This function should only be called by admin systems, not public users
+    const authHeader = req.headers.get('Authorization');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Check for service role key in Authorization header (Bearer token)
+    // or as a custom header for admin panel compatibility
+    const adminSecret = req.headers.get('x-admin-secret');
+    const isServiceRole = authHeader?.includes(serviceRoleKey);
+    const isAdmin = adminSecret === serviceRoleKey;
+    
+    if (!isServiceRole && !isAdmin) {
+      console.error('Unauthorized access attempt to send-feature-announcement');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const { announcementId } = await req.json();
 
     if (!announcementId) {
       return new Response(
         JSON.stringify({ error: 'announcementId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate announcementId is a valid UUID to prevent injection
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(announcementId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid announcement ID format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -38,6 +65,14 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Announcement not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Prevent sending the same announcement twice
+    if (announcement.sent_at) {
+      return new Response(
+        JSON.stringify({ error: 'Announcement has already been sent', sent_at: announcement.sent_at }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -62,6 +97,19 @@ Deno.serve(async (req) => {
 
     let sentCount = 0;
     const errors: string[] = [];
+
+    // Escape HTML in announcement content to prevent XSS in emails
+    const escapeHtml = (text: string): string => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    const safeTitle = escapeHtml(announcement.title);
+    const safeContent = escapeHtml(announcement.content);
 
     for (const member of members) {
       try {
@@ -92,8 +140,8 @@ Deno.serve(async (req) => {
                 <p>As one of our valued lifetime supporters, you get <strong>early access</strong> to our latest features!</p>
                 
                 <div class="feature-box">
-                  <h2 style="margin-top: 0; color: #1a1a2e;">${announcement.title}</h2>
-                  <p style="color: #64748b; margin-bottom: 0;">${announcement.content}</p>
+                  <h2 style="margin-top: 0; color: #1a1a2e;">${safeTitle}</h2>
+                  <p style="color: #64748b; margin-bottom: 0;">${safeContent}</p>
                 </div>
                 
                 <p>Thank you for being part of our early supporter community. Your lifetime membership ensures you'll always have access to the latest and greatest features.</p>
@@ -112,7 +160,7 @@ Deno.serve(async (req) => {
         await resend.emails.send({
           from: 'ClearlyLedger <announcements@clearlyexcel.com>',
           to: [member.email],
-          subject: `🚀 New Feature: ${announcement.title}`,
+          subject: `🚀 New Feature: ${safeTitle}`,
           html: emailHtml,
         });
 
@@ -142,7 +190,7 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     console.error('Error in send-feature-announcement:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

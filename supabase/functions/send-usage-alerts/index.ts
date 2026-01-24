@@ -14,9 +14,27 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // SECURITY: Require service role authentication
+    // This function should only be called by cron jobs or admin systems
+    const authHeader = req.headers.get('Authorization');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Check for service role key in Authorization header (Bearer token)
+    // or as a custom header for cron job compatibility
+    const cronSecret = req.headers.get('x-cron-secret');
+    const isServiceRole = authHeader?.includes(serviceRoleKey);
+    const isCronJob = cronSecret === serviceRoleKey;
+    
+    if (!isServiceRole && !isCronJob) {
+      console.error('Unauthorized access attempt to send-usage-alerts');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     // Get users who need usage alerts
     const { data: usersToAlert, error: fetchError } = await supabaseAdmin
@@ -121,7 +139,7 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     console.error('Error in send-usage-alerts:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
