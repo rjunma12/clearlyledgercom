@@ -110,7 +110,7 @@ const ExportValidationDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileWarning className="w-5 h-5 text-primary" />
@@ -137,7 +137,7 @@ const ExportValidationDialog = ({
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <div className="p-3 rounded-lg bg-muted/50 text-center">
             <p className="text-2xl font-bold text-foreground">{export_validation.pdf_transactions}</p>
             <p className="text-xs text-muted-foreground">PDF Transactions</p>

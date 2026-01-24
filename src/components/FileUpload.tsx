@@ -88,17 +88,32 @@ const FileUpload = () => {
     processingRef.current.set(fileId, true);
 
     try {
-      // Update to checking quota status
+      // Show preparing status immediately (optimistic UI)
       setFiles((prev) =>
         prev.map((f) =>
           f.id === fileId
-            ? { ...f, status: "uploading" as const, progress: 0, stage: "Checking quota..." }
+            ? { ...f, status: "processing" as const, progress: 2, stage: "Preparing..." }
             : f
         )
       );
 
-      // CRITICAL: Get page count FIRST before processing
-      const { document: pdfDoc, totalPages } = await loadPdfDocument(file);
+      // PARALLEL: Load PDF and warm up edge function simultaneously
+      const [pdfResult] = await Promise.all([
+        loadPdfDocument(file),
+        // Warm up edge function with dry-run (ignore errors)
+        supabase.functions.invoke('track-usage', { body: { pages: 0, dryRun: true } }).catch(() => null)
+      ]);
+
+      const { document: pdfDoc, totalPages } = pdfResult;
+      
+      // Quick quota check
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileId
+            ? { ...f, progress: 8, stage: "Checking quota..." }
+            : f
+        )
+      );
       
       // CRITICAL: Check and decrement quota BEFORE processing begins
       const { data: usageResult, error: usageError } = await supabase.functions.invoke('track-usage', {
@@ -121,7 +136,6 @@ const FileUpload = () => {
             ? `You have ${usageResult.remaining} page(s) remaining. This file has ${totalPages} pages.`
             : errorMessage,
         });
-        // Refresh usage to update UI
         refreshUsage();
         return;
       }
@@ -130,7 +144,7 @@ const FileUpload = () => {
       setFiles((prev) =>
         prev.map((f) =>
           f.id === fileId
-            ? { ...f, status: "processing" as const, progress: 5, stage: "Loading PDF..." }
+            ? { ...f, progress: 12, stage: "Processing PDF..." }
             : f
         )
       );
@@ -321,18 +335,28 @@ const FileUpload = () => {
         }
 
         // Get all transactions with validation status
-        const allTransactions = file.result.document.segments.flatMap(s => s.transactions);
+        let allTransactions = file.result.document.segments.flatMap(s => s.transactions);
+
+        // Fallback: If segments are empty but document claims transactions exist
+        if (allTransactions.length === 0 && file.result.document.totalTransactions > 0) {
+          console.warn('[Export] Segments empty, using rawTransactions fallback');
+          allTransactions = (file.result.document as any).rawTransactions || [];
+        }
+
+        // Debug: Log document state
+        console.log('[Export] Document state:', {
+          totalTransactions: file.result.document.totalTransactions,
+          segmentCount: file.result.document.segments.length,
+          extractedCount: allTransactions.length
+        });
 
         // ========================================
         // PRE-EXPORT VALIDATION CHECK
         // ========================================
-        console.log('[Export Validator] Starting pre-export check...');
-        console.log('[Export Validator] Total transactions from PDF:', allTransactions.length);
-
         const preCheck = preExportCheck(allTransactions);
         
         if (!preCheck.canExport) {
-          console.error('[Export Validator] Pre-export check failed:', preCheck.reason);
+          console.error('[Export] Pre-export check failed:', preCheck.reason);
           toast({
             variant: "destructive",
             title: "Export validation failed",
@@ -340,8 +364,6 @@ const FileUpload = () => {
           });
           return;
         }
-
-        console.log('[Export Validator] Pre-export check passed. Valid transactions:', preCheck.transactionCount);
 
         // Export the document data
         const exportedData = exportDocument(file.result.document, "standard");
