@@ -69,6 +69,22 @@ export {
   type AuditFlag,
 } from './balanceValidator';
 
+// Export Validation Agent
+export {
+  validateExport,
+  preExportCheck,
+  countIntegrityCheck,
+  detectDuplicates,
+  getValidationSummary as getExportValidationSummary,
+  type ExportValidationResult,
+  type ExportValidationSummary,
+  type MissingTransaction,
+  type CorruptedTransaction,
+  type DuplicateInExport,
+  type ValidationVerdict,
+  type ExportedRow,
+} from './exportValidator';
+
 // OCR Correction
 export {
   correctOCRNumber,
