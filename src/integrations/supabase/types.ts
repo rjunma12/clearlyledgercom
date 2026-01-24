@@ -50,6 +50,39 @@ export type Database = {
         }
         Relationships: []
       }
+      export_logs: {
+        Row: {
+          created_at: string | null
+          export_type: string
+          filename: string
+          format: string
+          id: string
+          page_count: number | null
+          transaction_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          export_type: string
+          filename: string
+          format: string
+          id?: string
+          page_count?: number | null
+          transaction_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          export_type?: string
+          filename?: string
+          format?: string
+          id?: string
+          page_count?: number | null
+          transaction_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       feature_announcements: {
         Row: {
           content: string
