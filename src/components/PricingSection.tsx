@@ -1,4 +1,4 @@
-import { memo, forwardRef } from "react";
+import { forwardRef } from "react";
 import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -6,7 +6,7 @@ import { useUsageContext } from "@/contexts/UsageContext";
 import { useCheckout, PlanName } from "@/hooks/use-checkout";
 import { Link, useNavigate } from "react-router-dom";
 
-const PricingSection = memo(forwardRef<HTMLElement>((_, ref) => {
+const PricingSection = forwardRef<HTMLElement>((_, ref) => {
   const navigate = useNavigate();
   const { lifetimeSpotsRemaining } = useUsageContext();
   const { isLoading, loadingPlan, initiateCheckout } = useCheckout();
@@ -423,7 +423,7 @@ const PricingSection = memo(forwardRef<HTMLElement>((_, ref) => {
       </div>
     </section>
   );
-}));
+});
 
 PricingSection.displayName = 'PricingSection';
 
