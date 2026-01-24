@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -18,12 +19,12 @@ interface FAQSectionProps {
   showSchema?: boolean;
 }
 
-const FAQSection = ({ 
+const FAQSection = forwardRef<HTMLElement, FAQSectionProps>(({ 
   faqs, 
   title = "Frequently Asked Questions",
   description,
   showSchema = true 
-}: FAQSectionProps) => {
+}, ref) => {
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -38,7 +39,7 @@ const FAQSection = ({
   };
 
   return (
-    <section id="faq" className="py-16 relative bg-surface-elevated/30">
+    <section ref={ref} id="faq" className="py-16 relative bg-surface-elevated/30">
       {showSchema && (
         <Helmet>
           <script type="application/ld+json">
@@ -85,6 +86,8 @@ const FAQSection = ({
       </div>
     </section>
   );
-};
+});
+
+FAQSection.displayName = 'FAQSection';
 
 export default FAQSection;

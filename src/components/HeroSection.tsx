@@ -1,9 +1,10 @@
+import { forwardRef } from "react";
 import { FileText, Globe, Scale, Shield } from "lucide-react";
 import FileUpload from "./FileUpload";
 
-const HeroSection = () => {
+const HeroSection = forwardRef<HTMLElement>((_, ref) => {
   return (
-    <section className="relative pt-32 pb-16 overflow-hidden">
+    <section ref={ref} className="relative pt-32 pb-16 overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 bg-grid-pattern opacity-30" />
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px] animate-pulse-slow" />
@@ -62,6 +63,8 @@ const HeroSection = () => {
       </div>
     </section>
   );
-};
+});
+
+HeroSection.displayName = 'HeroSection';
 
 export default HeroSection;

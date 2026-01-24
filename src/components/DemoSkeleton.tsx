@@ -1,8 +1,9 @@
+import { forwardRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const DemoSkeleton = () => {
+const DemoSkeleton = forwardRef<HTMLElement>((_, ref) => {
   return (
-    <section className="py-16 px-4 bg-muted/30">
+    <section ref={ref} className="py-16 px-4 bg-muted/30">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-12 space-y-4">
           <Skeleton className="h-10 w-64 mx-auto" />
@@ -24,6 +25,8 @@ const DemoSkeleton = () => {
       </div>
     </section>
   );
-};
+});
+
+DemoSkeleton.displayName = 'DemoSkeleton';
 
 export default DemoSkeleton;

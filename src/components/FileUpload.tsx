@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, forwardRef } from "react";
 import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ interface UploadedFile {
   validationResult?: ExportValidationResult;
 }
 
-const FileUpload = () => {
+const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [validationDialogOpen, setValidationDialogOpen] = useState(false);
@@ -715,7 +715,7 @@ const FileUpload = () => {
   }, [activeValidation, files, performExport]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div ref={ref} className="w-full max-w-2xl mx-auto">
       {/* Validation Dialog */}
       {activeValidation && (
         <ExportValidationDialog
@@ -892,6 +892,8 @@ const FileUpload = () => {
       )}
     </div>
   );
-};
+});
+
+FileUpload.displayName = 'FileUpload';
 
 export default FileUpload;

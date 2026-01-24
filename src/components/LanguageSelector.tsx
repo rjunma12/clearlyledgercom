@@ -1,6 +1,6 @@
+import { forwardRef, useEffect, useCallback } from "react";
 import { Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useEffect, useCallback } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +16,7 @@ interface LanguageSelectorProps {
   variant?: "icon" | "full";
 }
 
-export const LanguageSelector = ({ className, variant = "icon" }: LanguageSelectorProps) => {
+export const LanguageSelector = forwardRef<HTMLDivElement, LanguageSelectorProps>(({ className, variant = "icon" }, ref) => {
   const { i18n } = useTranslation();
   
   const currentLanguage = supportedLanguages.find(
@@ -44,6 +44,7 @@ export const LanguageSelector = ({ className, variant = "icon" }: LanguageSelect
   }, [i18n]);
 
   return (
+    <div ref={ref}>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
@@ -84,7 +85,10 @@ export const LanguageSelector = ({ className, variant = "icon" }: LanguageSelect
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+    </div>
   );
-};
+});
+
+LanguageSelector.displayName = 'LanguageSelector';
 
 export default LanguageSelector;

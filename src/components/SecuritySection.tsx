@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Shield, Eye, Trash2, Lock } from "lucide-react";
 
 const securityFeatures = [
@@ -23,9 +24,9 @@ const securityFeatures = [
   },
 ];
 
-const SecuritySection = () => {
+const SecuritySection = forwardRef<HTMLElement>((_, ref) => {
   return (
-    <section id="security" className="py-24 relative bg-surface-elevated/50">
+    <section ref={ref} id="security" className="py-24 relative bg-surface-elevated/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -120,6 +121,8 @@ const SecuritySection = () => {
       </div>
     </section>
   );
-};
+});
+
+SecuritySection.displayName = 'SecuritySection';
 
 export default SecuritySection;

@@ -1,6 +1,7 @@
+import { forwardRef } from "react";
 import { Globe, Scale, Shield } from "lucide-react";
 
-const AdvantagesSection = () => {
+const AdvantagesSection = forwardRef<HTMLElement>((_, ref) => {
   const advantages = [
     {
       icon: Globe,
@@ -20,7 +21,7 @@ const AdvantagesSection = () => {
   ];
 
   return (
-    <section className="py-16 relative">
+    <section ref={ref} className="py-16 relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {advantages.map((advantage, index) => (
@@ -43,6 +44,8 @@ const AdvantagesSection = () => {
       </div>
     </section>
   );
-};
+});
+
+AdvantagesSection.displayName = 'AdvantagesSection';
 
 export default AdvantagesSection;

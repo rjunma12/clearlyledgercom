@@ -1,4 +1,6 @@
+import { forwardRef } from "react";
 import { ShieldCheck, FileSpreadsheet, CheckCircle2, Globe2, RefreshCw, Gauge } from "lucide-react";
+
 const features = [{
   icon: Gauge,
   title: "Fast Processing",
@@ -24,8 +26,9 @@ const features = [{
   title: "Auto-Rollback",
   description: "Bank rule sets are version-controlled. If an update breaks parsing, the system automatically reverts to the last stable version."
 }];
-const FeaturesSection = () => {
-  return <section id="features" className="py-24 relative">
+
+const FeaturesSection = forwardRef<HTMLElement>((_, ref) => {
+  return <section ref={ref} id="features" className="py-24 relative">
       <div className="absolute inset-0 bg-grid-pattern opacity-20" />
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -67,5 +70,8 @@ const FeaturesSection = () => {
         </div>
       </div>
     </section>;
-};
+});
+
+FeaturesSection.displayName = 'FeaturesSection';
+
 export default FeaturesSection;
