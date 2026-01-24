@@ -14,6 +14,11 @@ async function hashIP(ip: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
 }
 
+interface TrackUsageRequest {
+  pages: number;
+  dryRun?: boolean; // If true, only check quota without decrementing
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -35,11 +40,12 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader ?? '' } } }
     );
 
-    const { pages } = await req.json();
+    const body: TrackUsageRequest = await req.json();
+    const { pages, dryRun = false } = body;
 
     if (!pages || pages < 1 || pages > 100) {
       return new Response(
-        JSON.stringify({ error: 'Invalid pages count' }),
+        JSON.stringify({ success: false, error: 'Invalid pages count' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -69,12 +75,13 @@ Deno.serve(async (req) => {
     if (planError) {
       console.error('Error fetching plan');
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch user plan' }),
+        JSON.stringify({ success: false, error: 'Failed to fetch user plan' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const dailyLimit = planData?.[0]?.daily_limit;
+    const planName = planData?.[0]?.plan_name;
 
     // Get remaining pages
     const { data: remaining, error: remainingError } = await supabaseAdmin
@@ -91,12 +98,28 @@ Deno.serve(async (req) => {
     if (remaining !== -1 && remaining < pages) {
       return new Response(
         JSON.stringify({ 
-          error: 'Daily limit exceeded',
+          success: false,
+          error: `Insufficient quota. You have ${remaining} page(s) remaining but need ${pages}.`,
           remaining,
           required: pages,
-          planName: planData?.[0]?.plan_name
+          planName,
+          quotaExceeded: true,
         }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // If dryRun, just return success without decrementing
+    if (dryRun) {
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          dryRun: true,
+          remaining,
+          isUnlimited: remaining === -1,
+          planName,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -159,7 +182,8 @@ Deno.serve(async (req) => {
         success: true,
         pagesProcessed: pages,
         remaining: newRemaining,
-        isUnlimited: remaining === -1
+        isUnlimited: remaining === -1,
+        planName,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -167,7 +191,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in track-usage');
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

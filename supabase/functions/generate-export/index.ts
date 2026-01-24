@@ -13,6 +13,7 @@ interface TransactionData {
   credit: string;
   balance: string;
   account?: string;
+  validationStatus?: 'valid' | 'warning' | 'error' | 'unchecked';
 }
 
 interface ExportRequest {
@@ -21,6 +22,7 @@ interface ExportRequest {
   format: "csv" | "xlsx";
   filename: string;
   pageCount?: number;
+  timestamp?: number; // Request timestamp for replay protection
 }
 
 // PII masking patterns (server-side implementation)
@@ -171,7 +173,26 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body: ExportRequest = await req.json();
-    const { transactions, exportType, format, filename, pageCount } = body;
+    const { transactions, exportType, format, filename, pageCount, timestamp } = body;
+
+    // SECURITY: Request freshness validation (5-minute window)
+    if (timestamp) {
+      const now = Date.now();
+      const maxAge = 5 * 60 * 1000; // 5 minutes
+      if (Math.abs(now - timestamp) > maxAge) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Request expired. Please try again.",
+            expired: true,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
 
     if (!transactions || !Array.isArray(transactions)) {
       return new Response(
@@ -196,6 +217,29 @@ Deno.serve(async (req) => {
     if (!["csv", "xlsx"].includes(format)) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid format" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // =========================================================================
+    // CRITICAL: BALANCE VALIDATION ENFORCEMENT
+    // Block exports if any transaction has validation errors
+    // =========================================================================
+    const errorTransactions = transactions.filter(tx => tx.validationStatus === 'error');
+    const warningTransactions = transactions.filter(tx => tx.validationStatus === 'warning');
+    
+    if (errorTransactions.length > 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Export blocked: ${errorTransactions.length} transaction(s) failed balance validation. Please review highlighted rows before exporting.`,
+          validationFailed: true,
+          errorCount: errorTransactions.length,
+          warningCount: warningTransactions.length,
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -332,6 +376,9 @@ Deno.serve(async (req) => {
     // Always output as CSV for now (xlsx support coming)
     const outputFilename = `${filename.replace(/\.pdf$/i, "")}${suffix}.csv`;
 
+    // Determine if PII was exposed (for audit logging)
+    const piiExposed = actualExportType === "full";
+
     // Log export for audit trail (using service role to bypass RLS)
     // For anonymous users, store fingerprint instead of user_id
     if (isAuthenticated && userId) {
@@ -342,6 +389,7 @@ Deno.serve(async (req) => {
         format: "csv", // Currently only CSV supported
         transaction_count: transactions.length,
         page_count: pageCount || null,
+        pii_exposed: piiExposed,
       });
 
       if (logError) {
@@ -361,12 +409,15 @@ Deno.serve(async (req) => {
         contentType: "text/csv",
         transactionCount: processedTransactions.length,
         exportType: actualExportType,
+        warningCount: warningTransactions.length,
         message:
           actualExportType !== exportType
             ? plan.pii_masking === "enforced"
               ? "Export automatically anonymized for compliance requirements"
               : "Export type was adjusted to masked for your plan"
-            : undefined,
+            : warningTransactions.length > 0
+              ? `Export completed with ${warningTransactions.length} balance warning(s)`
+              : undefined,
       }),
       {
         status: 200,

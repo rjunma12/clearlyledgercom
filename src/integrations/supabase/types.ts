@@ -58,6 +58,7 @@ export type Database = {
           format: string
           id: string
           page_count: number | null
+          pii_exposed: boolean | null
           transaction_count: number
           user_id: string
         }
@@ -68,6 +69,7 @@ export type Database = {
           format: string
           id?: string
           page_count?: number | null
+          pii_exposed?: boolean | null
           transaction_count?: number
           user_id: string
         }
@@ -78,6 +80,7 @@ export type Database = {
           format?: string
           id?: string
           page_count?: number | null
+          pii_exposed?: boolean | null
           transaction_count?: number
           user_id?: string
         }
@@ -222,6 +225,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          error_count: number | null
           export_type: string | null
           file_name: string
           file_size_bytes: number | null
@@ -231,10 +235,13 @@ export type Database = {
           transactions_extracted: number | null
           user_id: string
           validation_errors: number | null
+          validation_status: string | null
+          warning_count: number | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string
+          error_count?: number | null
           export_type?: string | null
           file_name: string
           file_size_bytes?: number | null
@@ -244,10 +251,13 @@ export type Database = {
           transactions_extracted?: number | null
           user_id: string
           validation_errors?: number | null
+          validation_status?: string | null
+          warning_count?: number | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string
+          error_count?: number | null
           export_type?: string | null
           file_name?: string
           file_size_bytes?: number | null
@@ -257,6 +267,8 @@ export type Database = {
           transactions_extracted?: number | null
           user_id?: string
           validation_errors?: number | null
+          validation_status?: string | null
+          warning_count?: number | null
         }
         Relationships: []
       }
