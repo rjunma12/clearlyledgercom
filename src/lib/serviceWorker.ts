@@ -58,22 +58,17 @@ export async function registerServiceWorker(): Promise<ServiceWorkerStatus> {
 
 /**
  * Prefetch PDF.js worker file for offline use
+ * @deprecated Worker is now bundled, no prefetch needed
  */
-export async function prefetchPdfWorker(version: string): Promise<void> {
-  if (!registration?.active) {
-    return;
-  }
-
-  const workerUrl = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
-  
-  registration.active.postMessage({
-    type: 'PREFETCH_PDF_WORKER',
-    url: workerUrl,
-  });
+export async function prefetchPdfWorker(_version?: string): Promise<void> {
+  // Worker is now bundled from node_modules, no CDN prefetch needed
+  // This function is kept for API compatibility but is now a no-op
+  console.log('PDF worker is bundled - no prefetch needed');
 }
 
 /**
  * Check if offline processing is available
+ * Since the worker is bundled, it's always available after initial load
  */
 export async function isOfflineReady(): Promise<boolean> {
   if (!('caches' in window)) {
@@ -81,10 +76,11 @@ export async function isOfflineReady(): Promise<boolean> {
   }
 
   try {
-    const cache = await caches.open('pdf-worker-v1');
+    const cache = await caches.open('clearlyledger-v1');
     const keys = await cache.keys();
+    // Check for bundled PDF worker in assets
     return keys.some((request) => 
-      request.url.includes('pdf.worker.min.js')
+      request.url.includes('pdf.worker') && request.url.includes('.mjs')
     );
   } catch {
     return false;

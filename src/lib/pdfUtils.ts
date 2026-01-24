@@ -6,13 +6,17 @@
 import type { PDFDocumentProxy, PDFPageProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
 import type { TextElement } from './ruleEngine/types';
 
+// Import bundled worker from node_modules (Vite handles this correctly)
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
 // Dynamic import for pdfjs-dist to reduce initial bundle size
 let pdfjsLib: typeof import('pdfjs-dist') | null = null;
 
 async function getPdfLib() {
   if (!pdfjsLib) {
     pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Use bundled worker instead of CDN
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   }
   return pdfjsLib;
 }

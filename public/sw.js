@@ -3,8 +3,7 @@
  * Caches PDF.js worker and critical assets for offline-first processing
  */
 
-const CACHE_NAME = 'clearlyledger-v1';
-const PDF_WORKER_CACHE = 'pdf-worker-v1';
+const CACHE_NAME = 'clearlyledger-v2';
 
 // Critical assets to cache on install
 const STATIC_ASSETS = [
@@ -12,8 +11,8 @@ const STATIC_ASSETS = [
   '/favicon.ico',
 ];
 
-// PDF.js worker URL pattern
-const PDF_WORKER_PATTERN = /cdnjs\.cloudflare\.com\/ajax\/libs\/pdf\.js\/.+\/pdf\.worker\.min\.js/;
+// Bundled PDF.js worker pattern (matches Vite-generated asset paths)
+const PDF_WORKER_PATTERN = /\/assets\/pdf\.worker.*\.m?js/;
 
 // Tesseract.js assets pattern
 const TESSERACT_PATTERN = /unpkg\.com\/tesseract\.js/;
@@ -33,7 +32,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME && name !== PDF_WORKER_CACHE)
+          .filter((name) => name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     })
@@ -45,18 +44,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // Handle PDF.js worker - Cache First strategy
+  // Handle bundled PDF.js worker - Cache First strategy
   if (PDF_WORKER_PATTERN.test(url)) {
     event.respondWith(
-      caches.open(PDF_WORKER_CACHE).then((cache) => {
+      caches.open(CACHE_NAME).then((cache) => {
         return cache.match(event.request).then((cachedResponse) => {
           if (cachedResponse) {
-            // Return cached version, update in background
-            fetch(event.request).then((networkResponse) => {
-              if (networkResponse.ok) {
-                cache.put(event.request, networkResponse.clone());
-              }
-            }).catch(() => {});
             return cachedResponse;
           }
           
@@ -134,19 +127,9 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
   
-  // Prefetch PDF worker on demand
+  // PREFETCH_PDF_WORKER is deprecated - worker is now bundled
+  // Keep handler for backwards compatibility but do nothing
   if (event.data && event.data.type === 'PREFETCH_PDF_WORKER') {
-    const workerUrl = event.data.url;
-    caches.open(PDF_WORKER_CACHE).then((cache) => {
-      cache.match(workerUrl).then((cached) => {
-        if (!cached) {
-          fetch(workerUrl).then((response) => {
-            if (response.ok) {
-              cache.put(workerUrl, response);
-            }
-          });
-        }
-      });
-    });
+    console.log('PDF worker is bundled - prefetch not needed');
   }
 });
