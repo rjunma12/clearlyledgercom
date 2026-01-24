@@ -71,7 +71,7 @@ async function verifyWebhookSignature(
     // Compare signatures (constant-time comparison would be better but this works for now)
     return computedSignature === signatureHash;
   } catch (error) {
-    console.error('Signature verification error:', error);
+    console.error('Signature verification error');
     return false;
   }
 }
@@ -88,9 +88,9 @@ serve(async (req) => {
     const webhookSecret = Deno.env.get('DODO_PAYMENTS_WEBHOOK_KEY');
 
     if (!webhookSecret) {
-      console.error('DODO_PAYMENTS_WEBHOOK_KEY not configured');
+      console.error('Webhook secret not configured');
       return new Response(
-        JSON.stringify({ error: 'Webhook secret not configured' }),
+        JSON.stringify({ error: 'Configuration error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -103,7 +103,7 @@ serve(async (req) => {
     if (!webhookId || !webhookSignature || !webhookTimestamp) {
       console.error('Missing webhook headers');
       return new Response(
-        JSON.stringify({ error: 'Missing webhook headers' }),
+        JSON.stringify({ error: 'Invalid request' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -123,7 +123,7 @@ serve(async (req) => {
     if (!isValid) {
       console.error('Invalid webhook signature');
       return new Response(
-        JSON.stringify({ error: 'Invalid signature' }),
+        JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -167,7 +167,7 @@ serve(async (req) => {
           .single();
 
         if (!plan) {
-          console.error('Plan not found:', metadata.plan_name);
+          console.error('Plan not found');
           break;
         }
 
@@ -208,7 +208,7 @@ serve(async (req) => {
           onConflict: 'user_id,plan_id'
         });
 
-        console.log('Payment processed for user:', metadata.user_id);
+        console.log('Payment processed for user');
         break;
       }
 
@@ -228,7 +228,7 @@ serve(async (req) => {
           .single();
 
         if (!plan) {
-          console.error('Plan not found:', metadata.plan_name);
+          console.error('Plan not found');
           break;
         }
 
@@ -247,7 +247,7 @@ serve(async (req) => {
           onConflict: 'user_id,plan_id'
         });
 
-        console.log('Subscription activated for user:', metadata.user_id);
+        console.log('Subscription activated for user');
         break;
       }
 
@@ -274,7 +274,7 @@ serve(async (req) => {
             .eq('id', sub.id);
         }
 
-        console.log('Subscription renewed:', subscriptionId);
+        console.log('Subscription renewed');
         break;
       }
 
@@ -292,7 +292,7 @@ serve(async (req) => {
           })
           .eq('dodo_subscription_id', subscriptionId);
 
-        console.log('Subscription cancelled:', subscriptionId);
+        console.log('Subscription cancelled');
         break;
       }
 
@@ -310,14 +310,14 @@ serve(async (req) => {
           })
           .eq('dodo_subscription_id', subscriptionId);
 
-        console.log('Subscription expired/failed:', subscriptionId);
+        console.log('Subscription expired/failed');
         break;
       }
 
       case 'payment.failed': {
         // Log payment failure - don't revoke access immediately
         // Dodo will retry and eventually send subscription.failed if all retries fail
-        console.log('Payment failed for subscription:', payload.data?.subscription_id);
+        console.log('Payment failed');
         break;
       }
 
@@ -360,12 +360,12 @@ serve(async (req) => {
           }
         }
 
-        console.log('Refund processed for payment:', paymentId);
+        console.log('Refund processed');
         break;
       }
 
       default:
-        console.log('Unhandled webhook event:', payload.type);
+        console.log('Unhandled webhook event');
     }
 
     return new Response(
@@ -374,10 +374,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Webhook error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    console.error('Webhook error');
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

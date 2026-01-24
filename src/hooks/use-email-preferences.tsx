@@ -59,8 +59,11 @@ export function useEmailPreferences(): UseEmailPreferencesReturn {
       }
 
     } catch (err: any) {
-      console.error('Error fetching email preferences:', err);
-      setError(err.message);
+      // Log in development only, set generic error for user
+      if (import.meta.env.DEV) {
+        console.error('Error fetching email preferences:', err);
+      }
+      setError('Failed to load preferences');
     } finally {
       setIsLoading(false);
     }
@@ -93,14 +96,18 @@ export function useEmailPreferences(): UseEmailPreferencesReturn {
         });
 
       if (error) {
-        console.error('Error creating email preferences:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error creating email preferences:', error);
+        }
         return false;
       }
 
       await fetchPreferences();
       return true;
     } catch (err) {
-      console.error('Error initializing preferences:', err);
+      if (import.meta.env.DEV) {
+        console.error('Error initializing preferences:', err);
+      }
       return false;
     }
   }, [fetchPreferences]);
@@ -122,14 +129,18 @@ export function useEmailPreferences(): UseEmailPreferencesReturn {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error updating preferences:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error updating preferences:', error);
+        }
         return false;
       }
 
       setPreferences(prev => prev ? { ...prev, ...prefs } : null);
       return true;
     } catch (err) {
-      console.error('Error updating preferences:', err);
+      if (import.meta.env.DEV) {
+        console.error('Error updating preferences:', err);
+      }
       return false;
     }
   }, []);
