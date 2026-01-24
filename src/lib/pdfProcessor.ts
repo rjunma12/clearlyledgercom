@@ -5,10 +5,10 @@
 
 import type { TextElement, Locale, ProcessingStage, ProcessingResult } from './ruleEngine/types';
 import { loadPdfDocument, extractTextFromPage, renderPageToCanvas, isScannedPage } from './pdfUtils';
-import { processImage, getWorker, terminateWorker, getTesseractLanguages } from './ocrService';
+import { processImage, terminateWorker, getTesseractLanguages } from './ocrService';
 import { correctOCRElements } from './ruleEngine/ocrCorrection';
 import { processDocument } from './ruleEngine';
-import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
+import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
 
 export interface PDFProcessingOptions {
   /**
@@ -150,7 +150,7 @@ export async function processPDF(
     // Stage 2: Extract text from all pages
     updateStage({ stage: 'extract', status: 'processing', progress: 0 });
     
-    const allTextElements: TextElement[] = [];
+    let allTextElements: TextElement[] = [];
     const pageResults: PageProcessingResult[] = [];
     let hasScannedPages = false;
     
@@ -175,16 +175,75 @@ export async function processPDF(
     
     updateStage({ stage: 'extract', status: 'complete', progress: 100 });
     
+    // Stage 3-5: Process through rule engine
+    let result = await processDocument(file.name, allTextElements, {
+      localeDetection: fullOptions.locale || 'auto',
+      confidenceThreshold: fullOptions.confidenceThreshold || 0.6,
+    });
+    
+    // OCR FALLBACK: If 0 transactions extracted and we haven't tried OCR yet, force OCR
+    const hasTransactions = result.document && result.document.totalTransactions > 0;
+    const digitalPagesExist = pageResults.some(p => !p.isScanned);
+    
+    if (!hasTransactions && digitalPagesExist && !fullOptions.forceOCR) {
+      console.log('[PDF Processor] 0 transactions from text extraction, triggering OCR fallback...');
+      
+      updateStage({
+        stage: 'extract',
+        status: 'processing',
+        progress: 0,
+        message: 'Text extraction failed, trying OCR fallback...',
+      });
+      
+      // Re-process all pages with forced OCR
+      allTextElements = [];
+      pageResults.length = 0;
+      hasScannedPages = true;
+      
+      for (let i = 1; i <= pagesToProcess; i++) {
+        const page = await document.getPage(i);
+        const canvas = await renderPageToCanvas(page, 2.0);
+        
+        const ocrResult = await processImage(canvas, i, {
+          languages,
+          preprocess: fullOptions.preprocessOCR,
+          confidenceThreshold: fullOptions.confidenceThreshold,
+        });
+        
+        const correctedElements = correctOCRElements(ocrResult.textElements);
+        allTextElements.push(...correctedElements);
+        
+        pageResults.push({
+          pageNumber: i,
+          textElements: correctedElements,
+          isScanned: true,
+          ocrConfidence: ocrResult.overallConfidence,
+          processingTime: ocrResult.processingTime,
+        });
+        
+        updateStage({
+          stage: 'extract',
+          status: 'processing',
+          progress: Math.round((i / pagesToProcess) * 100),
+          message: `OCR fallback: processing page ${i}/${pagesToProcess}...`,
+        });
+      }
+      
+      updateStage({ stage: 'extract', status: 'complete', progress: 100 });
+      
+      // Re-process with OCR results
+      result = await processDocument(file.name, allTextElements, {
+        localeDetection: fullOptions.locale || 'auto',
+        confidenceThreshold: fullOptions.confidenceThreshold || 0.6,
+      });
+      
+      result.warnings.push('Text extraction returned no transactions. Used OCR fallback.');
+    }
+    
     // Clean up OCR worker if used
     if (hasScannedPages) {
       await terminateWorker();
     }
-    
-    // Stage 3-5: Process through rule engine
-    const result = await processDocument(file.name, allTextElements, {
-      localeDetection: fullOptions.locale || 'auto',
-      confidenceThreshold: fullOptions.confidenceThreshold || 0.6,
-    });
     
     // Add OCR metadata to result
     if (result.document) {
