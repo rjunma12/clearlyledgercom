@@ -50,6 +50,54 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          action: string | null
+          component: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string
+          error_type: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          resolved_at: string | null
+          session_fingerprint: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          component?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message: string
+          error_type: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          resolved_at?: string | null
+          session_fingerprint?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          component?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string
+          error_type?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          resolved_at?: string | null
+          session_fingerprint?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       export_logs: {
         Row: {
           created_at: string | null

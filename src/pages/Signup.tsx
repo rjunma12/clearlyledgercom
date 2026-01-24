@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Check } from "lucide-react";
+import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -27,7 +28,13 @@ export default function Signup() {
       });
 
       if (error) {
-        toast.error(error.message);
+        logError({
+          errorType: ErrorTypes.AUTH,
+          errorMessage: error.message,
+          component: 'Signup',
+          action: 'signUp',
+          metadata: { email }
+        });
       } else if (data.user) {
         // Initialize email preferences for the new user
         await supabase.from('email_preferences').insert({
@@ -42,7 +49,13 @@ export default function Signup() {
         navigate("/dashboard");
       }
     } catch (error) {
-      toast.error("An error occurred during signup");
+      logError({
+        errorType: ErrorTypes.AUTH,
+        errorMessage: error instanceof Error ? error.message : 'Unknown signup error',
+        component: 'Signup',
+        action: 'signUp',
+        metadata: { email }
+      });
     } finally {
       setIsLoading(false);
     }

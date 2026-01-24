@@ -21,6 +21,7 @@ import ValidationStatusBadge from "@/components/ValidationStatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useUsageContext } from "@/contexts/UsageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 interface UploadedFile {
   id: string;
@@ -129,12 +130,14 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
               : f
           )
         );
-        toast({
-          variant: "destructive",
-          title: "Page limit reached",
-          description: usageResult?.quotaExceeded 
-            ? `You have ${usageResult.remaining} page(s) remaining. This file has ${totalPages} pages.`
+        logError({
+          errorType: ErrorTypes.QUOTA,
+          errorMessage: usageResult?.quotaExceeded 
+            ? `Quota exceeded: ${usageResult.remaining} page(s) remaining, file has ${totalPages} pages`
             : errorMessage,
+          component: 'FileUpload',
+          action: 'checkQuota',
+          metadata: { fileName: file.name, totalPages, remaining: usageResult?.remaining }
         });
         refreshUsage();
         return;
@@ -188,10 +191,17 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
             )
           );
           
-          toast({
-            variant: "destructive",
-            title: "No transactions found",
-            description: "The PDF structure could not be parsed. This may be a scanned image or unsupported format.",
+          logError({
+            errorType: ErrorTypes.PROCESSING,
+            errorMessage: 'No transactions found in PDF',
+            component: 'FileUpload',
+            action: 'processFile',
+            metadata: { 
+              fileName: file.name, 
+              totalPages: result.document?.totalPages,
+              locale: result.document?.detectedLocale,
+              warnings: result.warnings 
+            }
           });
           refreshUsage();
           return;
@@ -221,10 +231,12 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
         
         // Show appropriate toast
         if (hasErrors) {
-          toast({
-            variant: "destructive",
-            title: "Validation errors detected",
-            description: `${result.document.errorTransactions} transaction(s) failed balance validation. Export is blocked until resolved.`,
+          logError({
+            errorType: ErrorTypes.VALIDATION,
+            errorMessage: `${result.document.errorTransactions} transaction(s) failed balance validation`,
+            component: 'FileUpload',
+            action: 'processFile',
+            metadata: { fileName: file.name, errorCount: result.document.errorTransactions }
           });
         } else if (hasWarnings) {
           toast({
@@ -247,10 +259,12 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
             f.id === fileId ? { ...f, status: "error" as const, error: errorMessage } : f
           )
         );
-        toast({
-          variant: "destructive",
-          title: "Processing failed",
-          description: errorMessage,
+        logError({
+          errorType: ErrorTypes.PROCESSING,
+          errorMessage: errorMessage,
+          component: 'FileUpload',
+          action: 'processFile',
+          metadata: { fileName: file.name, errors: result.errors }
         });
       }
     } catch (error) {
@@ -260,10 +274,12 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
           f.id === fileId ? { ...f, status: "error" as const, error: errorMessage } : f
         )
       );
-      toast({
-        variant: "destructive",
-        title: "Processing error",
-        description: errorMessage,
+      logError({
+        errorType: ErrorTypes.PROCESSING,
+        errorMessage: errorMessage,
+        component: 'FileUpload',
+        action: 'processFile',
+        metadata: { fileName: file.name }
       });
     } finally {
       processingRef.current.delete(fileId);
@@ -273,10 +289,11 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
   const handleFiles = useCallback(async (fileList: FileList) => {
     // Check if user can process before accepting files
     if (!canProcess) {
-      toast({
-        variant: "destructive",
-        title: "Page limit reached",
-        description: "You've used all your pages for today. Upgrade for more capacity.",
+      logError({
+        errorType: ErrorTypes.QUOTA,
+        errorMessage: 'Page limit reached',
+        component: 'FileUpload',
+        action: 'handleFiles'
       });
       return;
     }
@@ -357,10 +374,12 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
       try {
         // Check for validation errors before allowing export
         if (file.result.document.errorTransactions > 0) {
-          toast({
-            variant: "destructive",
-            title: "Export blocked",
-            description: `${file.result.document.errorTransactions} transaction(s) have balance errors. Fix validation issues before exporting.`,
+          logError({
+            errorType: ErrorTypes.EXPORT,
+            errorMessage: `Export blocked: ${file.result.document.errorTransactions} transaction(s) have balance errors`,
+            component: 'FileUpload',
+            action: 'handleExport',
+            metadata: { fileName: file.name, errorCount: file.result.document.errorTransactions }
           });
           return;
         }
@@ -387,10 +406,12 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
         // Check if we have any transactions to export
         if (allTransactions.length === 0) {
           console.error('[Export] No transactions found for export');
-          toast({
-            variant: "destructive",
-            title: "Export failed",
-            description: "No transactions found. The PDF structure may not be supported or the document may be empty.",
+          logError({
+            errorType: ErrorTypes.EXPORT,
+            errorMessage: 'No transactions found for export',
+            component: 'FileUpload',
+            action: 'handleExport',
+            metadata: { fileName: file.name }
           });
           return;
         }
@@ -402,10 +423,12 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
         
         if (!preCheck.canExport) {
           console.error('[Export] Pre-export check failed:', preCheck.reason);
-          toast({
-            variant: "destructive",
-            title: "Export validation failed",
-            description: preCheck.reason || "No valid transactions to export",
+          logError({
+            errorType: ErrorTypes.EXPORT,
+            errorMessage: preCheck.reason || 'No valid transactions to export',
+            component: 'FileUpload',
+            action: 'preExportCheck',
+            metadata: { fileName: file.name }
           });
           return;
         }
@@ -476,10 +499,12 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
         const blockCheck = shouldBlockExport(validationResult);
         if (blockCheck.blocked) {
           console.error('[Export Validator] Export BLOCKED:', blockCheck.reason);
-          toast({
-            variant: "destructive",
-            title: "Export blocked",
-            description: getShortErrorMessage(validationResult),
+          logError({
+            errorType: ErrorTypes.EXPORT,
+            errorMessage: getShortErrorMessage(validationResult),
+            component: 'FileUpload',
+            action: 'validateExport',
+            metadata: { fileName: file.name, verdict: validationResult.verdict, reason: blockCheck.reason }
           });
           
           // Show validation dialog with details
@@ -514,10 +539,12 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
         await performExport(file, transactions, exportType, format, validationResult);
       } catch (error) {
         console.error('Export error:', error);
-        toast({
-          variant: "destructive",
-          title: "Export failed",
-          description: error instanceof Error ? error.message : "Failed to export file",
+        logError({
+          errorType: ErrorTypes.EXPORT,
+          errorMessage: error instanceof Error ? error.message : 'Failed to export file',
+          component: 'FileUpload',
+          action: 'handleExport',
+          metadata: { fileName: file.name }
         });
       }
     },
@@ -570,56 +597,38 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
 
       if (error) {
         console.error('Export error:', error);
-        toast({
-          variant: "destructive",
-          title: "Export failed",
-          description: error.message || "Failed to generate export",
+        logError({
+          errorType: ErrorTypes.EXPORT,
+          errorMessage: error.message || 'Failed to generate export',
+          component: 'FileUpload',
+          action: 'performExport',
+          metadata: { fileName: file.name }
         });
         return;
       }
 
       if (!data?.success) {
-        // Handle specific error cases with detailed messages
-        if (data?.validationFailed) {
-          const errorMsg = data.guidance 
-            ? `${data.error}\n\n${data.guidance}`
-            : data.error || "Balance validation failed. Fix errors before exporting.";
-          toast({
-            variant: "destructive",
-            title: "Export blocked",
-            description: errorMsg,
-          });
-        } else if (data?.requiresAuth) {
-          toast({
-            variant: "destructive",
-            title: "Authentication required",
-            description: "Please sign in to download your data",
-          });
-        } else if (data?.upgradeRequired) {
-          toast({
-            variant: "destructive",
-            title: "Upgrade required",
-            description: data.error || "This feature requires a paid plan",
-          });
-        } else if (data?.quotaExceeded) {
-          toast({
-            variant: "destructive",
-            title: "Quota exceeded",
-            description: data.error || "You have reached your usage limit",
-          });
-        } else if (data?.expired) {
-          toast({
-            variant: "destructive",
-            title: "Request expired",
-            description: "Please try the export again",
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Export failed",
-            description: data?.error || "Failed to export file",
-          });
-        }
+        // Log specific error cases silently
+        const errorMsg = data?.error || 'Failed to export file';
+        logError({
+          errorType: ErrorTypes.EXPORT,
+          errorMessage: errorMsg,
+          errorCode: data?.validationFailed ? 'VALIDATION_FAILED' : 
+                     data?.requiresAuth ? 'AUTH_REQUIRED' :
+                     data?.upgradeRequired ? 'UPGRADE_REQUIRED' :
+                     data?.quotaExceeded ? 'QUOTA_EXCEEDED' :
+                     data?.expired ? 'REQUEST_EXPIRED' : 'EXPORT_FAILED',
+          component: 'FileUpload',
+          action: 'performExport',
+          metadata: { 
+            fileName: file.name,
+            validationFailed: data?.validationFailed,
+            requiresAuth: data?.requiresAuth,
+            upgradeRequired: data?.upgradeRequired,
+            quotaExceeded: data?.quotaExceeded,
+            expired: data?.expired
+          }
+        });
         return;
       }
 

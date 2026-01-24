@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 type VerificationStatus = 'verifying' | 'success' | 'pending' | 'error';
 
@@ -35,7 +36,13 @@ const CheckoutSuccess = () => {
         
         if (!session) {
           // User not logged in - redirect to login
-          toast.error("Please log in to complete your subscription");
+          logError({
+            errorType: ErrorTypes.AUTH,
+            errorMessage: 'User not authenticated for payment verification',
+            component: 'CheckoutSuccess',
+            action: 'verifyPayment',
+            metadata: { planName, sessionId }
+          });
           navigate('/login');
           return;
         }
