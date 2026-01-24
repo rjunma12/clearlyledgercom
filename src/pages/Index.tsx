@@ -1,8 +1,8 @@
+import { lazy, Suspense } from "react";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import AdvantagesSection from "@/components/AdvantagesSection";
-import InteractiveDemo from "@/components/InteractiveDemo";
 import FeaturesSection from "@/components/FeaturesSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import PricingSection from "@/components/PricingSection";
@@ -10,6 +10,10 @@ import SecuritySection from "@/components/SecuritySection";
 import CTASection from "@/components/CTASection";
 import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
+import DemoSkeleton from "@/components/DemoSkeleton";
+
+// Lazy load heavy InteractiveDemo component
+const InteractiveDemo = lazy(() => import("@/components/InteractiveDemo"));
 
 const homepageFaqs = [
   {
@@ -149,7 +153,9 @@ const Index = () => {
         <HeroSection />
         <AdvantagesSection />
         <PricingSection />
-        <InteractiveDemo />
+        <Suspense fallback={<DemoSkeleton />}>
+          <InteractiveDemo />
+        </Suspense>
         <FeaturesSection />
         <HowItWorksSection />
         <FAQSection 
