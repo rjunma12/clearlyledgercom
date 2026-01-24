@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 import { processPDF } from "@/lib/pdfProcessor";
 import type { ProcessingResult, ProcessingStage } from "@/lib/ruleEngine/types";
 import { exportDocument } from "@/lib/ruleEngine/exportAdapters";
-import { maskTransactionData, resetMaskingState, generateExportFilename } from "@/lib/piiMasker";
 import ExportOptionsDialog from "@/components/ExportOptionsDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useUsageContext } from "@/contexts/UsageContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UploadedFile {
   id: string;
@@ -26,6 +27,9 @@ const FileUpload = () => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
   const processingRef = useRef<Map<string, boolean>>(new Map());
+  
+  // Get usage context for plan-aware exports
+  const { plan, isAuthenticated, canProcess } = useUsageContext();
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -208,66 +212,92 @@ const FileUpload = () => {
   };
 
   const handleExport = useCallback(
-    (file: UploadedFile, exportType: "masked" | "full", format: "csv" | "xlsx") => {
+    async (file: UploadedFile, exportType: "masked" | "full", format: "csv" | "xlsx") => {
       if (!file.result?.document) return;
 
       try {
         // Export the document data
         const exportedData = exportDocument(file.result.document, "standard");
 
-        // Apply masking if needed
-        let dataRows = exportedData.rows;
-        if (exportType === "masked") {
-          resetMaskingState();
-          // Convert rows to transaction format for masking
-          const transactions = dataRows.map((row) => ({
-            date: String(row[0] || ""),
-            description: String(row[1] || ""),
-            debit: String(row[2] || ""),
-            credit: String(row[3] || ""),
-            balance: String(row[4] || ""),
-          }));
-          const maskedTransactions = maskTransactionData(transactions);
-          dataRows = maskedTransactions.map((t) => [
-            t.date,
-            t.description,
-            t.debit,
-            t.credit,
-            t.balance,
-          ]);
+        // Prepare transactions for backend
+        const transactions = exportedData.rows.map((row) => ({
+          date: String(row[0] || ""),
+          description: String(row[1] || ""),
+          debit: String(row[2] || ""),
+          credit: String(row[3] || ""),
+          balance: String(row[4] || ""),
+        }));
+
+        // Call backend to generate export (enforces authentication and plan checks)
+        const { data, error } = await supabase.functions.invoke('generate-export', {
+          body: {
+            transactions,
+            exportType,
+            format,
+            filename: file.name,
+            pageCount: file.result.document.totalPages,
+          }
+        });
+
+        if (error) {
+          console.error('Export error:', error);
+          toast({
+            variant: "destructive",
+            title: "Export failed",
+            description: error.message || "Failed to generate export",
+          });
+          return;
         }
 
-        // Generate filename
-        const filename = generateExportFilename(file.name, exportType === "masked", format);
+        if (!data?.success) {
+          // Handle specific error cases
+          if (data?.requiresAuth) {
+            toast({
+              variant: "destructive",
+              title: "Authentication required",
+              description: "Please sign in to download your data",
+            });
+          } else if (data?.upgradeRequired) {
+            toast({
+              variant: "destructive",
+              title: "Upgrade required",
+              description: data.error || "This feature requires a paid plan",
+            });
+          } else if (data?.quotaExceeded) {
+            toast({
+              variant: "destructive",
+              title: "Quota exceeded",
+              description: data.error || "You have reached your usage limit",
+            });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Export failed",
+              description: data?.error || "Failed to export file",
+            });
+          }
+          return;
+        }
 
-        // Create CSV content
-        const csvContent = [
-          exportedData.headers.join(","),
-          ...dataRows.map((row) =>
-            row
-              .map((cell) => {
-                const str = String(cell);
-                if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-                  return `"${str.replace(/"/g, '""')}"`;
-                }
-                return str;
-              })
-              .join(",")
-          ),
-        ].join("\n");
-
-        // Create and trigger download
+        // Decode base64 content and download
+        const csvContent = decodeURIComponent(escape(atob(data.content)));
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = format === "xlsx" ? filename.replace(".xlsx", ".csv") : filename;
+        link.download = data.filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        if (format === "xlsx") {
+        // Show success message
+        if (data.message) {
+          toast({
+            title: "Download started",
+            description: data.message,
+          });
+        } else if (format === "xlsx") {
           toast({
             title: "Downloaded as CSV",
             description: "Excel export coming soon. File saved as CSV.",
@@ -275,10 +305,11 @@ const FileUpload = () => {
         } else {
           toast({
             title: "Download started",
-            description: `${filename} is being downloaded`,
+            description: `${data.filename} is being downloaded`,
           });
         }
       } catch (error) {
+        console.error('Export error:', error);
         toast({
           variant: "destructive",
           title: "Export failed",
@@ -435,6 +466,10 @@ const FileUpload = () => {
                       <ExportOptionsDialog
                         filename={file.name.replace(".pdf", "")}
                         onExport={(type, format) => handleExport(file, type, format)}
+                        piiMaskingLevel={plan?.piiMasking || 'none'}
+                        isAuthenticated={isAuthenticated}
+                        planName={plan?.displayName}
+                        disabled={!canProcess}
                       />
                     </div>
                   )}

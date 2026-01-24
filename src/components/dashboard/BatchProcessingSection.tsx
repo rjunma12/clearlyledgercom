@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/collapsible';
 import BatchFileUpload from '@/components/BatchFileUpload';
 import DuplicateReviewPanel from '@/components/dashboard/DuplicateReviewPanel';
-import { useUsage } from '@/hooks/use-usage';
+import { useUsageContext } from '@/contexts/UsageContext';
 import { 
   processBatchPDFs, 
   BatchProcessingResult, 
@@ -40,7 +40,7 @@ interface BatchProcessingSectionProps {
 }
 
 export function BatchProcessingSection({ className }: BatchProcessingSectionProps) {
-  const { canBatchUpload, maxBatchFiles, plan } = useUsage();
+  const { canBatchUpload, maxBatchFiles, plan } = useUsageContext();
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileStatuses, setFileStatuses] = useState<BatchFileStatus[]>([]);

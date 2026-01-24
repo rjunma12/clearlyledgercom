@@ -1,10 +1,12 @@
 import { useState, useEffect, memo } from "react";
-import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, AlertTriangle, XCircle } from "lucide-react";
+import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, AlertTriangle, XCircle, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ExportOptionsDialog, { ExportType, ExportFormat } from "@/components/ExportOptionsDialog";
 import { maskTransactionData, generateExportFilename, type TransactionWithPII } from "@/lib/piiMasker";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { useUsageContext } from "@/contexts/UsageContext";
 interface TransactionRow {
   date: string;
   description: string;
@@ -71,6 +73,8 @@ const stages = [
 ];
 
 const InteractiveDemo = memo(() => {
+  const navigate = useNavigate();
+  const { isAuthenticated, plan } = useUsageContext();
   const [currentStage, setCurrentStage] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
@@ -126,6 +130,15 @@ const InteractiveDemo = memo(() => {
   };
 
   const handleExport = (type: ExportType, format: ExportFormat) => {
+    // Block export for unauthenticated users (demo only shows preview)
+    if (!isAuthenticated) {
+      toast.error('Authentication required', {
+        description: 'Please sign in to download your data',
+      });
+      navigate('/login');
+      return;
+    }
+
     // Get the appropriate data based on export type
     const dataToExport: TransactionWithPII[] = type === 'masked' 
       ? maskTransactionData(normalizedStatement.map(row => ({
@@ -146,7 +159,7 @@ const InteractiveDemo = memo(() => {
         }));
 
     // Generate filename
-    const filename = generateExportFilename('statement', type === 'masked', format);
+    const filename = generateExportFilename('demo_statement', type === 'masked', format);
 
     // Convert to CSV/Excel format
     const headers = ['Date', 'Description', 'Debit', 'Credit', 'Balance'];
@@ -169,12 +182,12 @@ const InteractiveDemo = memo(() => {
     URL.revokeObjectURL(url);
 
     // Show success toast
-    toast.success(`Exported ${type === 'masked' ? 'anonymized' : 'full'} data`, {
+    toast.success(`Exported ${type === 'masked' ? 'anonymized' : 'full'} demo data`, {
       description: `File saved as ${filename}`,
     });
 
     // Log export type for compliance (no PII logged)
-    console.log(`[Export] Type: ${type}, Format: ${format}, Timestamp: ${new Date().toISOString()}`);
+    console.log(`[Demo Export] Type: ${type}, Format: ${format}, Timestamp: ${new Date().toISOString()}`);
   };
 
   const highlightedFields = getHighlightedFields();
@@ -305,9 +318,12 @@ const InteractiveDemo = memo(() => {
               </div>
               {showOutput && (
                 <ExportOptionsDialog
-                  filename="statement"
+                  filename="demo_statement"
                   onExport={handleExport}
                   disabled={!showOutput}
+                  piiMaskingLevel={plan?.piiMasking || 'none'}
+                  isAuthenticated={isAuthenticated}
+                  planName={plan?.displayName}
                 />
               )}
             </div>
