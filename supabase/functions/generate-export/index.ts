@@ -290,34 +290,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ENFORCEMENT: Force masked export for anonymous and free users (pii_masking = 'none')
-    // pii_masking: 'none' = no full data access (anonymous/free) - FORCE masked
+    // PII POLICY: Anonymous/Free users get FULL DATA by default
+    // pii_masking: 'none' = full data allowed (anonymous/free) - no forced masking
     // pii_masking: 'optional' = can choose masked or full (starter/pro)
     // pii_masking: 'enforced' = must use masked (business/lifetime for compliance)
     let actualExportType = exportType;
     
-    if (plan.pii_masking === "none") {
-      // Force masked for anonymous/free - ignore any frontend request for full
-      actualExportType = "masked";
-    } else if (plan.pii_masking === "enforced") {
-      // Force masked for business/lifetime compliance
+    if (plan.pii_masking === "enforced") {
+      // Only enforce masking for business/lifetime compliance plans
       actualExportType = "masked";
     }
-    // Only 'optional' allows the user to choose
-
-    // Block full data export request from free tiers with explicit error
-    if (exportType === "full" && plan.pii_masking === "none") {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Full data export requires a paid plan. Upgrade to Starter or higher to access unmasked data.",
-          upgradeRequired: true,
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    // 'none' and 'optional' both allow full data export
 
     // Check remaining quota
     const { data: remainingPages, error: quotaError } = await supabaseAdmin.rpc(

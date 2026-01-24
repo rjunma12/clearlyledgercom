@@ -308,14 +308,38 @@ const FileUpload = () => {
         const allTransactions = file.result.document.segments.flatMap(s => s.transactions);
 
         // Prepare transactions for backend with validation status
-        const transactions = exportedData.rows.map((row, index) => ({
-          date: String(row[0] || ""),
-          description: String(row[1] || ""),
-          debit: String(row[2] || ""),
-          credit: String(row[3] || ""),
-          balance: String(row[4] || ""),
-          validationStatus: allTransactions[index]?.validationStatus || 'unchecked',
-        }));
+        // Use fallback mapping if exportedData.rows is empty or mismatched
+        let transactions: Array<{
+          date: string;
+          description: string;
+          debit: string;
+          credit: string;
+          balance: string;
+          validationStatus: string;
+        }>;
+
+        if (exportedData.rows.length > 0 && exportedData.rows.length === allTransactions.length) {
+          // Use exportedData when available and matching
+          transactions = exportedData.rows.map((row, index) => ({
+            date: String(row[0] || ""),
+            description: String(row[1] || ""),
+            debit: String(row[2] || ""),
+            credit: String(row[3] || ""),
+            balance: String(row[4] || ""),
+            validationStatus: allTransactions[index]?.validationStatus || 'unchecked',
+          }));
+        } else {
+          // Fallback: map directly from allTransactions
+          console.log(`Export fallback: exportedData.rows=${exportedData.rows.length}, allTransactions=${allTransactions.length}`);
+          transactions = allTransactions.map((tx) => ({
+            date: tx.date || "",
+            description: tx.description || "",
+            debit: tx.debit != null ? String(tx.debit) : "",
+            credit: tx.credit != null ? String(tx.credit) : "",
+            balance: tx.balance != null ? String(tx.balance) : "",
+            validationStatus: tx.validationStatus || 'unchecked',
+          }));
+        }
 
         // Call backend to generate export (enforces authentication and plan checks)
         const { data, error } = await supabase.functions.invoke('generate-export', {
