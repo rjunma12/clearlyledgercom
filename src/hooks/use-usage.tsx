@@ -37,7 +37,6 @@ interface UseUsageReturn {
   isLoading: boolean;
   isAuthenticated: boolean;
   userId: string | null;
-  sessionFingerprint: string;
   canProcess: boolean;
   canUsePiiMasking: boolean;
   isPiiMaskingEnforced: boolean;
@@ -47,22 +46,6 @@ interface UseUsageReturn {
   incrementUsage: (pages: number) => Promise<boolean>;
 }
 
-// Generate a stable session fingerprint for anonymous users
-function getSessionFingerprint(): string {
-  const storageKey = 'bs_session_fp';
-  let fingerprint = localStorage.getItem(storageKey);
-  
-  if (!fingerprint) {
-    // Generate a cryptographically random fingerprint
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    fingerprint = Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
-    localStorage.setItem(storageKey, fingerprint);
-  }
-  
-  return fingerprint;
-}
-
 export function useUsage(): UseUsageReturn {
   const [plan, setPlan] = useState<UserPlan | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
@@ -70,8 +53,6 @@ export function useUsage(): UseUsageReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
-  const sessionFingerprint = getSessionFingerprint();
 
   const fetchPlanAndUsage = useCallback(async (currentUserId: string | null) => {
     try {
@@ -80,7 +61,10 @@ export function useUsage(): UseUsageReturn {
         .rpc('get_user_plan', { p_user_id: currentUserId });
       
       if (planError) {
-        console.error('Error fetching plan:', planError);
+        // Log in development only
+        if (import.meta.env.DEV) {
+          console.error('Error fetching plan:', planError);
+        }
         // Default to anonymous plan
         setPlan({
           planName: 'anonymous',
@@ -100,36 +84,50 @@ export function useUsage(): UseUsageReturn {
         });
       }
 
-      // Fetch remaining pages
-      const { data: remainingData, error: remainingError } = await supabase
-        .rpc('get_remaining_pages', { 
-          p_user_id: currentUserId,
-          p_session_fingerprint: currentUserId ? null : sessionFingerprint
-        });
-      
-      if (remainingError) {
-        console.error('Error fetching remaining pages:', remainingError);
-      }
-
-      const remaining = remainingData ?? 0;
-      const isUnlimited = remaining === -1;
-      
-      // Calculate pages used
-      let pagesUsed = 0;
-      if (!isUnlimited && planData && planData.length > 0) {
-        const limit = planData[0].daily_limit;
-        if (limit !== null) {
-          pagesUsed = limit - remaining;
+      // For anonymous users, we can't fetch remaining directly since it's server-side fingerprinted
+      // The actual limit check happens in the edge function
+      if (currentUserId) {
+        // Fetch remaining pages for authenticated users
+        const { data: remainingData, error: remainingError } = await supabase
+          .rpc('get_remaining_pages', { 
+            p_user_id: currentUserId,
+            p_session_fingerprint: null
+          });
+        
+        if (remainingError && import.meta.env.DEV) {
+          console.error('Error fetching remaining pages:', remainingError);
         }
-      }
 
-      setUsage({
-        pagesUsedToday: pagesUsed,
-        pagesRemaining: remaining,
-        dailyLimit: planData?.[0]?.daily_limit ?? null,
-        monthlyLimit: planData?.[0]?.monthly_limit ?? null,
-        isUnlimited
-      });
+        const remaining = remainingData ?? 0;
+        const isUnlimited = remaining === -1;
+        
+        // Calculate pages used
+        let pagesUsed = 0;
+        if (!isUnlimited && planData && planData.length > 0) {
+          const limit = planData[0].daily_limit;
+          if (limit !== null) {
+            pagesUsed = limit - remaining;
+          }
+        }
+
+        setUsage({
+          pagesUsedToday: pagesUsed,
+          pagesRemaining: remaining,
+          dailyLimit: planData?.[0]?.daily_limit ?? null,
+          monthlyLimit: planData?.[0]?.monthly_limit ?? null,
+          isUnlimited
+        });
+      } else {
+        // For anonymous users, show the limit info but don't try to fetch remaining
+        // (server-side fingerprint is used for tracking)
+        setUsage({
+          pagesUsedToday: 0,
+          pagesRemaining: planData?.[0]?.daily_limit ?? 1,
+          dailyLimit: planData?.[0]?.daily_limit ?? 1,
+          monthlyLimit: null,
+          isUnlimited: false
+        });
+      }
 
       // Fetch lifetime spots remaining
       const { data: spotsData, error: spotsError } = await supabase
@@ -140,9 +138,11 @@ export function useUsage(): UseUsageReturn {
       }
 
     } catch (error) {
-      console.error('Error in fetchPlanAndUsage:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error in fetchPlanAndUsage:', error);
+      }
     }
-  }, [sessionFingerprint]);
+  }, []);
 
   const refreshUsage = useCallback(async () => {
     await fetchPlanAndUsage(userId);
@@ -151,15 +151,15 @@ export function useUsage(): UseUsageReturn {
   const incrementUsage = useCallback(async (pages: number): Promise<boolean> => {
     try {
       // Call edge function to increment usage
+      // Server generates fingerprint for anonymous users from IP
       const { data, error } = await supabase.functions.invoke('track-usage', {
-        body: {
-          pages,
-          sessionFingerprint: userId ? null : sessionFingerprint
-        }
+        body: { pages }
       });
 
       if (error) {
-        console.error('Error incrementing usage:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error incrementing usage:', error);
+        }
         return false;
       }
 
@@ -170,10 +170,12 @@ export function useUsage(): UseUsageReturn {
 
       return false;
     } catch (error) {
-      console.error('Error in incrementUsage:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error in incrementUsage:', error);
+      }
       return false;
     }
-  }, [userId, sessionFingerprint, refreshUsage]);
+  }, [refreshUsage]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -218,7 +220,6 @@ export function useUsage(): UseUsageReturn {
     isLoading,
     isAuthenticated,
     userId,
-    sessionFingerprint,
     canProcess,
     canUsePiiMasking,
     isPiiMaskingEnforced,

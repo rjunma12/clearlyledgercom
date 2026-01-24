@@ -5,6 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Hash IP address for privacy-compliant rate limiting
+async function hashIP(ip: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(ip + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')?.slice(0, 16));
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -26,9 +35,9 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader ?? '' } } }
     );
 
-    const { pages, sessionFingerprint } = await req.json();
+    const { pages } = await req.json();
 
-    if (!pages || pages < 1) {
+    if (!pages || pages < 1 || pages > 100) {
       return new Response(
         JSON.stringify({ error: 'Invalid pages count' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -39,11 +48,18 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabaseAnon.auth.getUser();
     const userId = user?.id ?? null;
 
-    if (!userId && !sessionFingerprint) {
-      return new Response(
-        JSON.stringify({ error: 'Session fingerprint required for anonymous users' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // For anonymous users, generate server-side fingerprint from IP
+    let serverFingerprint: string | null = null;
+    
+    if (!userId) {
+      // Get client IP from various headers (Cloudflare, X-Forwarded-For, etc.)
+      const clientIP = req.headers.get('cf-connecting-ip') 
+        || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || req.headers.get('x-real-ip')
+        || 'unknown';
+      
+      // Hash IP for privacy (don't store raw IPs)
+      serverFingerprint = await hashIP(clientIP);
     }
 
     // Get user's plan and check limits
@@ -51,7 +67,7 @@ Deno.serve(async (req) => {
       .rpc('get_user_plan', { p_user_id: userId });
 
     if (planError) {
-      console.error('Error fetching plan:', planError);
+      console.error('Error fetching plan');
       return new Response(
         JSON.stringify({ error: 'Failed to fetch user plan' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,11 +80,11 @@ Deno.serve(async (req) => {
     const { data: remaining, error: remainingError } = await supabaseAdmin
       .rpc('get_remaining_pages', {
         p_user_id: userId,
-        p_session_fingerprint: userId ? null : sessionFingerprint
+        p_session_fingerprint: userId ? null : serverFingerprint
       });
 
     if (remainingError) {
-      console.error('Error fetching remaining:', remainingError);
+      console.error('Error fetching remaining');
     }
 
     // Check if user has enough pages (unlimited = -1)
@@ -111,11 +127,11 @@ Deno.serve(async (req) => {
           });
       }
     } else {
-      // For anonymous users
+      // For anonymous users - use server-generated fingerprint
       const { data: existingUsage } = await supabaseAdmin
         .from('usage_tracking')
         .select('id, pages_processed')
-        .eq('session_fingerprint', sessionFingerprint)
+        .eq('session_fingerprint', serverFingerprint)
         .eq('usage_date', today)
         .single();
 
@@ -128,7 +144,7 @@ Deno.serve(async (req) => {
         await supabaseAdmin
           .from('usage_tracking')
           .insert({
-            session_fingerprint: sessionFingerprint,
+            session_fingerprint: serverFingerprint,
             usage_date: today,
             pages_processed: pages
           });
@@ -149,7 +165,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in track-usage:', error);
+    console.error('Error in track-usage');
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

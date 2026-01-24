@@ -16,6 +16,44 @@ interface ContactEmailRequest {
   isEnterprise: boolean;
 }
 
+// Escape HTML special characters to prevent XSS/HTML injection
+function escapeHtml(text: string): string {
+  const htmlEntities: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+  return text.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
+}
+
+// Validate email format
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 255;
+}
+
+// Validate and sanitize input
+function validateInput(name: string, email: string, message: string): { valid: boolean; error?: string } {
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return { valid: false, error: 'Name is required' };
+  }
+  if (name.length > 100) {
+    return { valid: false, error: 'Name must be less than 100 characters' };
+  }
+  if (!email || typeof email !== 'string' || !isValidEmail(email)) {
+    return { valid: false, error: 'Valid email is required' };
+  }
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return { valid: false, error: 'Message is required' };
+  }
+  if (message.length > 5000) {
+    return { valid: false, error: 'Message must be less than 5000 characters' };
+  }
+  return { valid: true };
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -25,10 +63,11 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { name, email, message, sendCopy, isEnterprise }: ContactEmailRequest = await req.json();
 
-    // Validate required fields
-    if (!name || !email || !message) {
+    // Validate inputs
+    const validation = validateInput(name, email, message);
+    if (!validation.valid) {
       return new Response(
-        JSON.stringify({ error: "Name, email, and message are required" }),
+        JSON.stringify({ error: validation.error }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -36,10 +75,15 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Sanitize all user inputs
+    const safeName = escapeHtml(name.trim());
+    const safeEmail = escapeHtml(email.trim().toLowerCase());
+    const safeMessage = escapeHtml(message.trim());
+
     const subjectTag = isEnterprise ? "[Enterprise Inquiry]" : "[Contact Form]";
     const timestamp = new Date().toISOString();
 
-    // Send email to support
+    // Send email to support (using sanitized values)
     const supportEmailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -49,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "Contact Form <onboarding@resend.dev>",
         to: ["helppropsal@outlook.com"],
-        subject: `${subjectTag} Message from ${name}`,
+        subject: `${subjectTag} Message from ${safeName}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -65,19 +109,19 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
               <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
                 <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #1e293b;">Contact Details</h2>
-                <p style="margin: 8px 0;"><strong>Name:</strong> ${name}</p>
-                <p style="margin: 8px 0;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #0d9488;">${email}</a></p>
+                <p style="margin: 8px 0;"><strong>Name:</strong> ${safeName}</p>
+                <p style="margin: 8px 0;"><strong>Email:</strong> <a href="mailto:${safeEmail}" style="color: #0d9488;">${safeEmail}</a></p>
                 <p style="margin: 8px 0;"><strong>Received:</strong> ${timestamp}</p>
                 ${isEnterprise ? '<p style="margin: 8px 0;"><strong>Type:</strong> <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 12px;">Enterprise</span></p>' : ''}
               </div>
               
               <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #1e293b;">Message</h2>
-                <div style="white-space: pre-wrap; color: #475569;">${message}</div>
+                <div style="white-space: pre-wrap; color: #475569;">${safeMessage}</div>
               </div>
               
               <div style="margin-top: 20px; text-align: center;">
-                <a href="mailto:${email}?subject=Re: Your inquiry" style="display: inline-block; background: #0d9488; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">Reply to ${name}</a>
+                <a href="mailto:${safeEmail}?subject=Re: Your inquiry" style="display: inline-block; background: #0d9488; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">Reply to ${safeName}</a>
               </div>
             </div>
           </body>
@@ -87,14 +131,14 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!supportEmailResponse.ok) {
-      const errorData = await supportEmailResponse.text();
-      console.error("Failed to send support email:", errorData);
+      // Log error server-side only, don't expose details to client
+      console.error("Failed to send support email");
       throw new Error("Failed to send email");
     }
 
     console.log("Support email sent successfully");
 
-    // Send copy to user if requested
+    // Send copy to user if requested (using sanitized values)
     if (sendCopy) {
       const userCopyResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -104,7 +148,7 @@ const handler = async (req: Request): Promise<Response> => {
         },
         body: JSON.stringify({
           from: "PDF Statement Converter <onboarding@resend.dev>",
-          to: [email],
+          to: [email], // Use original email for delivery, but escaped in HTML
           subject: "Copy of your message - PDF Statement Converter",
           html: `
             <!DOCTYPE html>
@@ -119,14 +163,14 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
               
               <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
-                <p style="color: #475569; margin-bottom: 20px;">Hi ${name},</p>
+                <p style="color: #475569; margin-bottom: 20px;">Hi ${safeName},</p>
                 
                 <p style="color: #475569; margin-bottom: 20px;">
                   Thank you for contacting us. Here's a copy of your message for your records:
                 </p>
                 
                 <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
-                  <div style="white-space: pre-wrap; color: #475569;">${message}</div>
+                  <div style="white-space: pre-wrap; color: #475569;">${safeMessage}</div>
                 </div>
                 
                 <p style="color: #475569; margin-bottom: 20px;">
@@ -159,9 +203,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send-contact-email function:", error);
+    // Log error server-side, return generic message to client
+    console.error("Error in send-contact-email function");
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "An error occurred. Please try again." }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

@@ -18,4 +18,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Strip console.error and console.warn in production to prevent info leakage
+  esbuild: mode === "production" ? {
+    drop: ['console'],
+  } : undefined,
 }));
