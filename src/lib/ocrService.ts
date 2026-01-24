@@ -1,10 +1,11 @@
 /**
  * OCR Service using Tesseract.js
  * Provides browser-based OCR without external API costs
+ * Dynamically loaded to reduce initial bundle size
  */
 
-import { createWorker, Worker, RecognizeResult } from 'tesseract.js';
-import type { BoundingBox, TextElement, Locale } from './ruleEngine/types';
+import type { Worker, RecognizeResult } from 'tesseract.js';
+import type { TextElement, Locale } from './ruleEngine/types';
 import { preprocessForOCR } from './imagePreprocessing';
 
 export interface OCROptions {
@@ -40,6 +41,17 @@ const LOCALE_TO_TESSERACT: Partial<Record<Locale, string[]>> = {
 
 let workerInstance: Worker | null = null;
 let currentLanguages: string[] = [];
+let tesseractModule: typeof import('tesseract.js') | null = null;
+
+/**
+ * Dynamically load Tesseract.js
+ */
+async function getTesseract() {
+  if (!tesseractModule) {
+    tesseractModule = await import('tesseract.js');
+  }
+  return tesseractModule;
+}
 
 /**
  * Get Tesseract language codes for a locale
@@ -64,7 +76,9 @@ export async function getWorker(languages: string[] = ['eng']): Promise<Worker> 
     await workerInstance.terminate();
   }
   
-  workerInstance = await createWorker(languages.join('+'), 1, {
+  const tesseract = await getTesseract();
+  
+  workerInstance = await tesseract.createWorker(languages.join('+'), 1, {
     logger: (m) => {
       if (m.status === 'recognizing text') {
         // Progress can be tracked here if needed

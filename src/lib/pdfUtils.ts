@@ -1,14 +1,21 @@
 /**
  * PDF Utilities for Text Extraction and Page Rendering
- * Uses pdfjs-dist for PDF processing
+ * Uses pdfjs-dist for PDF processing (dynamically loaded)
  */
 
-import * as pdfjsLib from 'pdfjs-dist';
-import type { PDFDocumentProxy, PDFPageProxy, TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
-import type { BoundingBox, TextElement } from './ruleEngine/types';
+import type { PDFDocumentProxy, PDFPageProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
+import type { TextElement } from './ruleEngine/types';
 
-// Set worker source - using CDN for compatibility
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Dynamic import for pdfjs-dist to reduce initial bundle size
+let pdfjsLib: typeof import('pdfjs-dist') | null = null;
+
+async function getPdfLib() {
+  if (!pdfjsLib) {
+    pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  }
+  return pdfjsLib;
+}
 
 export interface PDFLoadResult {
   document: PDFDocumentProxy;
@@ -25,8 +32,9 @@ export interface PageTextResult {
  * Load a PDF document from a File object
  */
 export async function loadPdfDocument(file: File): Promise<PDFLoadResult> {
+  const pdfjs = await getPdfLib();
   const arrayBuffer = await file.arrayBuffer();
-  const document = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const document = await pdfjs.getDocument({ data: arrayBuffer }).promise;
   
   return {
     document,
