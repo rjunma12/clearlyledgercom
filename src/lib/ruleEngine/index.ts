@@ -359,7 +359,7 @@ export async function processDocument(
       hasMultipleCurrencies = isMultiCurrencyDocument(allTx as any);
     }
     
-    // Create document
+    // Create document with rawTransactions fallback for export
     let document: ParsedDocument = {
       fileName,
       totalPages: Math.max(...textElements.map(e => e.pageNumber), 1),
@@ -374,6 +374,7 @@ export async function processDocument(
       wasReversed: false,
       hasMultipleCurrencies,
       localCurrency: fullConfig.localCurrency,
+      rawTransactions: parsedTransactions, // Store for export fallback
     };
     
     // Validate document

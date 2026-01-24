@@ -123,6 +123,9 @@ export interface ParsedDocument {
   // Multi-currency summary
   hasMultipleCurrencies?: boolean;  // True if multiple currencies detected
   localCurrency?: string;           // Primary/local currency
+  
+  // Export fallback - raw transactions before segmentation
+  rawTransactions?: ParsedTransaction[];
 }
 
 // =============================================================================

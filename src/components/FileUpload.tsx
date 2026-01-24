@@ -371,15 +371,29 @@ const FileUpload = () => {
         // Fallback: If segments are empty but document claims transactions exist
         if (allTransactions.length === 0 && file.result.document.totalTransactions > 0) {
           console.warn('[Export] Segments empty, using rawTransactions fallback');
-          allTransactions = (file.result.document as any).rawTransactions || [];
+          allTransactions = file.result.document.rawTransactions || [];
         }
 
-        // Debug: Log document state
-        console.log('[Export] Document state:', {
+        // Debug: Log document state for troubleshooting
+        console.log('[Export Debug]', {
+          documentExists: !!file.result?.document,
           totalTransactions: file.result.document.totalTransactions,
           segmentCount: file.result.document.segments.length,
+          segmentTransactionCounts: file.result.document.segments.map(s => s.transactions.length),
+          rawTransactionsCount: file.result.document.rawTransactions?.length ?? 0,
           extractedCount: allTransactions.length
         });
+
+        // Check if we have any transactions to export
+        if (allTransactions.length === 0) {
+          console.error('[Export] No transactions found for export');
+          toast({
+            variant: "destructive",
+            title: "Export failed",
+            description: "No transactions found. The PDF structure may not be supported or the document may be empty.",
+          });
+          return;
+        }
 
         // ========================================
         // PRE-EXPORT VALIDATION CHECK
