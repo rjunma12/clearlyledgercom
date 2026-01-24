@@ -178,6 +178,7 @@ export type Database = {
       }
       plans: {
         Row: {
+          allowed_formats: string[] | null
           created_at: string
           daily_page_limit: number | null
           display_name: string
@@ -190,6 +191,7 @@ export type Database = {
           price_cents: number
         }
         Insert: {
+          allowed_formats?: string[] | null
           created_at?: string
           daily_page_limit?: number | null
           display_name: string
@@ -202,6 +204,7 @@ export type Database = {
           price_cents?: number
         }
         Update: {
+          allowed_formats?: string[] | null
           created_at?: string
           daily_page_limit?: number | null
           display_name?: string
