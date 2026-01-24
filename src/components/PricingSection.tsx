@@ -60,11 +60,12 @@ const PricingSection = memo(() => {
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-muted-foreground" />
-                Normal Excel output only
+                Excel output only
               </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-muted-foreground" />
-                No PII masking
+              <li className="flex items-center gap-2 opacity-60">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                <span className="line-through">PII masking</span>
+                <span className="text-xs">(not available)</span>
               </li>
               <li className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
@@ -98,11 +99,12 @@ const PricingSection = memo(() => {
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-primary" />
-                Normal Excel output only
+                Excel output only
               </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-primary" />
-                Usage tracking
+              <li className="flex items-center gap-2 opacity-60">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                <span>PII masking</span>
+                <span className="text-xs italic">(starts from Starter)</span>
               </li>
               <li className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary" />

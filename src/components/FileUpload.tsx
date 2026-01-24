@@ -29,7 +29,7 @@ const FileUpload = () => {
   const processingRef = useRef<Map<string, boolean>>(new Map());
   
   // Get usage context for plan-aware exports
-  const { plan, isAuthenticated, canProcess } = useUsageContext();
+  const { plan, isAuthenticated, canProcess, allowedFormats } = useUsageContext();
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -469,6 +469,7 @@ const FileUpload = () => {
                         piiMaskingLevel={plan?.piiMasking || 'none'}
                         isAuthenticated={isAuthenticated}
                         planName={plan?.displayName}
+                        allowedFormats={allowedFormats}
                         disabled={!canProcess}
                       />
                     </div>

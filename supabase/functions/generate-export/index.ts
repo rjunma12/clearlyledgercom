@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,6 +120,15 @@ function generateCSV(transactions: TransactionData[], includeAccount: boolean): 
   return [headers.join(","), ...rows].join("\n");
 }
 
+// Generate fingerprint from IP address for anonymous user tracking
+async function generateFingerprint(ip: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(ip);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -130,57 +140,33 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Get auth header
+    // Get auth header and client IP
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Authentication required to export data",
-          requiresAuth: true,
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    const clientIP = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
+                     req.headers.get("x-real-ip") || 
+                     "unknown";
+
+    let userId: string | null = null;
+    let isAuthenticated = false;
+    let fingerprint: string | null = null;
+
+    // Try to authenticate user
+    if (authHeader?.startsWith("Bearer ")) {
+      const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+
+      if (!userError && user) {
+        userId = user.id;
+        isAuthenticated = true;
+      }
     }
 
-    // Authenticate user
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
-
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Invalid authentication token",
-          requiresAuth: true,
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const userId = claimsData.claims.sub;
-    if (!userId) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "User ID not found in token",
-          requiresAuth: true,
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    // For anonymous users, generate fingerprint from IP
+    if (!isAuthenticated) {
+      fingerprint = await generateFingerprint(clientIP);
     }
 
     // Parse request body
@@ -220,7 +206,7 @@ Deno.serve(async (req) => {
     // Create admin client for database operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user's plan and check entitlements
+    // Get user's plan (or anonymous plan)
     const { data: planData, error: planError } = await supabaseAdmin.rpc("get_user_plan", {
       p_user_id: userId,
     });
@@ -251,15 +237,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check PII masking permissions
-    // pii_masking: 'none' = no full data access (anonymous/free)
-    // pii_masking: 'optional' = can choose masked or full (starter/pro)
-    // pii_masking: 'enforced' = must use masked (business/lifetime for compliance)
-    if (exportType === "full" && plan.pii_masking === "none") {
+    // ENFORCEMENT: Check format restrictions
+    // Anonymous and free users can only export xlsx (Excel)
+    const allowedFormats: string[] = plan.allowed_formats || ['csv', 'xlsx'];
+    if (!allowedFormats.includes(format)) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Full data export requires a paid plan. Upgrade to access unmasked data.",
+          error: `${format.toUpperCase()} export requires a paid plan. Please upgrade to access CSV exports.`,
           upgradeRequired: true,
         }),
         {
@@ -269,14 +254,43 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Enforce masking for business/lifetime plans (compliance requirement)
-    const actualExportType =
-      plan.pii_masking === "enforced" ? "masked" : exportType;
+    // ENFORCEMENT: Force masked export for anonymous and free users (pii_masking = 'none')
+    // pii_masking: 'none' = no full data access (anonymous/free) - FORCE masked
+    // pii_masking: 'optional' = can choose masked or full (starter/pro)
+    // pii_masking: 'enforced' = must use masked (business/lifetime for compliance)
+    let actualExportType = exportType;
+    
+    if (plan.pii_masking === "none") {
+      // Force masked for anonymous/free - ignore any frontend request for full
+      actualExportType = "masked";
+    } else if (plan.pii_masking === "enforced") {
+      // Force masked for business/lifetime compliance
+      actualExportType = "masked";
+    }
+    // Only 'optional' allows the user to choose
+
+    // Block full data export request from free tiers with explicit error
+    if (exportType === "full" && plan.pii_masking === "none") {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Full data export requires a paid plan. Upgrade to Starter or higher to access unmasked data.",
+          upgradeRequired: true,
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Check remaining quota
     const { data: remainingPages, error: quotaError } = await supabaseAdmin.rpc(
       "get_remaining_pages",
-      { p_user_id: userId }
+      { 
+        p_user_id: userId,
+        p_session_fingerprint: fingerprint 
+      }
     );
 
     if (quotaError) {
@@ -285,10 +299,14 @@ Deno.serve(async (req) => {
 
     // -1 means unlimited
     if (remainingPages !== null && remainingPages !== -1 && remainingPages <= 0) {
+      const resetMessage = plan.daily_limit 
+        ? "Your daily limit resets in 24 hours."
+        : "You have reached your monthly limit.";
+      
       return new Response(
         JSON.stringify({
           success: false,
-          error: "You have reached your page limit. Please upgrade your plan for more capacity.",
+          error: `You have reached your page limit. ${resetMessage} Please upgrade your plan for more capacity.`,
           quotaExceeded: true,
           upgradeRequired: true,
         }),
@@ -299,33 +317,37 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Apply masking if needed (server-side enforcement)
+    // Apply masking if needed (server-side enforcement - ALWAYS for none/enforced)
     const processedTransactions =
       actualExportType === "masked"
         ? maskTransactions(transactions)
         : transactions;
 
-    // Generate file content
+    // Generate file content (currently only CSV supported, xlsx comes as CSV for now)
     const hasAccountColumn = transactions.some((tx) => tx.account);
     const csvContent = generateCSV(processedTransactions, hasAccountColumn);
 
     // Generate filename
     const suffix = actualExportType === "masked" ? "_anonymized" : "_full";
-    const outputFilename = `${filename.replace(/\.pdf$/i, "")}${suffix}.${format === "xlsx" ? "csv" : format}`;
+    // Always output as CSV for now (xlsx support coming)
+    const outputFilename = `${filename.replace(/\.pdf$/i, "")}${suffix}.csv`;
 
     // Log export for audit trail (using service role to bypass RLS)
-    const { error: logError } = await supabaseAdmin.from("export_logs").insert({
-      user_id: userId,
-      filename: outputFilename,
-      export_type: actualExportType,
-      format: format === "xlsx" ? "csv" : format, // Currently only CSV supported
-      transaction_count: transactions.length,
-      page_count: pageCount || null,
-    });
+    // For anonymous users, store fingerprint instead of user_id
+    if (isAuthenticated && userId) {
+      const { error: logError } = await supabaseAdmin.from("export_logs").insert({
+        user_id: userId,
+        filename: outputFilename,
+        export_type: actualExportType,
+        format: "csv", // Currently only CSV supported
+        transaction_count: transactions.length,
+        page_count: pageCount || null,
+      });
 
-    if (logError) {
-      console.error("Failed to log export:", logError);
-      // Don't fail the export, just log the error
+      if (logError) {
+        console.error("Failed to log export:", logError);
+        // Don't fail the export, just log the error
+      }
     }
 
     // Return the file as base64 (for smaller files)
@@ -341,7 +363,9 @@ Deno.serve(async (req) => {
         exportType: actualExportType,
         message:
           actualExportType !== exportType
-            ? "Export type was adjusted to masked for compliance requirements"
+            ? plan.pii_masking === "enforced"
+              ? "Export automatically anonymized for compliance requirements"
+              : "Export type was adjusted to masked for your plan"
             : undefined,
       }),
       {

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type PlanType = 'anonymous' | 'registered_free' | 'starter' | 'pro' | 'business' | 'lifetime';
 export type PiiMaskingLevel = 'none' | 'optional' | 'enforced';
+export type ExportFormat = 'csv' | 'xlsx';
 
 export interface UserPlan {
   planName: PlanType;
@@ -10,6 +11,7 @@ export interface UserPlan {
   dailyLimit: number | null; // null = no daily limit
   monthlyLimit: number | null; // null = no monthly limit
   piiMasking: PiiMaskingLevel;
+  allowedFormats: ExportFormat[]; // Formats allowed for this plan
 }
 
 export interface UsageInfo {
@@ -42,6 +44,7 @@ interface UseUsageReturn {
   isPiiMaskingEnforced: boolean;
   canBatchUpload: boolean;
   maxBatchFiles: number;
+  allowedFormats: ExportFormat[];
   refreshUsage: () => Promise<void>;
   incrementUsage: (pages: number) => Promise<boolean>;
 }
@@ -71,16 +74,23 @@ export function useUsage(): UseUsageReturn {
           displayName: 'Anonymous',
           dailyLimit: 1,
           monthlyLimit: null,
-          piiMasking: 'none'
+          piiMasking: 'none',
+          allowedFormats: ['xlsx'] // Anonymous only gets Excel
         });
       } else if (planData && planData.length > 0) {
         const p = planData[0];
+        // Parse allowed_formats from DB (comes as string array)
+        const formats: ExportFormat[] = Array.isArray(p.allowed_formats) 
+          ? p.allowed_formats.filter((f: string): f is ExportFormat => f === 'csv' || f === 'xlsx')
+          : ['xlsx']; // Default to xlsx only if not specified
+        
         setPlan({
           planName: p.plan_name as PlanType,
           displayName: p.display_name,
           dailyLimit: p.daily_limit,
           monthlyLimit: p.monthly_limit,
-          piiMasking: p.pii_masking as PiiMaskingLevel
+          piiMasking: p.pii_masking as PiiMaskingLevel,
+          allowedFormats: formats
         });
       }
 
@@ -212,6 +222,9 @@ export function useUsage(): UseUsageReturn {
   // Batch upload is available for Pro, Business, and Lifetime plans
   const canBatchUpload = ['pro', 'business', 'lifetime'].includes(plan?.planName ?? '');
   const maxBatchFiles = plan?.planName ? BATCH_LIMITS[plan.planName] : 1;
+  
+  // Allowed export formats based on plan
+  const allowedFormats: ExportFormat[] = plan?.allowedFormats ?? ['xlsx'];
 
   return {
     plan,
@@ -225,6 +238,7 @@ export function useUsage(): UseUsageReturn {
     isPiiMaskingEnforced,
     canBatchUpload,
     maxBatchFiles,
+    allowedFormats,
     refreshUsage,
     incrementUsage
   };

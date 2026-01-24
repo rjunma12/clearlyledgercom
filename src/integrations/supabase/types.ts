@@ -412,6 +412,7 @@ export type Database = {
       get_user_plan: {
         Args: { p_user_id?: string }
         Returns: {
+          allowed_formats: string[]
           daily_limit: number
           display_name: string
           monthly_limit: number
