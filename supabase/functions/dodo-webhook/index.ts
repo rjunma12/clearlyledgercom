@@ -31,6 +31,24 @@ interface DodoWebhookPayload {
   };
 }
 
+// Constant-time string comparison to prevent timing attacks
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+// Verify webhook timestamp is recent (within 5 minutes) to prevent replay attacks
+function isTimestampValid(timestamp: string): boolean {
+  const webhookTime = parseInt(timestamp, 10) * 1000; // Convert to milliseconds
+  const now = Date.now();
+  const fiveMinutes = 5 * 60 * 1000;
+  return Math.abs(now - webhookTime) < fiveMinutes;
+}
+
 // Verify Dodo webhook signature
 async function verifyWebhookSignature(
   payload: string,
@@ -40,6 +58,12 @@ async function verifyWebhookSignature(
   secret: string
 ): Promise<boolean> {
   try {
+    // Validate timestamp to prevent replay attacks
+    if (!isTimestampValid(timestamp)) {
+      console.error('Webhook timestamp is too old or in the future');
+      return false;
+    }
+
     // Dodo uses format: "v1,signature"
     const signatureParts = signature.split(',');
     const signatureHash = signatureParts.find(s => s.startsWith('v1,'))?.replace('v1,', '') || signatureParts[1];
@@ -68,8 +92,8 @@ async function verifyWebhookSignature(
     // Convert to base64
     const computedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)));
     
-    // Compare signatures (constant-time comparison would be better but this works for now)
-    return computedSignature === signatureHash;
+    // Use constant-time comparison to prevent timing attacks
+    return constantTimeEqual(computedSignature, signatureHash);
   } catch (error) {
     console.error('Signature verification error');
     return false;
