@@ -22,7 +22,24 @@ interface UsageContextValue {
   incrementUsage: (pages: number) => Promise<boolean>;
 }
 
-const UsageContext = createContext<UsageContextValue | undefined>(undefined);
+// Default values for when context is not available
+const defaultValue: UsageContextValue = {
+  plan: null,
+  usage: null,
+  lifetimeSpotsRemaining: null,
+  isLoading: true,
+  isAuthenticated: false,
+  userId: null,
+  canProcess: false,
+  canUsePiiMasking: false,
+  isPiiMaskingEnforced: false,
+  canBatchUpload: false,
+  maxBatchFiles: 1,
+  refreshUsage: async () => {},
+  incrementUsage: async () => false,
+};
+
+const UsageContext = createContext<UsageContextValue>(defaultValue);
 
 interface UsageProviderProps {
   children: ReactNode;
@@ -47,13 +64,7 @@ export function UsageProvider({ children }: UsageProviderProps) {
  * Use this instead of useUsage() in components to prevent duplicate API calls.
  */
 export function useUsageContext(): UsageContextValue {
-  const context = useContext(UsageContext);
-  
-  if (context === undefined) {
-    throw new Error('useUsageContext must be used within a UsageProvider');
-  }
-  
-  return context;
+  return useContext(UsageContext);
 }
 
 // Re-export types for convenience
