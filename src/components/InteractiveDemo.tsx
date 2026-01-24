@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, forwardRef } from "react";
+import { useState, useEffect, forwardRef } from "react";
 import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, AlertTriangle, XCircle, LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -73,7 +73,7 @@ const stages = [
   },
 ];
 
-const InteractiveDemo = memo(forwardRef<HTMLElement>((_, ref) => {
+const InteractiveDemo = forwardRef<HTMLElement>((_, ref) => {
   const navigate = useNavigate();
   const { isAuthenticated, plan, allowedFormats } = useUsageContext();
   const [currentStage, setCurrentStage] = useState(-1);
@@ -547,7 +547,7 @@ const InteractiveDemo = memo(forwardRef<HTMLElement>((_, ref) => {
       </div>
     </section>
   );
-}));
+});
 
 InteractiveDemo.displayName = 'InteractiveDemo';
 

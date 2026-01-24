@@ -1,4 +1,4 @@
-import { memo, useState, forwardRef } from "react";
+import { useState, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, Menu, X, Sun, Moon, LayoutDashboard, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
@@ -9,7 +9,7 @@ import { useUsageContext } from "@/contexts/UsageContext";
 import { useTranslation } from "react-i18next";
 import { LanguageSelector } from "./LanguageSelector";
 
-const Navbar = memo(forwardRef<HTMLElement>((_, ref) => {
+const Navbar = forwardRef<HTMLElement>((_, ref) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -202,7 +202,7 @@ const Navbar = memo(forwardRef<HTMLElement>((_, ref) => {
       </div>
     </nav>
   );
-}));
+});
 
 Navbar.displayName = 'Navbar';
 
