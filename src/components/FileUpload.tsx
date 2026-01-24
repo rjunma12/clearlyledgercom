@@ -166,6 +166,37 @@ const FileUpload = () => {
       });
 
       if (result.success && result.document) {
+        // Check for empty extraction (0 transactions)
+        if (result.document.totalTransactions === 0) {
+          console.warn('[Processing] No transactions extracted. Document details:', {
+            fileName: file.name,
+            totalPages: result.document.totalPages,
+            locale: result.document.detectedLocale,
+            warnings: result.warnings,
+          });
+          
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.id === fileId
+                ? {
+                    ...f,
+                    status: "error" as const,
+                    error: "No transactions found - check console for details",
+                    result,
+                  }
+                : f
+            )
+          );
+          
+          toast({
+            variant: "destructive",
+            title: "No transactions found",
+            description: "The PDF structure could not be parsed. This may be a scanned image or unsupported format.",
+          });
+          refreshUsage();
+          return;
+        }
+        
         // Check if there are validation errors
         const hasErrors = result.document.errorTransactions > 0;
         const hasWarnings = result.document.warningTransactions > 0;

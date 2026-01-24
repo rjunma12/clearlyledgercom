@@ -39,6 +39,7 @@ export {
   assignToColumn,
   groupIntoRows,
   extendColumnBounds,
+  inferColumnAnchorsFromLayout,
   type TextRow,
 } from './coordinateMapper';
 
@@ -179,7 +180,7 @@ import type {
   Locale,
 } from './types';
 import { DEFAULT_CONFIG } from './types';
-import { detectColumnAnchors, groupIntoRows, extendColumnBounds } from './coordinateMapper';
+import { detectColumnAnchors, groupIntoRows, extendColumnBounds, inferColumnAnchorsFromLayout } from './coordinateMapper';
 import { applyLookBackStitching, convertToRawTransactions, getOriginalLines } from './multiLineStitcher';
 import { validateDocument, detectSegmentBoundaries, splitIntoSegments } from './balanceValidator';
 import { detectNumberFormat, parseNumber, parseDate } from './numberParser';
@@ -206,18 +207,50 @@ export async function processDocument(
     // Stage 1: Extract and identify headers
     stages.push({ stage: 'extract', status: 'processing', progress: 0 });
     
-    const headerElements = textElements.filter(e => e.boundingBox.y < 100); // Top of page
-    const bodyElements = textElements.filter(e => e.boundingBox.y >= 100);
+    // Try multiple header detection regions
+    let headerElements = textElements.filter(e => e.boundingBox.y < 100); // Top of page
+    let bodyElements = textElements.filter(e => e.boundingBox.y >= 100);
+    
+    console.log('[RuleEngine] Input elements:', textElements.length);
+    console.log('[RuleEngine] Header elements (y < 100):', headerElements.length);
+    console.log('[RuleEngine] Body elements:', bodyElements.length);
     
     stages[0] = { ...stages[0], status: 'complete', progress: 100 };
     
-    // Stage 2: Detect column anchors
+    // Stage 2: Detect column anchors with fallback strategies
     stages.push({ stage: 'anchor', status: 'processing', progress: 0 });
     
     let anchors = detectColumnAnchors(headerElements);
+    console.log('[RuleEngine] Column anchors from headers:', anchors.length, anchors.map(a => a.columnType));
+    
+    // FALLBACK 1: If no anchors found in top region, scan the full document
+    if (anchors.length === 0) {
+      console.warn('[RuleEngine] No headers in top region, scanning full document...');
+      anchors = detectColumnAnchors(textElements);
+      console.log('[RuleEngine] Column anchors from full doc:', anchors.length, anchors.map(a => a.columnType));
+      
+      if (anchors.length > 0) {
+        // Recalculate body elements as elements below the first anchor
+        const headerY = Math.min(...anchors.map(a => a.boundingBox.y));
+        bodyElements = textElements.filter(e => e.boundingBox.y > headerY + 20);
+        headerElements = textElements.filter(e => e.boundingBox.y <= headerY + 20);
+        console.log('[RuleEngine] Adjusted body elements:', bodyElements.length);
+      }
+    }
+    
+    // FALLBACK 2: Statistical column inference if still no anchors
+    if (anchors.length === 0) {
+      console.warn('[RuleEngine] Using statistical column inference...');
+      anchors = inferColumnAnchorsFromLayout(textElements);
+      console.log('[RuleEngine] Inferred anchors:', anchors.length, anchors.map(a => a.columnType));
+      
+      if (anchors.length > 0) {
+        warnings.push('Column headers were inferred from layout - verify accuracy');
+      }
+    }
     
     if (anchors.length === 0) {
-      warnings.push('No column headers detected - using fallback positioning');
+      warnings.push('No column headers detected - parsing may be incomplete');
     }
     
     stages[1] = { ...stages[1], status: 'complete', progress: 100 };
@@ -226,13 +259,17 @@ export async function processDocument(
     stages.push({ stage: 'stitch', status: 'processing', progress: 0 });
     
     const rows = groupIntoRows(bodyElements, anchors, fullConfig);
+    console.log('[RuleEngine] Rows grouped:', rows.length);
+    
     anchors = extendColumnBounds(anchors, rows);
     
     const stitchedRows = fullConfig.autoStitchMultiLine
       ? applyLookBackStitching(rows)
       : rows.map(r => ({ primaryRow: r, continuationRows: [], stitchedDescription: '', isStitched: false }));
+    console.log('[RuleEngine] Stitched rows (complete transactions):', stitchedRows.length);
     
     const rawTransactions = convertToRawTransactions(stitchedRows);
+    console.log('[RuleEngine] Raw transactions:', rawTransactions.length);
     
     stages[2] = { ...stages[2], status: 'complete', progress: 100 };
     
