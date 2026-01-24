@@ -614,3 +614,111 @@ export function getValidationSummary(result: ExportValidationResult): string {
   
   return `⚠ Export incomplete: ${issues.join(', ')} (${Math.round(confidence_score * 100)}% confidence)`;
 }
+
+/**
+ * Generate detailed human-readable failure message with row-level details
+ */
+export function getDetailedFailureMessage(result: ExportValidationResult): string {
+  const { export_validation, missing_transactions, corrupted_transactions, confidence_score } = result;
+  
+  const lines: string[] = [];
+  
+  // Header
+  lines.push(`Export Validation Failed (${Math.round(confidence_score * 100)}% confidence)`);
+  lines.push('');
+  
+  // Summary
+  lines.push(`PDF Transactions: ${export_validation.pdf_transactions}`);
+  lines.push(`Exported Rows: ${export_validation.exported_rows}`);
+  lines.push('');
+  
+  // Missing transactions
+  if (missing_transactions.length > 0) {
+    lines.push(`❌ MISSING TRANSACTIONS (${missing_transactions.length}):`);
+    missing_transactions.slice(0, 5).forEach((tx, i) => {
+      lines.push(`   ${i + 1}. ${tx.date} | ${tx.description.substring(0, 40)}... | ${tx.type === 'debit' ? '-' : '+'}${tx.amount.toLocaleString()}`);
+    });
+    if (missing_transactions.length > 5) {
+      lines.push(`   ... and ${missing_transactions.length - 5} more`);
+    }
+    lines.push('');
+  }
+  
+  // Corrupted data
+  if (corrupted_transactions.length > 0) {
+    lines.push(`⚠️ DATA DISCREPANCIES (${corrupted_transactions.length}):`);
+    corrupted_transactions.slice(0, 5).forEach((tx, i) => {
+      const issueType = tx.issue === 'truncation' ? 'TRUNCATED' : 
+                        tx.issue === 'amount_mismatch' ? 'MISMATCH' : 
+                        tx.issue.toUpperCase();
+      lines.push(`   ${i + 1}. Row ${tx.row_id}: ${issueType} - ${tx.field} (PDF: ${tx.pdf_value} → Export: ${tx.export_value})`);
+    });
+    if (corrupted_transactions.length > 5) {
+      lines.push(`   ... and ${corrupted_transactions.length - 5} more`);
+    }
+    lines.push('');
+  }
+  
+  // Action required
+  if (missing_transactions.length > 0) {
+    lines.push('🚫 Export is BLOCKED. Please contact support with your PDF file.');
+  } else {
+    lines.push('⚠️ Export can proceed with warnings. Review the data before using.');
+  }
+  
+  return lines.join('\n');
+}
+
+/**
+ * Get a short, user-friendly error message for toasts
+ */
+export function getShortErrorMessage(result: ExportValidationResult): string {
+  const { export_validation, missing_transactions, corrupted_transactions } = result;
+  
+  if (missing_transactions.length > 0) {
+    const firstMissing = missing_transactions[0];
+    if (missing_transactions.length === 1) {
+      return `Missing transaction: ${firstMissing.date} - ${firstMissing.description.substring(0, 20)}... (${firstMissing.type === 'debit' ? '-' : '+'}${firstMissing.amount.toLocaleString()})`;
+    }
+    return `${missing_transactions.length} transactions missing from export. Row ${firstMissing.row_id} and ${missing_transactions.length - 1} others.`;
+  }
+  
+  if (corrupted_transactions.length > 0) {
+    const first = corrupted_transactions[0];
+    if (first.issue === 'truncation') {
+      return `Data truncation detected: Row ${first.row_id} ${first.field} shows ${first.export_value} instead of ${first.pdf_value}`;
+    }
+    return `${corrupted_transactions.length} data discrepancy(s): Row ${first.row_id} ${first.field} mismatch`;
+  }
+  
+  if (export_validation.duplicate_rows > 0) {
+    return `${export_validation.duplicate_rows} potential duplicate(s) detected in export`;
+  }
+  
+  return `Export validation failed: ${export_validation.missing_rows} missing, ${export_validation.corrupted_rows} corrupted`;
+}
+
+/**
+ * Determine if export should be blocked based on validation result
+ */
+export function shouldBlockExport(result: ExportValidationResult): { blocked: boolean; reason: string } {
+  const { missing_transactions, confidence_score } = result;
+  
+  // Block if any transactions are missing
+  if (missing_transactions.length > 0) {
+    return {
+      blocked: true,
+      reason: `Export blocked: ${missing_transactions.length} transaction(s) would be missing from the export file. This indicates a data processing error.`
+    };
+  }
+  
+  // Block if confidence is extremely low
+  if (confidence_score < 0.5) {
+    return {
+      blocked: true,
+      reason: `Export blocked: Data confidence is only ${Math.round(confidence_score * 100)}%. The export may contain significant errors.`
+    };
+  }
+  
+  return { blocked: false, reason: '' };
+}
