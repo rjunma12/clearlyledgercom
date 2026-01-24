@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, forwardRef } from "react";
 import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -6,7 +6,7 @@ import { useUsageContext } from "@/contexts/UsageContext";
 import { useCheckout, PlanName } from "@/hooks/use-checkout";
 import { Link, useNavigate } from "react-router-dom";
 
-const PricingSection = memo(() => {
+const PricingSection = memo(forwardRef<HTMLElement>((_, ref) => {
   const navigate = useNavigate();
   const { lifetimeSpotsRemaining } = useUsageContext();
   const { isLoading, loadingPlan, initiateCheckout } = useCheckout();
@@ -23,7 +23,7 @@ const PricingSection = memo(() => {
   };
 
   return (
-    <section id="pricing" className="py-24 relative">
+    <section ref={ref} id="pricing" className="py-24 relative">
       <div className="absolute inset-0 bg-grid-pattern opacity-20" />
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -423,7 +423,7 @@ const PricingSection = memo(() => {
       </div>
     </section>
   );
-});
+}));
 
 PricingSection.displayName = 'PricingSection';
 

@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Upload, Cog, Download, ArrowDown } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 
@@ -22,7 +23,7 @@ const steps = [
   },
 ];
 
-const HowItWorksSection = () => {
+const HowItWorksSection = forwardRef<HTMLElement>((_, ref) => {
   const howToSchema = {
     "@context": "https://schema.org",
     "@type": "HowTo",
@@ -60,7 +61,7 @@ const HowItWorksSection = () => {
   };
 
   return (
-    <section id="how-it-works" className="py-24 relative bg-surface-elevated/50">
+    <section ref={ref} id="how-it-works" className="py-24 relative bg-surface-elevated/50">
       <Helmet>
         <script type="application/ld+json">
           {JSON.stringify(howToSchema)}
@@ -141,6 +142,8 @@ const HowItWorksSection = () => {
       </div>
     </section>
   );
-};
+});
+
+HowItWorksSection.displayName = 'HowItWorksSection';
 
 export default HowItWorksSection;

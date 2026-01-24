@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo, forwardRef } from "react";
 import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, AlertTriangle, XCircle, LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -73,7 +73,7 @@ const stages = [
   },
 ];
 
-const InteractiveDemo = memo(() => {
+const InteractiveDemo = memo(forwardRef<HTMLElement>((_, ref) => {
   const navigate = useNavigate();
   const { isAuthenticated, plan, allowedFormats } = useUsageContext();
   const [currentStage, setCurrentStage] = useState(-1);
@@ -228,7 +228,7 @@ const InteractiveDemo = memo(() => {
   const showValidation = currentStage >= 3 || showOutput;
 
   return (
-    <section className="py-20 sm:py-32 relative overflow-hidden">
+    <section ref={ref} className="py-20 sm:py-32 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/20 to-background" />
       
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
@@ -547,7 +547,7 @@ const InteractiveDemo = memo(() => {
       </div>
     </section>
   );
-});
+}));
 
 InteractiveDemo.displayName = 'InteractiveDemo';
 

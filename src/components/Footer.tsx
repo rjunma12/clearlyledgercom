@@ -1,9 +1,10 @@
+import { forwardRef } from "react";
 import { FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const Footer = () => {
+const Footer = forwardRef<HTMLElement>((_, ref) => {
   return (
-    <footer className="py-12 border-t border-border">
+    <footer ref={ref} className="py-12 border-t border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           {/* Brand */}
@@ -101,6 +102,8 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
+});
+
+Footer.displayName = 'Footer';
 
 export default Footer;

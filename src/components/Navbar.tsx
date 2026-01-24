@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, Menu, X, Sun, Moon, LayoutDashboard, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
@@ -9,7 +9,7 @@ import { useUsageContext } from "@/contexts/UsageContext";
 import { useTranslation } from "react-i18next";
 import { LanguageSelector } from "./LanguageSelector";
 
-const Navbar = memo(() => {
+const Navbar = memo(forwardRef<HTMLElement>((_, ref) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const Navbar = memo(() => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass-card-strong border-b border-glass-border">
+    <nav ref={ref} className="fixed top-0 left-0 right-0 z-50 glass-card-strong border-b border-glass-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -202,7 +202,7 @@ const Navbar = memo(() => {
       </div>
     </nav>
   );
-});
+}));
 
 Navbar.displayName = 'Navbar';
 

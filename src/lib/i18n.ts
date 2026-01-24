@@ -18,24 +18,33 @@ export const supportedLanguages = [
 
 export type SupportedLanguage = typeof supportedLanguages[number]['code'];
 
+// Normalize locale codes (e.g., "en-US" -> "en", "fr-CA" -> "fr")
+const normalizeLanguage = (lng: string): string => {
+  if (!lng) return 'en';
+  const baseCode = lng.split('-')[0].toLowerCase();
+  const isSupported = supportedLanguages.some(l => l.code === baseCode);
+  return isSupported ? baseCode : 'en';
+};
+
 // Cache for loaded languages to prevent duplicate loads
 const loadedLanguages = new Set<string>(['en']);
 
 // Lazy load translations for non-English languages
 export const loadLanguage = async (lng: string): Promise<void> => {
-  if (lng === 'en' || loadedLanguages.has(lng)) return;
+  const normalizedLng = normalizeLanguage(lng);
+  if (normalizedLng === 'en' || loadedLanguages.has(normalizedLng)) return;
   
   try {
     const [common, home] = await Promise.all([
-      import(`../locales/${lng}/common.json`),
-      import(`../locales/${lng}/home.json`),
+      import(`../locales/${normalizedLng}/common.json`),
+      import(`../locales/${normalizedLng}/home.json`),
     ]);
     
-    i18n.addResourceBundle(lng, 'common', common.default, true, true);
-    i18n.addResourceBundle(lng, 'home', home.default, true, true);
-    loadedLanguages.add(lng);
+    i18n.addResourceBundle(normalizedLng, 'common', common.default, true, true);
+    i18n.addResourceBundle(normalizedLng, 'home', home.default, true, true);
+    loadedLanguages.add(normalizedLng);
   } catch (error) {
-    console.warn(`Failed to load language: ${lng}`, error);
+    console.warn(`Failed to load language: ${normalizedLng}`, error);
   }
 };
 
@@ -69,16 +78,22 @@ i18n
 
 // Load detected language if not English
 const detectedLng = i18n.language;
-if (detectedLng && detectedLng !== 'en') {
-  loadLanguage(detectedLng);
+const normalizedDetectedLng = normalizeLanguage(detectedLng);
+if (normalizedDetectedLng !== 'en') {
+  loadLanguage(normalizedDetectedLng);
+}
+// Ensure i18n uses the normalized language code
+if (detectedLng !== normalizedDetectedLng) {
+  i18n.changeLanguage(normalizedDetectedLng);
 }
 
 // Helper function to update document direction (call this from a React effect)
 export const updateDocumentDirection = (lng: string) => {
-  const language = supportedLanguages.find(l => l.code === lng);
+  const normalizedLng = normalizeLanguage(lng);
+  const language = supportedLanguages.find(l => l.code === normalizedLng);
   if (language) {
     document.documentElement.dir = language.dir;
-    document.documentElement.lang = lng;
+    document.documentElement.lang = normalizedLng;
   }
 };
 
