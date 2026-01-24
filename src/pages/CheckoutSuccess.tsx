@@ -36,7 +36,7 @@ const CheckoutSuccess = () => {
         if (!session) {
           // User not logged in - redirect to login
           toast.error("Please log in to complete your subscription");
-          navigate('/login?redirect=/checkout/success' + window.location.search);
+          navigate('/login');
           return;
         }
 
