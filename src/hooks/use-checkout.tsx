@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 export type PlanName = 'starter' | 'pro' | 'business' | 'lifetime';
 
@@ -42,7 +43,13 @@ export function useCheckout(): UseCheckoutReturn {
 
       if (error) {
         console.error('Checkout error:', error);
-        toast.error(error.message || 'Failed to create checkout session');
+        logError({
+          errorType: ErrorTypes.CHECKOUT,
+          errorMessage: error.message || 'Failed to create checkout session',
+          component: 'useCheckout',
+          action: 'createCheckout',
+          metadata: { planName }
+        });
         return;
       }
 
@@ -50,11 +57,23 @@ export function useCheckout(): UseCheckoutReturn {
         // Redirect to Dodo hosted checkout
         window.location.href = data.checkoutUrl;
       } else {
-        toast.error('Failed to get checkout URL');
+        logError({
+          errorType: ErrorTypes.CHECKOUT,
+          errorMessage: 'Failed to get checkout URL',
+          component: 'useCheckout',
+          action: 'createCheckout',
+          metadata: { planName, responseData: data }
+        });
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error('An error occurred. Please try again.');
+      logError({
+        errorType: ErrorTypes.CHECKOUT,
+        errorMessage: error instanceof Error ? error.message : 'Unknown checkout error',
+        component: 'useCheckout',
+        action: 'createCheckout',
+        metadata: { planName }
+      });
     } finally {
       setIsLoading(false);
       setLoadingPlan(null);

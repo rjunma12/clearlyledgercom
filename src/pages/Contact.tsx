@@ -17,10 +17,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Mail, CheckCircle, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 const contactFormSchema = z.object({
   name: z
@@ -46,7 +46,6 @@ type ContactFormValues = z.infer<typeof contactFormSchema>;
 const Contact = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -116,10 +115,12 @@ const Contact = () => {
       setIsSuccess(true);
     } catch (error: any) {
       console.error("Contact form error:", error);
-      toast({
-        title: "Failed to send message",
-        description: error.message || "Please try again later.",
-        variant: "destructive",
+      logError({
+        errorType: ErrorTypes.CONTACT,
+        errorMessage: error.message || 'Failed to send contact message',
+        component: 'Contact',
+        action: 'sendContactEmail',
+        metadata: { isEnterprise: prefilledSubject === "Enterprise inquiry" }
       });
     } finally {
       setIsSubmitting(false);

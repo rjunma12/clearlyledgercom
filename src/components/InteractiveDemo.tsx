@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useUsageContext } from "@/contexts/UsageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 interface TransactionRow {
   date: string;
@@ -134,8 +135,11 @@ const InteractiveDemo = forwardRef<HTMLElement>((_, ref) => {
   const handleExport = async (type: ExportType, format: ExportFormat) => {
     // Block export for unauthenticated users (demo only shows preview)
     if (!isAuthenticated) {
-      toast.error('Authentication required', {
-        description: 'Please sign in to download your data',
+      logError({
+        errorType: ErrorTypes.AUTH,
+        errorMessage: 'Authentication required for demo export',
+        component: 'InteractiveDemo',
+        action: 'handleExport'
       });
       navigate('/login');
       return;
@@ -167,31 +171,35 @@ const InteractiveDemo = forwardRef<HTMLElement>((_, ref) => {
 
       if (error) {
         console.error('Export error:', error);
-        toast.error('Export failed', {
-          description: error.message || 'Failed to generate export',
+        logError({
+          errorType: ErrorTypes.EXPORT,
+          errorMessage: error.message || 'Failed to generate demo export',
+          component: 'InteractiveDemo',
+          action: 'handleExport'
         });
         return;
       }
 
       if (!data?.success) {
-        // Handle specific error cases
+        // Log specific error cases silently
+        const errorMsg = data?.error || 'Failed to export demo file';
+        logError({
+          errorType: ErrorTypes.EXPORT,
+          errorMessage: errorMsg,
+          errorCode: data?.requiresAuth ? 'AUTH_REQUIRED' :
+                     data?.upgradeRequired ? 'UPGRADE_REQUIRED' :
+                     data?.quotaExceeded ? 'QUOTA_EXCEEDED' : 'EXPORT_FAILED',
+          component: 'InteractiveDemo',
+          action: 'handleExport',
+          metadata: { 
+            requiresAuth: data?.requiresAuth,
+            upgradeRequired: data?.upgradeRequired,
+            quotaExceeded: data?.quotaExceeded
+          }
+        });
+        
         if (data?.requiresAuth) {
-          toast.error('Authentication required', {
-            description: 'Please sign in to download your data',
-          });
           navigate('/login');
-        } else if (data?.upgradeRequired) {
-          toast.error('Upgrade required', {
-            description: data.error || 'This feature requires a paid plan',
-          });
-        } else if (data?.quotaExceeded) {
-          toast.error('Quota exceeded', {
-            description: data.error || 'You have reached your usage limit',
-          });
-        } else {
-          toast.error('Export failed', {
-            description: data?.error || 'Failed to export file',
-          });
         }
         return;
       }
@@ -214,8 +222,11 @@ const InteractiveDemo = forwardRef<HTMLElement>((_, ref) => {
       });
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Export failed', {
-        description: error instanceof Error ? error.message : 'Failed to export file',
+      logError({
+        errorType: ErrorTypes.EXPORT,
+        errorMessage: error instanceof Error ? error.message : 'Failed to export demo file',
+        component: 'InteractiveDemo',
+        action: 'handleExport'
       });
     } finally {
       setIsExporting(false);

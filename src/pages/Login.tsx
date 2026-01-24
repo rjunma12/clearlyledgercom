@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -24,13 +25,25 @@ export default function Login() {
       });
 
       if (error) {
-        toast.error(error.message);
+        logError({
+          errorType: ErrorTypes.AUTH,
+          errorMessage: error.message,
+          component: 'Login',
+          action: 'signIn',
+          metadata: { email }
+        });
       } else {
         toast.success("Logged in successfully!");
         navigate("/");
       }
     } catch (error) {
-      toast.error("An error occurred during login");
+      logError({
+        errorType: ErrorTypes.AUTH,
+        errorMessage: error instanceof Error ? error.message : 'Unknown login error',
+        component: 'Login',
+        action: 'signIn',
+        metadata: { email }
+      });
     } finally {
       setIsLoading(false);
     }

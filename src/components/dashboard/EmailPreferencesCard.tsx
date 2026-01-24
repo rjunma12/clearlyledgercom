@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Bell, Megaphone, Mail, Loader2 } from "lucide-react";
 import { useEmailPreferences } from "@/hooks/use-email-preferences";
 import { toast } from "sonner";
+import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 export function EmailPreferencesCard() {
   const { preferences, isLoading, updatePreferences } = useEmailPreferences();
@@ -12,7 +13,13 @@ export function EmailPreferencesCard() {
     if (success) {
       toast.success('Email preferences updated');
     } else {
-      toast.error('Failed to update preferences');
+      logError({
+        errorType: ErrorTypes.PREFERENCES,
+        errorMessage: 'Failed to update email preferences',
+        component: 'EmailPreferencesCard',
+        action: 'updatePreferences',
+        metadata: { key, value }
+      });
     }
   };
 

@@ -34,6 +34,7 @@ import {
 } from '@/lib/batchPdfProcessor';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logError, ErrorTypes } from '@/lib/errorLogger';
 
 interface BatchProcessingSectionProps {
   className?: string;
@@ -123,13 +124,21 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
           description: `Merged ${batchResult.totalTransactions} transactions from ${files.length} files`,
         });
       } else {
-        toast.error('Batch processing failed', {
-          description: batchResult.errors[0] || 'Unknown error',
+        logError({
+          errorType: ErrorTypes.PROCESSING,
+          errorMessage: batchResult.errors[0] || 'Unknown batch processing error',
+          component: 'BatchProcessingSection',
+          action: 'processBatch',
+          metadata: { fileCount: files.length, errors: batchResult.errors }
         });
       }
     } catch (error) {
-      toast.error('Processing failed', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+      logError({
+        errorType: ErrorTypes.PROCESSING,
+        errorMessage: error instanceof Error ? error.message : 'Unknown batch processing error',
+        component: 'BatchProcessingSection',
+        action: 'processBatch',
+        metadata: { fileCount: files.length }
       });
     } finally {
       setIsProcessing(false);
