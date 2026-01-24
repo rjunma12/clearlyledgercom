@@ -187,7 +187,6 @@ Deno.serve(async (req) => {
             expired: true,
           }),
           {
-            status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
@@ -198,7 +197,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid transaction data" }),
         {
-          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -208,7 +206,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid export type" }),
         {
-          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -218,7 +215,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid format" }),
         {
-          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -241,7 +237,6 @@ Deno.serve(async (req) => {
           warningCount: warningTransactions.length,
         }),
         {
-          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -260,7 +255,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: "Failed to verify user plan" }),
         {
-          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -275,7 +269,6 @@ Deno.serve(async (req) => {
           upgradeRequired: true,
         }),
         {
-          status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -292,7 +285,6 @@ Deno.serve(async (req) => {
           upgradeRequired: true,
         }),
         {
-          status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -322,7 +314,6 @@ Deno.serve(async (req) => {
           upgradeRequired: true,
         }),
         {
-          status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -355,7 +346,6 @@ Deno.serve(async (req) => {
           upgradeRequired: true,
         }),
         {
-          status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -432,7 +422,6 @@ Deno.serve(async (req) => {
         error: error instanceof Error ? error.message : "Export failed",
       }),
       {
-        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
