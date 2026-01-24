@@ -6,8 +6,18 @@ import { processPDF } from "@/lib/pdfProcessor";
 import { loadPdfDocument } from "@/lib/pdfUtils";
 import type { ProcessingResult, ProcessingStage, ParsedTransaction } from "@/lib/ruleEngine/types";
 import { exportDocument } from "@/lib/ruleEngine/exportAdapters";
-import { preExportCheck, validateExport, getValidationSummary as getExportValidationSummary, type ExportedRow, type ExportValidationResult } from "@/lib/ruleEngine/exportValidator";
+import { 
+  preExportCheck, 
+  validateExport, 
+  getValidationSummary as getExportValidationSummary, 
+  getShortErrorMessage,
+  shouldBlockExport,
+  type ExportedRow, 
+  type ExportValidationResult 
+} from "@/lib/ruleEngine/exportValidator";
 import ExportOptionsDialog from "@/components/ExportOptionsDialog";
+import ExportValidationDialog from "@/components/ExportValidationDialog";
+import ValidationStatusBadge from "@/components/ValidationStatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useUsageContext } from "@/contexts/UsageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,11 +32,19 @@ interface UploadedFile {
   stage?: string;
   result?: ProcessingResult;
   file?: File;
+  validationResult?: ExportValidationResult;
 }
 
 const FileUpload = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [validationDialogOpen, setValidationDialogOpen] = useState(false);
+  const [activeValidation, setActiveValidation] = useState<{
+    fileId: string;
+    result: ExportValidationResult;
+    exportType: "masked" | "full";
+    format: "csv" | "xlsx";
+  } | null>(null);
   const { toast } = useToast();
   const processingRef = useRef<Map<string, boolean>>(new Map());
   
@@ -387,143 +405,188 @@ const FileUpload = () => {
 
         console.log('[Export Validator] Validation result:', JSON.stringify(validationResult, null, 2));
 
-        // Check validation result
-        if (validationResult.verdict === 'EXPORT_INCOMPLETE') {
-          console.error('[Export Validator] EXPORT_INCOMPLETE detected!', {
-            missing: validationResult.missing_transactions.length,
-            corrupted: validationResult.corrupted_transactions.length,
-            duplicates: validationResult.duplicates_in_csv.length
-          });
-          
-          // Only block export if there are missing rows
-          if (validationResult.export_validation.missing_rows > 0) {
-            toast({
-              variant: "destructive",
-              title: "Export validation failed",
-              description: `${validationResult.export_validation.missing_rows} transaction(s) would be missing from export. Please try again.`,
-            });
-            return;
-          }
-          
-          // Log warning for other issues but proceed
-          if (validationResult.export_validation.corrupted_rows > 0 || validationResult.export_validation.duplicate_rows > 0) {
-            console.warn('[Export Validator] Export proceeding with warnings:', getExportValidationSummary(validationResult));
-          }
-        } else {
-          console.log('[Export Validator] ✓ EXPORT_COMPLETE - All transactions validated');
-        }
-
-        console.log('[Export Validator] Sending to backend:', {
-          transactionCount: transactions.length,
-          firstTx: transactions[0],
-          lastTx: transactions[transactions.length - 1]
-        });
-
-        // Call backend to generate export (enforces authentication and plan checks)
-        const { data, error } = await supabase.functions.invoke('generate-export', {
-          body: {
-            transactions,
-            exportType,
-            format,
-            filename: file.name,
-            pageCount: file.result.document.totalPages,
-            timestamp: Date.now(), // Add timestamp for replay protection
-            validationResult: {
-              verdict: validationResult.verdict,
-              confidence: validationResult.confidence_score,
-              pdfTransactions: validationResult.export_validation.pdf_transactions,
-              exportedRows: validationResult.export_validation.exported_rows
-            }
-          }
-        });
-
-        if (error) {
-          console.error('Export error:', error);
+        // Check if export should be blocked
+        const blockCheck = shouldBlockExport(validationResult);
+        if (blockCheck.blocked) {
+          console.error('[Export Validator] Export BLOCKED:', blockCheck.reason);
           toast({
             variant: "destructive",
-            title: "Export failed",
-            description: error.message || "Failed to generate export",
+            title: "Export blocked",
+            description: getShortErrorMessage(validationResult),
           });
+          
+          // Show validation dialog with details
+          setActiveValidation({
+            fileId: file.id,
+            result: validationResult,
+            exportType,
+            format
+          });
+          setValidationDialogOpen(true);
           return;
         }
 
-        if (!data?.success) {
-          // Handle specific error cases
-          if (data?.validationFailed) {
-            toast({
-              variant: "destructive",
-              title: "Export blocked",
-              description: data.error || "Balance validation failed. Fix errors before exporting.",
-            });
-          } else if (data?.requiresAuth) {
-            toast({
-              variant: "destructive",
-              title: "Authentication required",
-              description: "Please sign in to download your data",
-            });
-          } else if (data?.upgradeRequired) {
-            toast({
-              variant: "destructive",
-              title: "Upgrade required",
-              description: data.error || "This feature requires a paid plan",
-            });
-          } else if (data?.quotaExceeded) {
-            toast({
-              variant: "destructive",
-              title: "Quota exceeded",
-              description: data.error || "You have reached your usage limit",
-            });
-          } else if (data?.expired) {
-            toast({
-              variant: "destructive",
-              title: "Request expired",
-              description: "Please try the export again",
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Export failed",
-              description: data?.error || "Failed to export file",
-            });
-          }
+        // Show warning if confidence is low but allow export
+        if (validationResult.verdict === 'EXPORT_INCOMPLETE') {
+          console.warn('[Export Validator] Export proceeding with warnings:', getExportValidationSummary(validationResult));
+          
+          // Show validation dialog for user to confirm
+          setActiveValidation({
+            fileId: file.id,
+            result: validationResult,
+            exportType,
+            format
+          });
+          setValidationDialogOpen(true);
           return;
         }
 
-        // Decode base64 content and download
-        const csvContent = decodeURIComponent(escape(atob(data.content)));
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = data.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        // Show success message
-        if (data.message) {
-          toast({
-            title: "Download started",
-            description: data.message,
-          });
-        } else if (format === "xlsx") {
-          toast({
-            title: "Downloaded as CSV",
-            description: "Excel export coming soon. File saved as CSV.",
-          });
-        } else {
-          toast({
-            title: "Download started",
-            description: `${data.filename} is being downloaded`,
-          });
-        }
+        console.log('[Export Validator] ✓ EXPORT_COMPLETE - All transactions validated');
+        
+        // Proceed with export directly
+        await performExport(file, transactions, exportType, format, validationResult);
       } catch (error) {
         console.error('Export error:', error);
         toast({
           variant: "destructive",
           title: "Export failed",
           description: error instanceof Error ? error.message : "Failed to export file",
+        });
+      }
+    },
+    [toast]
+  );
+
+  // Separate function to perform the actual export (called after validation)
+  const performExport = useCallback(
+    async (
+      file: UploadedFile,
+      transactions: Array<{
+        date: string;
+        description: string;
+        debit: string;
+        credit: string;
+        balance: string;
+        validationStatus: string;
+      }>,
+      exportType: "masked" | "full",
+      format: "csv" | "xlsx",
+      validationResult: ExportValidationResult
+    ) => {
+      if (!file.result?.document) return;
+
+      console.log('[Export] Sending to backend:', {
+        transactionCount: transactions.length,
+        verdict: validationResult.verdict,
+        confidence: validationResult.confidence_score
+      });
+
+      // Call backend to generate export (enforces authentication and plan checks)
+      const { data, error } = await supabase.functions.invoke('generate-export', {
+        body: {
+          transactions,
+          exportType,
+          format,
+          filename: file.name,
+          pageCount: file.result.document.totalPages,
+          timestamp: Date.now(),
+          validationResult: {
+            verdict: validationResult.verdict,
+            confidence: validationResult.confidence_score,
+            pdfTransactions: validationResult.export_validation.pdf_transactions,
+            exportedRows: validationResult.export_validation.exported_rows,
+            missingRows: validationResult.export_validation.missing_rows,
+            corruptedRows: validationResult.export_validation.corrupted_rows
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Export error:', error);
+        toast({
+          variant: "destructive",
+          title: "Export failed",
+          description: error.message || "Failed to generate export",
+        });
+        return;
+      }
+
+      if (!data?.success) {
+        // Handle specific error cases with detailed messages
+        if (data?.validationFailed) {
+          const errorMsg = data.guidance 
+            ? `${data.error}\n\n${data.guidance}`
+            : data.error || "Balance validation failed. Fix errors before exporting.";
+          toast({
+            variant: "destructive",
+            title: "Export blocked",
+            description: errorMsg,
+          });
+        } else if (data?.requiresAuth) {
+          toast({
+            variant: "destructive",
+            title: "Authentication required",
+            description: "Please sign in to download your data",
+          });
+        } else if (data?.upgradeRequired) {
+          toast({
+            variant: "destructive",
+            title: "Upgrade required",
+            description: data.error || "This feature requires a paid plan",
+          });
+        } else if (data?.quotaExceeded) {
+          toast({
+            variant: "destructive",
+            title: "Quota exceeded",
+            description: data.error || "You have reached your usage limit",
+          });
+        } else if (data?.expired) {
+          toast({
+            variant: "destructive",
+            title: "Request expired",
+            description: "Please try the export again",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Export failed",
+            description: data?.error || "Failed to export file",
+          });
+        }
+        return;
+      }
+
+      // Decode base64 content and download
+      const csvContent = decodeURIComponent(escape(atob(data.content)));
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = data.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // Show success message with validation info
+      const confidenceMsg = validationResult.confidence_score >= 0.95 
+        ? '' 
+        : ` (${Math.round(validationResult.confidence_score * 100)}% confidence)`;
+      
+      if (data.message) {
+        toast({
+          title: "Download started",
+          description: data.message + confidenceMsg,
+        });
+      } else if (format === "xlsx") {
+        toast({
+          title: "Downloaded as CSV",
+          description: "Excel export coming soon. File saved as CSV." + confidenceMsg,
+        });
+      } else {
+        toast({
+          title: "Download started",
+          description: `${data.filename} is being downloaded${confidenceMsg}`,
         });
       }
     },
@@ -561,8 +624,45 @@ const FileUpload = () => {
     return (file.result?.document?.errorTransactions ?? 0) > 0;
   };
 
+  // Handle proceeding from validation dialog
+  const handleValidationProceed = useCallback(async () => {
+    if (!activeValidation) return;
+    
+    const file = files.find(f => f.id === activeValidation.fileId);
+    if (!file?.result?.document) return;
+
+    // Get transactions for export
+    const allTransactions = file.result.document.segments.flatMap(s => s.transactions);
+    const transactions = allTransactions.map((tx) => ({
+      date: tx.date || "",
+      description: tx.description || "",
+      debit: tx.debit != null ? String(tx.debit) : "",
+      credit: tx.credit != null ? String(tx.credit) : "",
+      balance: tx.balance != null ? String(tx.balance) : "",
+      validationStatus: tx.validationStatus || 'unchecked',
+    }));
+
+    setValidationDialogOpen(false);
+    await performExport(file, transactions, activeValidation.exportType, activeValidation.format, activeValidation.result);
+    setActiveValidation(null);
+  }, [activeValidation, files, performExport]);
+
   return (
     <div className="w-full max-w-2xl mx-auto">
+      {/* Validation Dialog */}
+      {activeValidation && (
+        <ExportValidationDialog
+          open={validationDialogOpen}
+          onOpenChange={setValidationDialogOpen}
+          validationResult={activeValidation.result}
+          onProceed={handleValidationProceed}
+          onCancel={() => {
+            setValidationDialogOpen(false);
+            setActiveValidation(null);
+          }}
+          canProceed={activeValidation.result.missing_transactions.length === 0}
+        />
+      )}
       {/* Drop Zone */}
       <label
         onDragOver={handleDragOver}

@@ -16,6 +16,15 @@ interface TransactionData {
   validationStatus?: 'valid' | 'warning' | 'error' | 'unchecked';
 }
 
+interface ValidationResult {
+  verdict: 'EXPORT_COMPLETE' | 'EXPORT_INCOMPLETE';
+  confidence: number;
+  pdfTransactions: number;
+  exportedRows: number;
+  missingRows?: number;
+  corruptedRows?: number;
+}
+
 interface ExportRequest {
   transactions: TransactionData[];
   exportType: "masked" | "full";
@@ -23,6 +32,7 @@ interface ExportRequest {
   filename: string;
   pageCount?: number;
   timestamp?: number; // Request timestamp for replay protection
+  validationResult?: ValidationResult; // Frontend validation result
 }
 
 // PII masking patterns (server-side implementation)
@@ -173,7 +183,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body: ExportRequest = await req.json();
-    const { transactions, exportType, format, filename, pageCount, timestamp } = body;
+    const { transactions, exportType, format, filename, pageCount, timestamp, validationResult } = body;
 
     // SECURITY: Request freshness validation (5-minute window)
     if (timestamp) {
@@ -228,18 +238,60 @@ Deno.serve(async (req) => {
     const warningTransactions = transactions.filter(tx => tx.validationStatus === 'warning');
     
     if (errorTransactions.length > 0) {
+      // Build detailed error message with row numbers
+      const errorDetails = errorTransactions.slice(0, 3).map((tx, i) => 
+        `Row ${i + 1}: ${tx.date} - ${tx.description?.substring(0, 20) || 'N/A'}...`
+      ).join('; ');
+      
+      const moreCount = errorTransactions.length > 3 ? ` and ${errorTransactions.length - 3} more` : '';
+      
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Export blocked: ${errorTransactions.length} transaction(s) failed balance validation. Please review highlighted rows before exporting.`,
+          error: `Export blocked: ${errorTransactions.length} transaction(s) failed balance validation. ${errorDetails}${moreCount}. Please review highlighted rows before exporting.`,
           validationFailed: true,
           errorCount: errorTransactions.length,
           warningCount: warningTransactions.length,
+          errorTransactions: errorTransactions.slice(0, 5).map((tx, i) => ({
+            row: i + 1,
+            date: tx.date,
+            description: tx.description?.substring(0, 30),
+            issue: 'balance_mismatch'
+          })),
+          guidance: 'Review the transactions marked in red in the preview. Ensure the running balance equation (Previous Balance + Credit - Debit = Current Balance) is correct for each row.'
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    // Log validation result if provided
+    if (validationResult) {
+      console.log('[Export Validation]', {
+        verdict: validationResult.verdict,
+        confidence: validationResult.confidence,
+        pdfTransactions: validationResult.pdfTransactions,
+        exportedRows: validationResult.exportedRows,
+        missingRows: validationResult.missingRows || 0,
+        corruptedRows: validationResult.corruptedRows || 0
+      });
+      
+      // Block export if validation shows missing rows
+      if (validationResult.missingRows && validationResult.missingRows > 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Export blocked: ${validationResult.missingRows} transaction(s) would be missing from the export. This indicates a data processing error. Please try again or contact support.`,
+            validationFailed: true,
+            missingRows: validationResult.missingRows,
+            guidance: 'This is an unexpected error. Please re-upload your PDF or contact support with your file.'
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     // Create admin client for database operations
@@ -368,6 +420,11 @@ Deno.serve(async (req) => {
       if (logError) {
         console.error("Failed to log export:", logError);
         // Don't fail the export, just log the error
+      }
+      
+      // Log validation verdict for analytics
+      if (validationResult) {
+        console.log(`[Export Audit] User: ${userId}, Verdict: ${validationResult.verdict}, Confidence: ${validationResult.confidence}, Transactions: ${transactions.length}`);
       }
     }
 
