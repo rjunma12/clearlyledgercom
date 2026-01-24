@@ -46,8 +46,9 @@ const ExportOptionsDialog = ({
 }: ExportOptionsDialogProps) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [exportType, setExportType] = useState<ExportType>('masked');
-  const [fullDataConfirmed, setFullDataConfirmed] = useState(false);
+  // Default to 'full' for all users since masking is now optional/premium
+  const [exportType, setExportType] = useState<ExportType>('full');
+  const [fullDataConfirmed, setFullDataConfirmed] = useState(true);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('xlsx');
 
   // Determine what options are available based on plan
@@ -124,26 +125,26 @@ const ExportOptionsDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Anonymous Users - Simplified export with upsell */}
+        {/* Anonymous Users - Full data export with upsell */}
         {isAnonymous && (
           <div className="space-y-4 py-4">
-            {/* Privacy Level - Masked only */}
+            {/* Privacy Level - Full data by default */}
             <div className="space-y-3">
               <Label className="text-sm font-medium">Privacy Level</Label>
               
               <div className="relative flex items-start gap-4 p-4 rounded-lg border-2 border-primary bg-primary/5">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-primary/20">
-                  <Shield className="w-5 h-5 text-primary" />
+                  <Unlock className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">Masked / Anonymized</span>
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                      Free
+                    <span className="font-medium">Full Data</span>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-600">
+                      Included
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    PII protected — Names, emails, phone numbers, and account numbers are anonymized.
+                    All transaction details included — names, descriptions, and amounts as shown in your statement.
                   </p>
                 </div>
                 <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
@@ -187,7 +188,7 @@ const ExportOptionsDialog = ({
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Output filename</Label>
               <div className="mt-1 px-3 py-2 rounded-md bg-muted/50 border border-border text-sm font-mono">
-                {filename}_anonymized.csv
+                {filename}_full.csv
               </div>
             </div>
 
@@ -197,10 +198,10 @@ const ExportOptionsDialog = ({
                 <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div className="flex-1 space-y-2">
                   <p className="text-sm font-medium text-foreground">
-                    Want more pages & features?
+                    Want more pages?
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Create a free account for 5 pages/day, or upgrade for full data access & CSV exports.
+                    Create a free account for 5 pages/day, or upgrade for CSV exports & batch processing.
                   </p>
                   <Button size="sm" variant="outline" onClick={() => { setOpen(false); navigate('/signup'); }} className="mt-2">
                     Create Free Account
@@ -211,79 +212,33 @@ const ExportOptionsDialog = ({
           </div>
         )}
 
-        {/* Authenticated but Free Plan - Show disabled PII toggle with tooltip */}
+        {/* Authenticated but Free Plan - Full data export */}
         {isAuthenticated && isFreePlan && (
           <div className="space-y-4 py-4">
-            {/* Privacy Level - PII toggle visible but disabled */}
+            {/* Privacy Level - Full data by default */}
             <div className="space-y-3">
               <Label className="text-sm font-medium">Privacy Level</Label>
               
-              {/* Masked Option - Selected by default, only option */}
+              {/* Full Data Option - Selected by default */}
               <div className="relative flex items-start gap-4 p-4 rounded-lg border-2 border-primary bg-primary/5">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-primary/20">
-                  <Shield className="w-5 h-5 text-primary" />
+                  <Unlock className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">Masked / Anonymized</span>
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                    <span className="font-medium">Full Data</span>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-600">
                       Included
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    PII protected — Names, emails, phone numbers, and account numbers are anonymized.
+                    All transaction details included — names, descriptions, and amounts as shown in your statement.
                   </p>
                 </div>
                 <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                   <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
-                </div>
-              </div>
-
-              {/* Full Data Option - Disabled with tooltip */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="relative flex items-start gap-4 p-4 rounded-lg border-2 border-border opacity-50 cursor-not-allowed">
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-muted">
-                        <Unlock className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-muted-foreground">Full Data</span>
-                          <Lock className="w-3 h-3 text-muted-foreground" />
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Includes all original PII data
-                        </p>
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p className="font-medium">PII masking starts from Starter plan</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Upgrade to access unmasked data exports with full names, account numbers, and personal details.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              {/* Upgrade Prompt */}
-              <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                  <div className="flex-1 space-y-2">
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                      Want full data access & CSV exports?
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Upgrade to Starter or higher to export complete transaction data with CSV format.
-                    </p>
-                    <Button size="sm" variant="outline" onClick={handleUpgradeClick} className="mt-2">
-                      View Plans
-                    </Button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -321,7 +276,25 @@ const ExportOptionsDialog = ({
             <div className="pt-2">
               <Label className="text-sm font-medium text-muted-foreground">Output filename</Label>
               <div className="mt-1 px-3 py-2 rounded-md bg-muted/50 border border-border text-sm font-mono">
-                {filename}_anonymized.csv
+                {filename}_full.csv
+              </div>
+            </div>
+
+            {/* Upgrade Prompt */}
+            <div className="p-4 rounded-lg bg-muted/50 border border-border">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium text-foreground">
+                    Want more pages & CSV exports?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Upgrade to Starter for CSV format and higher page limits.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={handleUpgradeClick} className="mt-2">
+                    View Plans
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
