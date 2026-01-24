@@ -25,9 +25,9 @@ export function useCheckout(): UseCheckoutReturn {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // Redirect to login with return URL
+        // Redirect to login - redirect param is unused by Login component
         toast.info("Please log in to subscribe");
-        navigate(`/login?redirect=/pricing&plan=${planName}`);
+        navigate('/login');
         return;
       }
 

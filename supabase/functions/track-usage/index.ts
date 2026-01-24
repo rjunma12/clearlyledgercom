@@ -104,8 +104,8 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
 
     if (userId) {
-      // For authenticated users
-      const { data: existingUsage } = await supabaseAdmin
+      // For authenticated users - use anon client with RLS
+      const { data: existingUsage } = await supabaseAnon
         .from('usage_tracking')
         .select('id, pages_processed')
         .eq('user_id', userId)
@@ -113,12 +113,12 @@ Deno.serve(async (req) => {
         .single();
 
       if (existingUsage) {
-        await supabaseAdmin
+        await supabaseAnon
           .from('usage_tracking')
           .update({ pages_processed: existingUsage.pages_processed + pages })
           .eq('id', existingUsage.id);
       } else {
-        await supabaseAdmin
+        await supabaseAnon
           .from('usage_tracking')
           .insert({
             user_id: userId,
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
           });
       }
     } else {
-      // For anonymous users - use server-generated fingerprint
+      // For anonymous users - use service role (required to bypass RLS)
       const { data: existingUsage } = await supabaseAdmin
         .from('usage_tracking')
         .select('id, pages_processed')
