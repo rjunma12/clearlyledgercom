@@ -14,19 +14,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // SECURITY: Require service role authentication
+    // SECURITY: Require service role authentication via standard Bearer token only
     // This function should only be called by admin systems, not public users
     const authHeader = req.headers.get('Authorization');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    // Check for service role key in Authorization header (Bearer token)
-    // or as a custom header for admin panel compatibility
-    const adminSecret = req.headers.get('x-admin-secret');
-    const isServiceRole = authHeader?.includes(serviceRoleKey);
-    const isAdmin = adminSecret === serviceRoleKey;
+    // Only accept standard Bearer token authentication
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('Unauthorized access attempt to send-feature-announcement: missing Bearer token');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
-    if (!isServiceRole && !isAdmin) {
-      console.error('Unauthorized access attempt to send-feature-announcement');
+    const token = authHeader.substring(7);
+    if (token !== serviceRoleKey) {
+      console.error('Unauthorized access attempt to send-feature-announcement: invalid token');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

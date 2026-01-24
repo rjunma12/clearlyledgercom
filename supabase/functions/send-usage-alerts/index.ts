@@ -14,19 +14,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // SECURITY: Require service role authentication
+    // SECURITY: Require service role authentication via standard Bearer token only
     // This function should only be called by cron jobs or admin systems
     const authHeader = req.headers.get('Authorization');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    // Check for service role key in Authorization header (Bearer token)
-    // or as a custom header for cron job compatibility
-    const cronSecret = req.headers.get('x-cron-secret');
-    const isServiceRole = authHeader?.includes(serviceRoleKey);
-    const isCronJob = cronSecret === serviceRoleKey;
+    // Only accept standard Bearer token authentication
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('Unauthorized access attempt to send-usage-alerts: missing Bearer token');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
-    if (!isServiceRole && !isCronJob) {
-      console.error('Unauthorized access attempt to send-usage-alerts');
+    const token = authHeader.substring(7);
+    if (token !== serviceRoleKey) {
+      console.error('Unauthorized access attempt to send-usage-alerts: invalid token');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
