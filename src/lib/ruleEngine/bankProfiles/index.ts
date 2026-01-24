@@ -7,13 +7,24 @@ import type { BankProfile, BankDetectionResult, ProfileRegistry } from './types'
 
 // Import all bank profiles
 import { genericProfile } from './profiles/generic';
+// US Banks
 import { chaseUSProfile } from './profiles/chase-us';
-import { hdfcIndiaProfile } from './profiles/hdfc-india';
+import { bofaUSProfile } from './profiles/bofa-us';
+import { wellsFargoUSProfile } from './profiles/wells-fargo-us';
+import { citibankUSProfile } from './profiles/citibank-us';
+// UK Banks
 import { barclaysUKProfile } from './profiles/barclays-uk';
 import { hsbcUKProfile } from './profiles/hsbc-uk';
-import { bofaUSProfile } from './profiles/bofa-us';
+import { lloydsUKProfile } from './profiles/lloyds-uk';
+import { natwestUKProfile } from './profiles/natwest-uk';
+// European Banks
+import { santanderEUProfile } from './profiles/santander-eu';
+import { deutscheBankDEProfile } from './profiles/deutsche-bank-de';
+// India Banks
+import { hdfcIndiaProfile } from './profiles/hdfc-india';
 import { iciciIndiaProfile } from './profiles/icici-india';
-// Australian bank profiles
+import { sbiIndiaProfile } from './profiles/sbi-india';
+// Australian Banks
 import { cbaAustraliaProfile } from './profiles/cba-australia';
 import { anzAustraliaProfile } from './profiles/anz-australia';
 import { westpacAustraliaProfile } from './profiles/westpac-australia';
@@ -21,6 +32,12 @@ import { nabAustraliaProfile } from './profiles/nab-australia';
 import { ingAustraliaProfile } from './profiles/ing-australia';
 import { macquarieAustraliaProfile } from './profiles/macquarie-australia';
 import { bendigoAustraliaProfile } from './profiles/bendigo-australia';
+// Asia-Pacific Banks
+import { dbsSingaporeProfile } from './profiles/dbs-singapore';
+// Canada Banks
+import { tdCanadaProfile } from './profiles/td-canada';
+// Global Banks
+import { standardCharteredProfile } from './profiles/standard-chartered';
 
 // Re-export types
 export * from './types';
@@ -36,12 +53,20 @@ const defaultProfiles: BankProfile[] = [
   // US Banks
   chaseUSProfile,
   bofaUSProfile,
+  wellsFargoUSProfile,
+  citibankUSProfile,
   // UK Banks
   hsbcUKProfile,
   barclaysUKProfile,
+  lloydsUKProfile,
+  natwestUKProfile,
+  // European Banks
+  santanderEUProfile,
+  deutscheBankDEProfile,
   // India Banks
   hdfcIndiaProfile,
   iciciIndiaProfile,
+  sbiIndiaProfile,
   // Australian Banks
   cbaAustraliaProfile,
   anzAustraliaProfile,
@@ -50,6 +75,12 @@ const defaultProfiles: BankProfile[] = [
   ingAustraliaProfile,
   macquarieAustraliaProfile,
   bendigoAustraliaProfile,
+  // Asia-Pacific Banks
+  dbsSingaporeProfile,
+  // Canada Banks
+  tdCanadaProfile,
+  // Global Banks
+  standardCharteredProfile,
   // Fallback
   genericProfile, // Always last as fallback
 ];
