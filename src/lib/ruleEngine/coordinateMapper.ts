@@ -271,3 +271,117 @@ export function extendColumnBounds(
   
   return extendedAnchors;
 }
+
+// =============================================================================
+// STATISTICAL COLUMN INFERENCE (FALLBACK)
+// =============================================================================
+
+/**
+ * Infer column anchors from layout when no headers are detected
+ * Uses statistical analysis of text positions to guess column structure:
+ * - Date: Left-most column with date-like patterns
+ * - Description: Widest column / most text
+ * - Numbers: Right-aligned columns with numeric patterns
+ */
+export function inferColumnAnchorsFromLayout(
+  elements: TextElement[]
+): ColumnAnchor[] {
+  if (elements.length < 5) return [];
+  
+  const anchors: ColumnAnchor[] = [];
+  
+  // Group elements by approximate X position (bucket by 50px)
+  const xBuckets = new Map<number, TextElement[]>();
+  for (const el of elements) {
+    const bucketKey = Math.floor(el.boundingBox.x / 50) * 50;
+    if (!xBuckets.has(bucketKey)) {
+      xBuckets.set(bucketKey, []);
+    }
+    xBuckets.get(bucketKey)!.push(el);
+  }
+  
+  // Sort buckets by X position
+  const sortedBuckets = Array.from(xBuckets.entries()).sort((a, b) => a[0] - b[0]);
+  
+  if (sortedBuckets.length < 2) return [];
+  
+  // Analyze each bucket for content type
+  const bucketAnalysis = sortedBuckets.map(([x, els]) => {
+    const texts = els.map(e => e.text.trim());
+    const datePatterns = texts.filter(t => /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(t) || 
+                                           /^\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(t));
+    const numberPatterns = texts.filter(t => /^[\d\s,.\-()]+$/.test(t) && t.length > 0);
+    const avgWidth = els.reduce((sum, e) => sum + e.boundingBox.width, 0) / els.length;
+    
+    return {
+      x,
+      elements: els,
+      dateCount: datePatterns.length,
+      numberCount: numberPatterns.length,
+      textCount: texts.length - numberPatterns.length,
+      avgWidth,
+      representativeEl: els[0],
+    };
+  });
+  
+  // Find date column (left-most with date patterns)
+  const dateCandidate = bucketAnalysis.find(b => b.dateCount > 2);
+  if (dateCandidate) {
+    anchors.push({
+      columnType: 'date',
+      boundingBox: {
+        x: dateCandidate.x,
+        y: dateCandidate.representativeEl.boundingBox.y,
+        width: dateCandidate.avgWidth,
+        height: 20,
+      },
+      aliases: ['Date (inferred)'],
+    });
+  }
+  
+  // Find numeric columns from the right side (Balance, Credit, Debit)
+  const numericBuckets = bucketAnalysis
+    .filter(b => b.numberCount > b.textCount && b.numberCount > 3)
+    .sort((a, b) => b.x - a.x); // Right to left
+  
+  const numericTypes: ColumnType[] = ['balance', 'credit', 'debit'];
+  numericBuckets.slice(0, 3).forEach((bucket, index) => {
+    if (numericTypes[index]) {
+      anchors.push({
+        columnType: numericTypes[index],
+        boundingBox: {
+          x: bucket.x,
+          y: bucket.representativeEl.boundingBox.y,
+          width: bucket.avgWidth,
+          height: 20,
+        },
+        aliases: [`${numericTypes[index]} (inferred)`],
+      });
+    }
+  });
+  
+  // Find description column (widest non-numeric column)
+  const descCandidate = bucketAnalysis
+    .filter(b => b.textCount > b.numberCount && !anchors.some(a => Math.abs(a.boundingBox.x - b.x) < 30))
+    .sort((a, b) => b.avgWidth - a.avgWidth)[0];
+  
+  if (descCandidate) {
+    anchors.push({
+      columnType: 'description',
+      boundingBox: {
+        x: descCandidate.x,
+        y: descCandidate.representativeEl.boundingBox.y,
+        width: descCandidate.avgWidth,
+        height: 20,
+      },
+      aliases: ['Description (inferred)'],
+    });
+  }
+  
+  // Sort anchors by X position
+  anchors.sort((a, b) => a.boundingBox.x - b.boundingBox.x);
+  
+  console.log('[inferColumnAnchorsFromLayout] Inferred columns:', anchors.map(a => `${a.columnType}@${a.boundingBox.x}`));
+  
+  return anchors;
+}
