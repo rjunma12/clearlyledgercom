@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Shield, AlertTriangle, Lock, Unlock, LogIn, Sparkles } from "lucide-react";
+import { Download, Shield, AlertTriangle, Lock, Unlock, LogIn, Sparkles, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 
 export type ExportType = 'masked' | 'full';
@@ -29,6 +30,8 @@ interface ExportOptionsDialogProps {
   isAuthenticated?: boolean;
   /** Plan display name for messaging */
   planName?: string;
+  /** Allowed export formats for this plan */
+  allowedFormats?: ExportFormat[];
 }
 
 const ExportOptionsDialog = ({
@@ -39,17 +42,23 @@ const ExportOptionsDialog = ({
   piiMaskingLevel = 'optional',
   isAuthenticated = true,
   planName,
+  allowedFormats = ['csv', 'xlsx'],
 }: ExportOptionsDialogProps) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [exportType, setExportType] = useState<ExportType>('masked');
   const [fullDataConfirmed, setFullDataConfirmed] = useState(false);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('xlsx');
 
   // Determine what options are available based on plan
   const canAccessFullData = piiMaskingLevel === 'optional';
   const isEnforcedMasking = piiMaskingLevel === 'enforced';
   const isFreePlan = piiMaskingLevel === 'none';
+  const isAnonymous = !isAuthenticated;
+  
+  // Format restrictions
+  const canUseCsv = allowedFormats.includes('csv');
+  const canUseXlsx = allowedFormats.includes('xlsx');
 
   const handleExport = () => {
     // For enforced masking plans, always export masked
@@ -82,7 +91,8 @@ const ExportOptionsDialog = ({
   const getExportFilename = () => {
     const actualType = isEnforcedMasking ? 'masked' : exportType;
     const suffix = actualType === 'masked' ? '_anonymized' : '_full';
-    return `${filename}${suffix}.${exportFormat}`;
+    // Currently only CSV is supported from backend
+    return `${filename}${suffix}.csv`;
   };
 
   return (
@@ -105,17 +115,17 @@ const ExportOptionsDialog = ({
             Export Options
           </DialogTitle>
           <DialogDescription>
-            {!isAuthenticated 
+            {isAnonymous
               ? "Sign in to download your processed data."
               : isFreePlan
-                ? "Upgrade to access unmasked data exports."
+                ? "Your free plan includes masked Excel exports. Upgrade for more options."
                 : "Choose how you want to export your data. Masked files are safe to share with third parties."
             }
           </DialogDescription>
         </DialogHeader>
 
-        {/* Unauthenticated State */}
-        {!isAuthenticated && (
+        {/* Unauthenticated State - ANONYMOUS USERS */}
+        {isAnonymous && (
           <div className="py-6">
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 text-center space-y-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
@@ -124,7 +134,7 @@ const ExportOptionsDialog = ({
               <div>
                 <h3 className="font-semibold text-foreground mb-1">Sign in Required</h3>
                 <p className="text-sm text-muted-foreground">
-                  Create a free account to download your converted data. Free users get masked exports.
+                  Create a free account to download your converted data. Free users get masked Excel exports.
                 </p>
               </div>
               <div className="flex gap-3 justify-center">
@@ -139,13 +149,14 @@ const ExportOptionsDialog = ({
           </div>
         )}
 
-        {/* Authenticated but Free Plan */}
+        {/* Authenticated but Free Plan - Show disabled PII toggle with tooltip */}
         {isAuthenticated && isFreePlan && (
           <div className="space-y-4 py-4">
-            {/* Masked Option - Only Option Available */}
+            {/* Privacy Level - PII toggle visible but disabled */}
             <div className="space-y-3">
               <Label className="text-sm font-medium">Privacy Level</Label>
               
+              {/* Masked Option - Selected by default, only option */}
               <div className="relative flex items-start gap-4 p-4 rounded-lg border-2 border-primary bg-primary/5">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-primary/20">
                   <Shield className="w-5 h-5 text-primary" />
@@ -168,16 +179,44 @@ const ExportOptionsDialog = ({
                 </div>
               </div>
 
-              {/* Upgrade Prompt for Full Data */}
+              {/* Full Data Option - Disabled with tooltip */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="relative flex items-start gap-4 p-4 rounded-lg border-2 border-border opacity-50 cursor-not-allowed">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-muted">
+                        <Unlock className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-muted-foreground">Full Data</span>
+                          <Lock className="w-3 h-3 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Includes all original PII data
+                        </p>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="font-medium">PII masking starts from Starter plan</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upgrade to access unmasked data exports with full names, account numbers, and personal details.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Upgrade Prompt */}
               <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
                 <div className="flex items-start gap-3">
                   <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                   <div className="flex-1 space-y-2">
                     <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                      Need access to full, unmasked data?
+                      Want full data access & CSV exports?
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Upgrade to Starter or Pro to export complete transaction data with all original details.
+                      Upgrade to Starter or higher to export complete transaction data with CSV format.
                     </p>
                     <Button size="sm" variant="outline" onClick={handleUpgradeClick} className="mt-2">
                       View Plans
@@ -187,34 +226,32 @@ const ExportOptionsDialog = ({
               </div>
             </div>
 
-            {/* Format Selection */}
+            {/* Format Selection - Only Excel for free users */}
             <div className="space-y-3 pt-2">
               <Label className="text-sm font-medium">File Format</Label>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setExportFormat('csv')}
-                  className={`
-                    flex-1 py-2.5 px-4 rounded-lg border-2 font-medium transition-all
-                    ${exportFormat === 'csv' 
-                      ? 'border-primary bg-primary/5 text-primary' 
-                      : 'border-border text-muted-foreground hover:border-primary/50'
-                    }
-                  `}
+                  className="flex-1 py-2.5 px-4 rounded-lg border-2 border-primary bg-primary/5 text-primary font-medium"
                 >
-                  CSV
-                </button>
-                <button
-                  onClick={() => setExportFormat('xlsx')}
-                  className={`
-                    flex-1 py-2.5 px-4 rounded-lg border-2 font-medium transition-all
-                    ${exportFormat === 'xlsx' 
-                      ? 'border-primary bg-primary/5 text-primary' 
-                      : 'border-border text-muted-foreground hover:border-primary/50'
-                    }
-                  `}
-                >
+                  <FileSpreadsheet className="w-4 h-4 inline mr-2" />
                   Excel (XLSX)
                 </button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="flex-1 py-2.5 px-4 rounded-lg border-2 border-border text-muted-foreground font-medium opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
+                        disabled
+                      >
+                        CSV
+                        <Lock className="w-3 h-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>CSV export requires a paid plan</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
 
@@ -222,7 +259,7 @@ const ExportOptionsDialog = ({
             <div className="pt-2">
               <Label className="text-sm font-medium text-muted-foreground">Output filename</Label>
               <div className="mt-1 px-3 py-2 rounded-md bg-muted/50 border border-border text-sm font-mono">
-                {filename}_anonymized.{exportFormat}
+                {filename}_anonymized.csv
               </div>
             </div>
           </div>
@@ -369,30 +406,34 @@ const ExportOptionsDialog = ({
             <div className="space-y-3 pt-2">
               <Label className="text-sm font-medium">File Format</Label>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setExportFormat('csv')}
-                  className={`
-                    flex-1 py-2.5 px-4 rounded-lg border-2 font-medium transition-all
-                    ${exportFormat === 'csv' 
-                      ? 'border-primary bg-primary/5 text-primary' 
-                      : 'border-border text-muted-foreground hover:border-primary/50'
-                    }
-                  `}
-                >
-                  CSV
-                </button>
-                <button
-                  onClick={() => setExportFormat('xlsx')}
-                  className={`
-                    flex-1 py-2.5 px-4 rounded-lg border-2 font-medium transition-all
-                    ${exportFormat === 'xlsx' 
-                      ? 'border-primary bg-primary/5 text-primary' 
-                      : 'border-border text-muted-foreground hover:border-primary/50'
-                    }
-                  `}
-                >
-                  Excel (XLSX)
-                </button>
+                {canUseCsv && (
+                  <button
+                    onClick={() => setExportFormat('csv')}
+                    className={`
+                      flex-1 py-2.5 px-4 rounded-lg border-2 font-medium transition-all
+                      ${exportFormat === 'csv' 
+                        ? 'border-primary bg-primary/5 text-primary' 
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                      }
+                    `}
+                  >
+                    CSV
+                  </button>
+                )}
+                {canUseXlsx && (
+                  <button
+                    onClick={() => setExportFormat('xlsx')}
+                    className={`
+                      flex-1 py-2.5 px-4 rounded-lg border-2 font-medium transition-all
+                      ${exportFormat === 'xlsx' 
+                        ? 'border-primary bg-primary/5 text-primary' 
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                      }
+                    `}
+                  >
+                    Excel (XLSX)
+                  </button>
+                )}
               </div>
             </div>
 
@@ -407,23 +448,21 @@ const ExportOptionsDialog = ({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
           {isAuthenticated && (
-            <Button 
-              onClick={handleExport} 
-              disabled={!canExport && !isFreePlan}
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              {isFreePlan 
-                ? 'Export Masked Data'
-                : isEnforcedMasking 
-                  ? 'Export Masked Data'
-                  : `Export ${exportType === 'masked' ? 'Masked' : 'Full'} Data`
-              }
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="glow"
+                onClick={handleExport}
+                disabled={!canExport}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {isFreePlan ? 'Export Masked Data' : `Export ${exportType === 'masked' ? 'Masked' : 'Full'} Data`}
+              </Button>
+            </>
           )}
         </DialogFooter>
       </DialogContent>

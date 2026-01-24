@@ -1,12 +1,13 @@
 import { useState, useEffect, memo } from "react";
-import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, AlertTriangle, XCircle, LogIn } from "lucide-react";
+import { FileText, Shield, Cog, CheckCircle, Play, RotateCcw, AlertTriangle, XCircle, LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ExportOptionsDialog, { ExportType, ExportFormat } from "@/components/ExportOptionsDialog";
-import { maskTransactionData, generateExportFilename, type TransactionWithPII } from "@/lib/piiMasker";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useUsageContext } from "@/contexts/UsageContext";
+import { supabase } from "@/integrations/supabase/client";
+
 interface TransactionRow {
   date: string;
   description: string;
@@ -74,10 +75,11 @@ const stages = [
 
 const InteractiveDemo = memo(() => {
   const navigate = useNavigate();
-  const { isAuthenticated, plan } = useUsageContext();
+  const { isAuthenticated, plan, allowedFormats } = useUsageContext();
   const [currentStage, setCurrentStage] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const getCurrentData = (): TransactionRow[] => {
     if (currentStage <= 0) return sampleStatement;
@@ -129,7 +131,7 @@ const InteractiveDemo = memo(() => {
     setShowOutput(false);
   };
 
-  const handleExport = (type: ExportType, format: ExportFormat) => {
+  const handleExport = async (type: ExportType, format: ExportFormat) => {
     // Block export for unauthenticated users (demo only shows preview)
     if (!isAuthenticated) {
       toast.error('Authentication required', {
@@ -139,55 +141,85 @@ const InteractiveDemo = memo(() => {
       return;
     }
 
-    // Get the appropriate data based on export type
-    const dataToExport: TransactionWithPII[] = type === 'masked' 
-      ? maskTransactionData(normalizedStatement.map(row => ({
-          date: row.date,
-          description: row.description,
-          debit: row.debit,
-          credit: row.credit,
-          balance: row.balance,
-          account: row.account,
-        })))
-      : normalizedStatement.map(row => ({
-          date: row.date,
-          description: row.description,
-          debit: row.debit,
-          credit: row.credit,
-          balance: row.balance,
-          account: row.account,
-        }));
+    setIsExporting(true);
 
-    // Generate filename
-    const filename = generateExportFilename('demo_statement', type === 'masked', format);
+    try {
+      // Prepare transactions for backend
+      const transactions = normalizedStatement.map(row => ({
+        date: row.date,
+        description: row.description,
+        debit: row.debit,
+        credit: row.credit,
+        balance: row.balance,
+        account: row.account,
+      }));
 
-    // Convert to CSV/Excel format
-    const headers = ['Date', 'Description', 'Debit', 'Credit', 'Balance'];
-    const csvContent = [
-      headers.join(','),
-      ...dataToExport.map(row => 
-        [row.date, `"${row.description}"`, row.debit || '', row.credit || '', row.balance].join(',')
-      )
-    ].join('\n');
+      // Route through backend for proper enforcement
+      const { data, error } = await supabase.functions.invoke('generate-export', {
+        body: {
+          transactions,
+          exportType: type,
+          format,
+          filename: 'demo_statement',
+          pageCount: 1,
+        }
+      });
 
-    // Create and download file
-    const blob = new Blob([csvContent], { type: format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      if (error) {
+        console.error('Export error:', error);
+        toast.error('Export failed', {
+          description: error.message || 'Failed to generate export',
+        });
+        return;
+      }
 
-    // Show success toast
-    toast.success(`Exported ${type === 'masked' ? 'anonymized' : 'full'} demo data`, {
-      description: `File saved as ${filename}`,
-    });
+      if (!data?.success) {
+        // Handle specific error cases
+        if (data?.requiresAuth) {
+          toast.error('Authentication required', {
+            description: 'Please sign in to download your data',
+          });
+          navigate('/login');
+        } else if (data?.upgradeRequired) {
+          toast.error('Upgrade required', {
+            description: data.error || 'This feature requires a paid plan',
+          });
+        } else if (data?.quotaExceeded) {
+          toast.error('Quota exceeded', {
+            description: data.error || 'You have reached your usage limit',
+          });
+        } else {
+          toast.error('Export failed', {
+            description: data?.error || 'Failed to export file',
+          });
+        }
+        return;
+      }
 
-    // Log export type for compliance (no PII logged)
-    console.log(`[Demo Export] Type: ${type}, Format: ${format}, Timestamp: ${new Date().toISOString()}`);
+      // Decode base64 content and download
+      const csvContent = decodeURIComponent(escape(atob(data.content)));
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = data.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // Show success message
+      toast.success(`Exported ${data.exportType === 'masked' ? 'anonymized' : 'full'} demo data`, {
+        description: data.message || `File saved as ${data.filename}`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed', {
+        description: error instanceof Error ? error.message : 'Failed to export file',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const highlightedFields = getHighlightedFields();
@@ -320,10 +352,11 @@ const InteractiveDemo = memo(() => {
                 <ExportOptionsDialog
                   filename="demo_statement"
                   onExport={handleExport}
-                  disabled={!showOutput}
+                  disabled={!showOutput || isExporting}
                   piiMaskingLevel={plan?.piiMasking || 'none'}
                   isAuthenticated={isAuthenticated}
                   planName={plan?.displayName}
+                  allowedFormats={allowedFormats}
                 />
               )}
             </div>

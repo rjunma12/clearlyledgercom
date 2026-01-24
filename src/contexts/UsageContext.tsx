@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useUsage, type PlanType, type PiiMaskingLevel, type UserPlan, type UsageInfo } from '@/hooks/use-usage';
+import { useUsage, type PlanType, type PiiMaskingLevel, type UserPlan, type UsageInfo, type ExportFormat } from '@/hooks/use-usage';
 
 /**
  * UsageContext provides centralized usage data to avoid duplicate API calls.
@@ -18,6 +18,7 @@ interface UsageContextValue {
   isPiiMaskingEnforced: boolean;
   canBatchUpload: boolean;
   maxBatchFiles: number;
+  allowedFormats: ExportFormat[];
   refreshUsage: () => Promise<void>;
   incrementUsage: (pages: number) => Promise<boolean>;
 }
@@ -35,6 +36,7 @@ const defaultValue: UsageContextValue = {
   isPiiMaskingEnforced: false,
   canBatchUpload: false,
   maxBatchFiles: 1,
+  allowedFormats: ['xlsx'],
   refreshUsage: async () => {},
   incrementUsage: async () => false,
 };
@@ -68,4 +70,4 @@ export function useUsageContext(): UsageContextValue {
 }
 
 // Re-export types for convenience
-export type { PlanType, PiiMaskingLevel, UserPlan, UsageInfo };
+export type { PlanType, PiiMaskingLevel, UserPlan, UsageInfo, ExportFormat };
