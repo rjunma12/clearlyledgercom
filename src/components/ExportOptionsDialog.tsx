@@ -116,7 +116,7 @@ const ExportOptionsDialog = ({
           </DialogTitle>
           <DialogDescription>
             {isAnonymous
-              ? "Sign in to download your processed data."
+              ? "Your data is automatically anonymized for privacy. Download as Excel."
               : isFreePlan
                 ? "Your free plan includes masked Excel exports. Upgrade for more options."
                 : "Choose how you want to export your data. Masked files are safe to share with third parties."
@@ -124,26 +124,88 @@ const ExportOptionsDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Unauthenticated State - ANONYMOUS USERS */}
+        {/* Anonymous Users - Simplified export with upsell */}
         {isAnonymous && (
-          <div className="py-6">
-            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                <LogIn className="w-6 h-6 text-primary" />
+          <div className="space-y-4 py-4">
+            {/* Privacy Level - Masked only */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Privacy Level</Label>
+              
+              <div className="relative flex items-start gap-4 p-4 rounded-lg border-2 border-primary bg-primary/5">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-primary/20">
+                  <Shield className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Masked / Anonymized</span>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                      Free
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    PII protected — Names, emails, phone numbers, and account numbers are anonymized.
+                  </p>
+                </div>
+                <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                  <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">Sign in Required</h3>
-                <p className="text-sm text-muted-foreground">
-                  Create a free account to download your converted data. Free users get masked Excel exports.
-                </p>
+            </div>
+
+            {/* Format Selection - Only Excel for anonymous */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">File Format</Label>
+              <div className="flex gap-3">
+                <button
+                  className="flex-1 py-2.5 px-4 rounded-lg border-2 border-primary bg-primary/5 text-primary font-medium"
+                >
+                  <FileSpreadsheet className="w-4 h-4 inline mr-2" />
+                  Excel (XLSX)
+                </button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="flex-1 py-2.5 px-4 rounded-lg border-2 border-border text-muted-foreground font-medium opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
+                        disabled
+                      >
+                        CSV
+                        <Lock className="w-3 h-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>CSV export requires a paid plan</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" onClick={handleLoginClick}>
-                  Sign In
-                </Button>
-                <Button variant="glow" onClick={() => { setOpen(false); navigate('/signup'); }}>
-                  Create Free Account
-                </Button>
+            </div>
+
+            {/* Filename Preview */}
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Output filename</Label>
+              <div className="mt-1 px-3 py-2 rounded-md bg-muted/50 border border-border text-sm font-mono">
+                {filename}_anonymized.csv
+              </div>
+            </div>
+
+            {/* Upsell - Sign up for more */}
+            <div className="p-4 rounded-lg bg-muted/50 border border-border">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-medium text-foreground">
+                    Want more pages & features?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Create a free account for 5 pages/day, or upgrade for full data access & CSV exports.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => { setOpen(false); navigate('/signup'); }} className="mt-2">
+                    Create Free Account
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -448,22 +510,22 @@ const ExportOptionsDialog = ({
         )}
 
         <DialogFooter>
-          {isAuthenticated && (
-            <>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                variant="glow"
-                onClick={handleExport}
-                disabled={!canExport}
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
-                {isFreePlan ? 'Export Masked Data' : `Export ${exportType === 'masked' ? 'Masked' : 'Full'} Data`}
-              </Button>
-            </>
-          )}
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="glow"
+            onClick={handleExport}
+            disabled={!isAnonymous && !canExport}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            {isAnonymous 
+              ? 'Download Excel' 
+              : isFreePlan 
+                ? 'Export Masked Data' 
+                : `Export ${exportType === 'masked' ? 'Masked' : 'Full'} Data`}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
