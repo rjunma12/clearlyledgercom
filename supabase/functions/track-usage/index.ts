@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     if (!pages || pages < 1 || pages > 100) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid pages count' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       console.error('Error fetching plan');
       return new Response(
         JSON.stringify({ success: false, error: 'Failed to fetch user plan' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
           planName,
           quotaExceeded: true,
         }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
     console.error('Error in track-usage');
     return new Response(
       JSON.stringify({ success: false, error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
