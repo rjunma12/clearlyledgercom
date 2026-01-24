@@ -1,13 +1,14 @@
+import { memo } from "react";
 import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useUsage } from "@/hooks/use-usage";
+import { useUsageContext } from "@/contexts/UsageContext";
 import { useCheckout, PlanName } from "@/hooks/use-checkout";
 import { Link, useNavigate } from "react-router-dom";
 
-const PricingSection = () => {
+const PricingSection = memo(() => {
   const navigate = useNavigate();
-  const { lifetimeSpotsRemaining } = useUsage();
+  const { lifetimeSpotsRemaining } = useUsageContext();
   const { isLoading, loadingPlan, initiateCheckout } = useCheckout();
   const spotsRemaining = lifetimeSpotsRemaining ?? 350;
   const isSoldOut = spotsRemaining <= 0;
@@ -420,6 +421,8 @@ const PricingSection = () => {
       </div>
     </section>
   );
-};
+});
+
+PricingSection.displayName = 'PricingSection';
 
 export default PricingSection;

@@ -1,19 +1,20 @@
+import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, Menu, X, Sun, Moon, LayoutDashboard, LogOut } from "lucide-react";
-import { useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageIndicator } from "./pricing/UsageIndicator";
-import { useUsage } from "@/hooks/use-usage";
+import { useUsageContext } from "@/contexts/UsageContext";
 import { useTranslation } from "react-i18next";
 import { LanguageSelector } from "./LanguageSelector";
-const Navbar = () => {
+
+const Navbar = memo(() => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { isAuthenticated, usage, isLoading } = useUsage();
+  const { isAuthenticated, usage, isLoading } = useUsageContext();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -201,6 +202,8 @@ const Navbar = () => {
       </div>
     </nav>
   );
-};
+});
+
+Navbar.displayName = 'Navbar';
 
 export default Navbar;

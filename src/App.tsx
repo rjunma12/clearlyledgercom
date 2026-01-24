@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { registerServiceWorker } from "@/lib/serviceWorker";
+import { ScrollToTop } from "@/components/ScrollToTop";
+import { UsageProvider } from "@/contexts/UsageContext";
 
 // Eager load the main landing page for fast initial render
 import Index from "./pages/Index";
@@ -39,10 +41,11 @@ const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000, // 30 seconds - prevents refetching on every mount
-      gcTime: 5 * 60 * 1000, // 5 minutes - cache garbage collection time
+      staleTime: 60 * 1000, // 60 seconds - prevents refetching on every mount
+      gcTime: 10 * 60 * 1000, // 10 minutes - cache garbage collection time
       retry: 1, // Only retry once on failure
       refetchOnWindowFocus: false, // Don't refetch when tab regains focus
+      refetchOnMount: false, // Don't refetch when components remount
     },
   },
 });
@@ -69,42 +72,45 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route path="/data-processing" element={<DataProcessing />} />
-                <Route path="/security" element={<Security />} />
-                <Route path="/features" element={<Features />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/convert-bank-statements-to-excel" element={<BlogPost1 />} />
-                <Route path="/blog/indian-bank-statement-converter" element={<BlogPost2 />} />
-                <Route path="/blog/privacy-secure-bank-statement-conversion" element={<BlogPost3 />} />
-                <Route path="/blog/accurate-bank-statement-conversion-workflows" element={<BlogPost4 />} />
-                <Route path="/blog/south-africa-bank-statement-converter" element={<BlogPostSouthAfrica />} />
-                <Route path="/blog/malaysia-bank-statement-converter" element={<BlogPostMalaysia />} />
-                <Route path="/blog/uk-bank-statement-converter" element={<BlogPostUK />} />
-                <Route path="/blog/japan-bank-statement-converter" element={<BlogPostJapan />} />
-                <Route path="/blog/why-banks-dont-provide-csv-excel-statements" element={<BlogPostWhyBanksDontProvideCSV />} />
-                <Route path="/blog/australia-bank-statement-converter" element={<BlogPostAustralia />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/checkout/success" element={<CheckoutSuccess />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
+        <UsageProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ScrollToTop />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/data-processing" element={<DataProcessing />} />
+                  <Route path="/security" element={<Security />} />
+                  <Route path="/features" element={<Features />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/convert-bank-statements-to-excel" element={<BlogPost1 />} />
+                  <Route path="/blog/indian-bank-statement-converter" element={<BlogPost2 />} />
+                  <Route path="/blog/privacy-secure-bank-statement-conversion" element={<BlogPost3 />} />
+                  <Route path="/blog/accurate-bank-statement-conversion-workflows" element={<BlogPost4 />} />
+                  <Route path="/blog/south-africa-bank-statement-converter" element={<BlogPostSouthAfrica />} />
+                  <Route path="/blog/malaysia-bank-statement-converter" element={<BlogPostMalaysia />} />
+                  <Route path="/blog/uk-bank-statement-converter" element={<BlogPostUK />} />
+                  <Route path="/blog/japan-bank-statement-converter" element={<BlogPostJapan />} />
+                  <Route path="/blog/why-banks-dont-provide-csv-excel-statements" element={<BlogPostWhyBanksDontProvideCSV />} />
+                  <Route path="/blog/australia-bank-statement-converter" element={<BlogPostAustralia />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/checkout/success" element={<CheckoutSuccess />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </TooltipProvider>
+        </UsageProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
