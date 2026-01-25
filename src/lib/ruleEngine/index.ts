@@ -6,7 +6,7 @@
  * converting bank statements into standardized, accountant-ready format.
  * 
  * Key Features:
- * 1. Coordinate-Anchored Mapping - Solves floating text & column shift issues
+ * 1. Dynamic Table Detection - Automatic geometry-based column detection using pdf.js
  * 2. Multi-Line Stitching - Handles ghost rows from wrapped descriptions
  * 3. Mathematical Integrity - 100% arithmetic validation with audit flags
  * 4. Regional Auto-Aliasing - International header & number format support
@@ -14,10 +14,41 @@
  * 6. Chronological Order - Auto-reverses descending dates to ascending
  * 7. Transaction Categorization - Keyword-based category assignment
  * 8. Multi-Currency Support - Detects and converts foreign currencies
+ * 
+ * NOTE: Bank profile templates have been replaced with dynamic table detection.
+ * The system now uses vertical gutter analysis to detect column boundaries
+ * and content-based classification to infer column types automatically.
  */
 
 // Types
 export * from './types';
+
+// Table Detection (NEW - Zero-cost, template-free)
+export {
+  groupWordsIntoLines,
+  detectTableRegions,
+  detectColumnBoundaries,
+  classifyColumns,
+  extractRowsFromTable,
+  detectAndExtractTables,
+  type PdfWord,
+  type PdfLine,
+  type ColumnBoundary,
+  type TableRegion,
+  type ExtractedRow,
+  type TableDetectionResult,
+} from './tableDetector';
+
+// Dynamic Row Processor (NEW)
+export {
+  classifyRow,
+  stitchContinuationRows,
+  convertToColumnAnchors,
+  processExtractedRows,
+  type RowClassification,
+  type StitchedTransaction,
+  type DynamicProcessingResult,
+} from './dynamicRowProcessor';
 
 // Locale & Language Support
 export {
@@ -31,7 +62,7 @@ export {
   detectLocale,
 } from './locales';
 
-// Coordinate Mapping
+// Coordinate Mapping (Legacy - kept for compatibility)
 export {
   detectColumnAnchors,
   calculateHorizontalOverlap,
@@ -43,7 +74,7 @@ export {
   type TextRow,
 } from './coordinateMapper';
 
-// Multi-Line Stitching
+// Multi-Line Stitching (Legacy - kept for compatibility)
 export {
   hasValidDate,
   hasMonetaryAmount,
@@ -52,7 +83,7 @@ export {
   isCompleteTransactionRow,
   applyLookBackStitching,
   cleanDescription,
-  convertToRawTransactions,
+  convertToRawTransactions as convertStitchedToRawTransactions,
   getOriginalLines,
   type StitchedRow,
 } from './multiLineStitcher';
@@ -177,20 +208,24 @@ import type {
   RuleEngineConfig,
   ProcessingResult,
   ProcessingStage,
-  Locale,
+  RawTransaction,
 } from './types';
 import { DEFAULT_CONFIG } from './types';
-import { detectColumnAnchors, groupIntoRows, extendColumnBounds, inferColumnAnchorsFromLayout } from './coordinateMapper';
-import { applyLookBackStitching, convertToRawTransactions, getOriginalLines } from './multiLineStitcher';
+import { detectAndExtractTables } from './tableDetector';
+import { processExtractedRows, convertToRawTransactions } from './dynamicRowProcessor';
 import { validateDocument, detectSegmentBoundaries, splitIntoSegments } from './balanceValidator';
 import { detectNumberFormat, parseNumber, parseDate } from './numberParser';
 import { detectLocale, LOCALE_CONFIGS } from './locales';
-import { analyzeChronologicalOrder, type DateOrder } from './chronologicalOrder';
+import { analyzeChronologicalOrder } from './chronologicalOrder';
 import { categorizeDescription } from './transactionCategorizer';
 import { processMultiCurrencyTransactions, isMultiCurrencyDocument, type CurrencyCode } from './currencyHandler';
+// Legacy imports for fallback
+import { detectColumnAnchors, groupIntoRows, extendColumnBounds, inferColumnAnchorsFromLayout } from './coordinateMapper';
+import { applyLookBackStitching, convertToRawTransactions as convertStitchedToRawTransactions, getOriginalLines } from './multiLineStitcher';
 
 /**
  * Main processing pipeline - converts raw text elements to validated transactions
+ * Uses dynamic table detection (geometry-based) instead of bank profile templates
  */
 export async function processDocument(
   fileName: string,
@@ -204,95 +239,64 @@ export async function processDocument(
   const warnings: string[] = [];
   
   try {
-    // Stage 1: Extract and identify headers
+    // Stage 1: Dynamic Table Detection (NEW - replaces header-based detection)
     stages.push({ stage: 'extract', status: 'processing', progress: 0 });
     
-    // Try multiple header detection regions
-    let headerElements = textElements.filter(e => e.boundingBox.y < 100); // Top of page
-    let bodyElements = textElements.filter(e => e.boundingBox.y >= 100);
-    
     console.log('[RuleEngine] Input elements:', textElements.length);
-    console.log('[RuleEngine] Header elements (y < 100):', headerElements.length);
-    console.log('[RuleEngine] Body elements:', bodyElements.length);
+    
+    // Use new geometry-based table detection
+    const tableResult = detectAndExtractTables(textElements, 3); // 3px Y-tolerance
+    console.log('[RuleEngine] Table detection confidence:', tableResult.confidence.toFixed(2));
+    console.log('[RuleEngine] Columns detected:', tableResult.columnBoundaries.map(b => b.inferredType));
+    console.log('[RuleEngine] Rows extracted:', tableResult.allRows.length);
+    
+    if (tableResult.columnBoundaries.length === 0) {
+      warnings.push('No column structure detected - parsing may be incomplete');
+    }
     
     stages[0] = { ...stages[0], status: 'complete', progress: 100 };
     
-    // Stage 2: Detect column anchors with fallback strategies
+    // Stage 2: Dynamic Row Processing (NEW - replaces legacy stitching)
     stages.push({ stage: 'anchor', status: 'processing', progress: 0 });
     
-    let anchors = detectColumnAnchors(headerElements);
-    console.log('[RuleEngine] Column anchors from headers:', anchors.length, anchors.map(a => a.columnType));
+    const processingResult = processExtractedRows(tableResult.allRows, tableResult.columnBoundaries);
+    console.log('[RuleEngine] Transactions found:', processingResult.rawTransactions.length);
+    console.log('[RuleEngine] Opening balance:', !!processingResult.openingBalance);
+    console.log('[RuleEngine] Closing balance:', !!processingResult.closingBalance);
+    console.log('[RuleEngine] Skipped rows:', processingResult.skippedRowCount);
     
-    // FALLBACK 1: If no anchors found in top region, scan the full document
-    if (anchors.length === 0) {
-      console.warn('[RuleEngine] No headers in top region, scanning full document...');
-      anchors = detectColumnAnchors(textElements);
-      console.log('[RuleEngine] Column anchors from full doc:', anchors.length, anchors.map(a => a.columnType));
-      
-      if (anchors.length > 0) {
-        // Recalculate body elements as elements below the first anchor
-        const headerY = Math.min(...anchors.map(a => a.boundingBox.y));
-        bodyElements = textElements.filter(e => e.boundingBox.y > headerY + 20);
-        headerElements = textElements.filter(e => e.boundingBox.y <= headerY + 20);
-        console.log('[RuleEngine] Adjusted body elements:', bodyElements.length);
-      }
-    }
-    
-    // FALLBACK 2: Statistical column inference if still no anchors
-    if (anchors.length === 0) {
-      console.warn('[RuleEngine] Using statistical column inference...');
-      anchors = inferColumnAnchorsFromLayout(textElements);
-      console.log('[RuleEngine] Inferred anchors:', anchors.length, anchors.map(a => a.columnType));
-      
-      if (anchors.length > 0) {
-        warnings.push('Column headers were inferred from layout - verify accuracy');
-      }
-    }
-    
-    if (anchors.length === 0) {
-      warnings.push('No column headers detected - parsing may be incomplete');
-    }
+    const rawTransactions = processingResult.rawTransactions;
     
     stages[1] = { ...stages[1], status: 'complete', progress: 100 };
     
-    // Stage 3: Group into rows and stitch multi-line descriptions
+    // Stage 3: Parse and normalize values
     stages.push({ stage: 'stitch', status: 'processing', progress: 0 });
     
-    const rows = groupIntoRows(bodyElements, anchors, fullConfig);
-    console.log('[RuleEngine] Rows grouped:', rows.length);
-    
-    anchors = extendColumnBounds(anchors, rows);
-    
-    const stitchedRows = fullConfig.autoStitchMultiLine
-      ? applyLookBackStitching(rows)
-      : rows.map(r => ({ primaryRow: r, continuationRows: [], stitchedDescription: '', isStitched: false }));
-    console.log('[RuleEngine] Stitched rows (complete transactions):', stitchedRows.length);
-    
-    const rawTransactions = convertToRawTransactions(stitchedRows);
-    console.log('[RuleEngine] Raw transactions:', rawTransactions.length);
-    
-    stages[2] = { ...stages[2], status: 'complete', progress: 100 };
-    
-    // Stage 4: Parse and normalize values
-    stages.push({ stage: 'validate', status: 'processing', progress: 0 });
-    
-    // Detect locale and number format
+    // Detect locale and number format from raw values
     const sampleNumbers = rawTransactions
       .flatMap(t => [t.rawDebit, t.rawCredit, t.rawBalance])
       .filter((n): n is string => n !== undefined && n.length > 0);
     
+    // Extract header elements for locale detection (top 100px)
+    const headerElements = textElements.filter(e => e.boundingBox.y < 100);
     const sampleHeaders = headerElements.map(e => e.text);
+    
     const detectedLocale = fullConfig.localeDetection === 'auto'
       ? detectLocale(sampleHeaders, sampleNumbers)
       : fullConfig.localeDetection;
     
-    const localeConfig = LOCALE_CONFIGS[detectedLocale];
     const numberFormat = detectNumberFormat(sampleNumbers);
+    console.log('[RuleEngine] Detected locale:', detectedLocale);
+    console.log('[RuleEngine] Number format:', numberFormat);
     
-    // Parse transactions
+    stages[2] = { ...stages[2], status: 'complete', progress: 100 };
+    
+    // Stage 4: Convert to ParsedTransactions
+    stages.push({ stage: 'validate', status: 'processing', progress: 0 });
+    
     let parsedTransactions: ParsedTransaction[] = rawTransactions.map((raw, index) => {
-      const stitched = stitchedRows[index];
-      const description = stitched?.stitchedDescription ?? raw.rawDescription ?? '';
+      const stitched = processingResult.stitchedTransactions[index];
+      const description = stitched?.fullDescription ?? raw.rawDescription ?? '';
       
       // Categorize transaction
       const categoryMatch = fullConfig.enableCategorization 
@@ -311,12 +315,12 @@ export async function processDocument(
         categoryConfidence: categoryMatch?.confidence,
         validationStatus: 'unchecked',
         sourcePageNumbers: [raw.pageNumber],
-        isStitchedRow: stitched?.isStitched ?? false,
-        originalLines: stitched ? getOriginalLines(stitched) : [],
+        isStitchedRow: (stitched?.continuationRows?.length ?? 0) > 0,
+        originalLines: stitched?.continuationRows?.map(r => r.description || '').filter(Boolean) ?? [],
       };
     });
     
-    // Stage 4b: Apply chronological ordering
+    // Apply chronological ordering
     if (fullConfig.autoReverseChronological) {
       const chronoResult = analyzeChronologicalOrder(parsedTransactions, true);
       parsedTransactions = chronoResult.transactions;
