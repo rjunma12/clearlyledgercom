@@ -315,13 +315,35 @@ const DATE_PATTERNS = [
   /^\d{1,2}[\/\-]\d{1,2}$/,                              // DD/MM or MM/DD (short)
 ];
 
-const NUMERIC_PATTERN = /^[\d\s,.\-()]+$/;
 const CREDIT_KEYWORDS = /\bcr\b|credit|deposit|in\b|\+/i;
 const DEBIT_KEYWORDS = /\bdr\b|debit|withdrawal|out\b|\-/i;
 
 // Header keywords for explicit column type detection
 const HEADER_DEBIT_PATTERNS = /^(debit|withdrawal|dr|out|withdrawals)$/i;
 const HEADER_CREDIT_PATTERNS = /^(credit|deposit|cr|in|deposits)$/i;
+
+/**
+ * Flexible numeric content detection that handles:
+ * - Currency symbols (₹, $, £, €, ¥)
+ * - Text suffixes (CR, DR, DB)
+ * - Mixed formats (1,548.00 Dr)
+ */
+function hasNumericContent(text: string): boolean {
+  if (!text || text.length === 0) return false;
+  
+  // Remove currency symbols and common suffixes
+  const cleaned = text
+    .replace(/[₹$£€¥]/g, '')
+    .replace(/\b(CR|DR|DB|IN|OUT)\b/gi, '')
+    .trim();
+  
+  // Count digits vs other significant characters
+  const digitCount = (cleaned.match(/\d/g) || []).length;
+  const totalChars = cleaned.replace(/[\s,.\-()]/g, '').length;
+  
+  // At least 50% digits and has at least one digit
+  return digitCount >= 1 && digitCount / Math.max(totalChars, 1) > 0.5;
+}
 
 export interface ColumnAnalysis {
   boundary: ColumnBoundary;
@@ -386,12 +408,13 @@ function analyzeColumn(lines: PdfLine[], boundary: ColumnBoundary): ColumnAnalys
     DATE_PATTERNS.some(p => p.test(s))
   ).length / Math.max(samples.length, 1);
 
+  // Use flexible numeric detection instead of strict pattern
   const numericScore = samples.filter(s => 
-    NUMERIC_PATTERN.test(s) && s.length > 0
+    hasNumericContent(s)
   ).length / Math.max(samples.length, 1);
 
   const textScore = samples.filter(s => 
-    !NUMERIC_PATTERN.test(s) && s.length > 3
+    !hasNumericContent(s) && s.length > 3
   ).length / Math.max(samples.length, 1);
 
   // Detect alignment
@@ -470,7 +493,8 @@ function inferColumnType(
   }
 
   // High numeric score with right alignment -> likely amount column
-  if (analysis.numericScore > 0.6 && analysis.alignment === 'right') {
+  // Lowered threshold from 0.6 to 0.3 to handle columns with headers/footers
+  if (analysis.numericScore > 0.3 && analysis.alignment === 'right') {
     // Rightmost numeric columns: Balance > Credit > Debit
     const numericIndices = allAnalyses
       .map((a, i) => ({ index: i, score: a.numericScore, x: a.boundary.x0 }))
@@ -508,19 +532,23 @@ function inferColumnType(
 
 function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] {
   // Ensure we have at least a date and balance column
-  const hasDate = boundaries.some(b => b.inferredType === 'date');
-  const hasBalance = boundaries.some(b => b.inferredType === 'balance');
-  const hasDescription = boundaries.some(b => b.inferredType === 'description');
+  let hasDate = boundaries.some(b => b.inferredType === 'date');
+  let hasBalance = boundaries.some(b => b.inferredType === 'balance');
+  let hasDescription = boundaries.some(b => b.inferredType === 'description');
+  const hasDebit = boundaries.some(b => b.inferredType === 'debit');
+  const hasCredit = boundaries.some(b => b.inferredType === 'credit');
 
   if (!hasDate && boundaries.length > 0) {
     // Assign leftmost column as date if none found
     boundaries[0] = { ...boundaries[0], inferredType: 'date', confidence: 0.4 };
+    hasDate = true;
   }
 
   if (!hasBalance && boundaries.length > 1) {
     // Assign rightmost column as balance
     const last = boundaries.length - 1;
     boundaries[last] = { ...boundaries[last], inferredType: 'balance', confidence: 0.4 };
+    hasBalance = true;
   }
 
   if (!hasDescription && boundaries.length > 2) {
@@ -538,6 +566,55 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
     });
     if (widestIdx >= 0) {
       boundaries[widestIdx] = { ...boundaries[widestIdx], inferredType: 'description', confidence: 0.4 };
+      hasDescription = true;
+    }
+  }
+
+  // NEW: Assign unknown columns between date and balance as debit/credit
+  if (!hasDebit || !hasCredit) {
+    const dateIndex = boundaries.findIndex(b => b.inferredType === 'date');
+    const balanceIndex = boundaries.findIndex(b => b.inferredType === 'balance');
+    
+    if (dateIndex >= 0 && balanceIndex >= 0 && balanceIndex > dateIndex) {
+      // Find unknown/reference columns between date and balance (excluding description)
+      const candidateColumns = boundaries
+        .map((b, i) => ({ boundary: b, index: i }))
+        .filter(({ boundary, index }) => 
+          (boundary.inferredType === 'unknown' || boundary.inferredType === 'reference') &&
+          index > dateIndex && 
+          index < balanceIndex
+        )
+        .sort((a, b) => b.index - a.index); // Right to left (rightmost first)
+      
+      // Assign rightmost unknown as credit, next as debit (standard bank layout)
+      if (candidateColumns.length >= 1 && !hasCredit) {
+        boundaries[candidateColumns[0].index] = {
+          ...boundaries[candidateColumns[0].index],
+          inferredType: 'credit',
+          confidence: 0.5,
+        };
+        console.log(`[PostProcess] Promoted column ${candidateColumns[0].index} to CREDIT`);
+      }
+      
+      if (candidateColumns.length >= 2 && !hasDebit) {
+        boundaries[candidateColumns[1].index] = {
+          ...boundaries[candidateColumns[1].index],
+          inferredType: 'debit',
+          confidence: 0.5,
+        };
+        console.log(`[PostProcess] Promoted column ${candidateColumns[1].index} to DEBIT`);
+      }
+      
+      // If only 1 unknown column, assign as debit (more common for single amount column)
+      if (candidateColumns.length === 1 && !hasDebit && hasCredit) {
+        // Already assigned as credit above, reassign as debit
+        boundaries[candidateColumns[0].index] = {
+          ...boundaries[candidateColumns[0].index],
+          inferredType: 'debit',
+          confidence: 0.5,
+        };
+        console.log(`[PostProcess] Reassigned column ${candidateColumns[0].index} to DEBIT (single column)`);
+      }
     }
   }
 
