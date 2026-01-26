@@ -1,18 +1,31 @@
 /**
  * Main PDF Processing Pipeline
- * Orchestrates PDF loading, OCR, and rule engine integration
+ * HARDENED: Accuracy-first, never fabricates data
+ * 
+ * Key principles:
+ * 1. MANDATORY PDF detection on page 1 first
+ * 2. NEVER OCR a text-based PDF
+ * 3. Parallel page processing for speed
+ * 4. All values must have provenance (traced to source)
  */
 
 import type { TextElement, Locale, ProcessingStage, ProcessingResult } from './ruleEngine/types';
-import { loadPdfDocument, extractTextFromPage, renderPageToCanvas, isScannedPage } from './pdfUtils';
+import { loadPdfDocument, extractTextFromPage, renderPageToCanvas, analyzePdfType, isScannedPage, type PdfType, type PdfAnalysisResult } from './pdfUtils';
 import { processImage, terminateWorker, getTesseractLanguages } from './ocrService';
 import { correctOCRElements } from './ruleEngine/ocrCorrection';
 import { processDocument } from './ruleEngine';
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/src/display/api';
+import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
+
+// Maximum pages for client-side OCR (scanned PDFs only)
+const MAX_OCR_PAGES = 3;
+
+// Parallel processing concurrency
+const CONCURRENCY = 4;
 
 export interface PDFProcessingOptions {
   /**
    * Force OCR even for digital PDFs
+   * @deprecated OCR is now only used for scanned PDFs
    */
   forceOCR?: boolean;
   
@@ -63,58 +76,90 @@ const DEFAULT_OPTIONS: PDFProcessingOptions = {
   confidenceThreshold: 0.6,
 };
 
+// =============================================================================
+// PARALLEL TEXT EXTRACTION (TEXT-BASED PDFs)
+// =============================================================================
+
 /**
- * Process a single PDF page
+ * Extract text from a text-based PDF using parallel processing
+ * NEVER runs OCR - uses pdf.js text layer only
  */
-async function processPage(
+async function extractTextBasedPDF(
   document: PDFDocumentProxy,
-  pageNumber: number,
-  options: PDFProcessingOptions
-): Promise<PageProcessingResult> {
-  const startTime = performance.now();
-  const page = await document.getPage(pageNumber);
+  pagesToProcess: number,
+  onProgress: (progress: number, message: string) => void
+): Promise<TextElement[]> {
+  const allElements: TextElement[] = [];
   
-  // Check if page is scanned
-  const scanned = options.forceOCR || await isScannedPage(page);
-  
-  let textElements: TextElement[];
-  let ocrConfidence: number | undefined;
-  
-  if (scanned) {
-    // Render page and run OCR
-    const canvas = await renderPageToCanvas(page, 2.0); // 2x scale for better accuracy
-    const languages = options.ocrLanguages || getTesseractLanguages(options.locale || 'auto');
+  // Process pages in parallel batches
+  for (let batch = 0; batch < pagesToProcess; batch += CONCURRENCY) {
+    const pageNumbers = Array.from(
+      { length: Math.min(CONCURRENCY, pagesToProcess - batch) },
+      (_, i) => batch + i + 1
+    );
     
-    const ocrResult = await processImage(canvas, pageNumber, {
+    const results = await Promise.all(
+      pageNumbers.map(async (pageNum) => {
+        const page = await document.getPage(pageNum);
+        return extractTextFromPage(page, pageNum);
+      })
+    );
+    
+    results.forEach(elements => allElements.push(...elements));
+    
+    const progress = Math.round(((batch + pageNumbers.length) / pagesToProcess) * 100);
+    onProgress(progress, `Extracting text from page ${batch + pageNumbers.length}/${pagesToProcess}...`);
+  }
+  
+  return allElements;
+}
+
+// =============================================================================
+// OCR EXTRACTION (SCANNED PDFs ONLY)
+// =============================================================================
+
+/**
+ * Extract text from a scanned PDF using OCR
+ * Limited to MAX_OCR_PAGES pages
+ */
+async function extractScannedPDF(
+  document: PDFDocumentProxy,
+  pagesToProcess: number,
+  languages: string[],
+  options: PDFProcessingOptions,
+  onProgress: (progress: number, message: string) => void
+): Promise<TextElement[]> {
+  const allElements: TextElement[] = [];
+  
+  // Sequential OCR processing (Tesseract.js is not parallel-safe)
+  for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
+    const page = await document.getPage(pageNum);
+    const canvas = await renderPageToCanvas(page, 1.5); // Lower DPI for speed
+    
+    const ocrResult = await processImage(canvas, pageNum, {
       languages,
       preprocess: options.preprocessOCR,
       confidenceThreshold: options.confidenceThreshold,
     });
     
-    textElements = ocrResult.textElements;
-    ocrConfidence = ocrResult.overallConfidence;
-    
     // Apply OCR corrections
-    textElements = correctOCRElements(textElements);
-  } else {
-    // Extract text directly from PDF
-    textElements = await extractTextFromPage(page, pageNumber);
+    const correctedElements = correctOCRElements(ocrResult.textElements);
+    allElements.push(...correctedElements);
+    
+    const progress = Math.round((pageNum / pagesToProcess) * 100);
+    onProgress(progress, `OCR processing page ${pageNum}/${pagesToProcess}...`);
   }
   
-  const processingTime = performance.now() - startTime;
-  
-  return {
-    pageNumber,
-    textElements,
-    isScanned: scanned,
-    ocrConfidence,
-    processingTime,
-  };
+  return allElements;
 }
+
+// =============================================================================
+// MAIN PROCESSING FUNCTION
+// =============================================================================
 
 /**
  * Main PDF processing function
- * Handles both digital and scanned PDFs automatically
+ * HARDENED: Implements mandatory PDF type detection and parallel processing
  */
 export async function processPDF(
   file: File,
@@ -139,38 +184,68 @@ export async function processPDF(
     const { document, totalPages } = await loadPdfDocument(file);
     updateStage({ stage: 'upload', status: 'complete', progress: 100 });
     
+    // ==========================================================
+    // MANDATORY STEP: Analyze PDF type from page 1 ONLY
+    // ==========================================================
+    updateStage({ stage: 'extract', status: 'processing', progress: 0, message: 'Analyzing PDF type...' });
+    
+    const pdfAnalysis = await analyzePdfType(document);
+    console.log(`[PDF Processor] PDF Type: ${pdfAnalysis.pdfType} (${pdfAnalysis.textLength} chars on page 1)`);
+    
     // Determine pages to process
     const pagesToProcess = fullOptions.maxPages && fullOptions.maxPages < totalPages
       ? fullOptions.maxPages
       : totalPages;
     
-    // Initialize OCR worker if needed (preload for first scanned page detection)
-    const languages = fullOptions.ocrLanguages || getTesseractLanguages(fullOptions.locale || 'auto');
-    
-    // Stage 2: Extract text from all pages
-    updateStage({ stage: 'extract', status: 'processing', progress: 0 });
-    
+    // ==========================================================
+    // ROUTE: Text-based vs Scanned PDF
+    // ==========================================================
     let allTextElements: TextElement[] = [];
-    const pageResults: PageProcessingResult[] = [];
     let hasScannedPages = false;
     
-    for (let i = 1; i <= pagesToProcess; i++) {
-      const result = await processPage(document, i, fullOptions);
-      pageResults.push(result);
-      allTextElements.push(...result.textElements);
-      
-      if (result.isScanned) {
-        hasScannedPages = true;
+    if (pdfAnalysis.pdfType === 'TEXT_BASED') {
+      // TEXT-BASED: Use pdf.js text extraction only - NEVER OCR
+      allTextElements = await extractTextBasedPDF(
+        document,
+        pagesToProcess,
+        (progress, message) => updateStage({
+          stage: 'extract',
+          status: 'processing',
+          progress,
+          message,
+        })
+      );
+    } else {
+      // SCANNED: Limited OCR with page cap
+      if (pagesToProcess > MAX_OCR_PAGES) {
+        return {
+          success: false,
+          errors: [{
+            code: 'OCR_PAGE_LIMIT',
+            message: `Scanned PDF has ${pagesToProcess} pages. Maximum ${MAX_OCR_PAGES} pages supported for OCR. Please upload a digital PDF.`,
+            recoverable: false,
+          }],
+          warnings: [],
+          stages,
+          totalDuration: 0,
+        };
       }
       
-      updateStage({
-        stage: 'extract',
-        status: 'processing',
-        progress: Math.round((i / pagesToProcess) * 100),
-        message: result.isScanned 
-          ? `OCR processing page ${i}/${pagesToProcess}...`
-          : `Extracting text from page ${i}/${pagesToProcess}...`,
-      });
+      hasScannedPages = true;
+      const languages = fullOptions.ocrLanguages || getTesseractLanguages(fullOptions.locale || 'auto');
+      
+      allTextElements = await extractScannedPDF(
+        document,
+        pagesToProcess,
+        languages,
+        fullOptions,
+        (progress, message) => updateStage({
+          stage: 'extract',
+          status: 'processing',
+          progress,
+          message,
+        })
+      );
     }
     
     updateStage({ stage: 'extract', status: 'complete', progress: 100 });
@@ -181,11 +256,16 @@ export async function processPDF(
       confidenceThreshold: fullOptions.confidenceThreshold || 0.6,
     });
     
-    // OCR FALLBACK: If 0 transactions extracted and we haven't tried OCR yet, force OCR
-    const hasTransactions = result.document && result.document.totalTransactions > 0;
-    const digitalPagesExist = pageResults.some(p => !p.isScanned);
+    // Store PDF type in result for confidence scoring
+    if (result.document) {
+      (result.document as any).pdfType = pdfAnalysis.pdfType;
+    }
     
-    if (!hasTransactions && digitalPagesExist && !fullOptions.forceOCR) {
+    // OCR FALLBACK: If 0 transactions from text-based PDF, try OCR
+    // This handles edge case of PDFs with broken text layers
+    const hasTransactions = result.document && result.document.totalTransactions > 0;
+    
+    if (!hasTransactions && pdfAnalysis.pdfType === 'TEXT_BASED' && pagesToProcess <= MAX_OCR_PAGES) {
       console.log('[PDF Processor] 0 transactions from text extraction, triggering OCR fallback...');
       
       updateStage({
@@ -195,39 +275,21 @@ export async function processPDF(
         message: 'Text extraction failed, trying OCR fallback...',
       });
       
-      // Re-process all pages with forced OCR
-      allTextElements = [];
-      pageResults.length = 0;
       hasScannedPages = true;
+      const languages = fullOptions.ocrLanguages || getTesseractLanguages(fullOptions.locale || 'auto');
       
-      for (let i = 1; i <= pagesToProcess; i++) {
-        const page = await document.getPage(i);
-        const canvas = await renderPageToCanvas(page, 2.0);
-        
-        const ocrResult = await processImage(canvas, i, {
-          languages,
-          preprocess: fullOptions.preprocessOCR,
-          confidenceThreshold: fullOptions.confidenceThreshold,
-        });
-        
-        const correctedElements = correctOCRElements(ocrResult.textElements);
-        allTextElements.push(...correctedElements);
-        
-        pageResults.push({
-          pageNumber: i,
-          textElements: correctedElements,
-          isScanned: true,
-          ocrConfidence: ocrResult.overallConfidence,
-          processingTime: ocrResult.processingTime,
-        });
-        
-        updateStage({
+      allTextElements = await extractScannedPDF(
+        document,
+        pagesToProcess,
+        languages,
+        fullOptions,
+        (progress, message) => updateStage({
           stage: 'extract',
           status: 'processing',
-          progress: Math.round((i / pagesToProcess) * 100),
-          message: `OCR fallback: processing page ${i}/${pagesToProcess}...`,
-        });
-      }
+          progress,
+          message: `OCR fallback: ${message}`,
+        })
+      );
       
       updateStage({ stage: 'extract', status: 'complete', progress: 100 });
       
@@ -246,17 +308,10 @@ export async function processPDF(
     }
     
     // Add OCR metadata to result
-    if (result.document) {
-      const scannedPageCount = pageResults.filter(p => p.isScanned).length;
-      const avgOcrConfidence = pageResults
-        .filter(p => p.ocrConfidence !== undefined)
-        .reduce((sum, p) => sum + (p.ocrConfidence || 0), 0) / (scannedPageCount || 1);
-      
-      if (scannedPageCount > 0) {
-        result.warnings.push(
-          `${scannedPageCount} of ${pagesToProcess} pages were processed using OCR (average confidence: ${(avgOcrConfidence * 100).toFixed(1)}%)`
-        );
-      }
+    if (result.document && hasScannedPages) {
+      result.warnings.push(
+        `Document was processed using OCR (scanned/image-based PDF detected)`
+      );
     }
     
     return result;
@@ -281,8 +336,13 @@ export async function processPDF(
   }
 }
 
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
 /**
  * Quick check if a PDF contains scanned pages
+ * @deprecated Use analyzePdfType() for document-level detection
  */
 export async function detectScannedPages(file: File): Promise<{ 
   totalPages: number; 

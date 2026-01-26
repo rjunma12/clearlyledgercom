@@ -131,6 +131,45 @@ export {
   getConfidenceBoost,
 } from './ocrCorrection';
 
+// Mandatory Validation (NEW - Hardened pipeline)
+export {
+  runMandatoryValidation,
+  validationPassed,
+  getValidationSummaryMessage,
+  type MandatoryValidationReport,
+} from './mandatoryValidation';
+
+// Safe Auto-Repair (NEW - Limited repairs only)
+export {
+  canAttemptRepair,
+  attemptSafeRepair,
+  calculateImbalance,
+  getRepairSummary,
+  type RepairResult,
+  type RepairAction,
+} from './autoRepair';
+
+// Header Anchors (NEW - Locked column detection)
+export {
+  detectAndLockHeaders,
+  assignWordToColumn,
+  anchorsToColumnBoundaries,
+  type LockedColumnAnchors,
+  type ColumnAnchor,
+  type HeaderDetectionResult,
+} from './headerAnchors';
+
+// Provenance Tracking (NEW - No fabricated data)
+export {
+  createProvenance,
+  parseWithProvenance,
+  hasValidProvenance,
+  getProvenanceSummary,
+  FORBIDDEN_OPERATIONS,
+  type ValueProvenance,
+  type TrackedValue,
+} from './provenance';
+
 // Number & Date Parsing
 export {
   detectNumberFormat,
