@@ -1,10 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
+import ExcelJS from "https://esm.sh/exceljs@4.4.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 interface TransactionData {
   date: string;
@@ -12,8 +17,37 @@ interface TransactionData {
   debit: string;
   credit: string;
   balance: string;
+  currency?: string;
+  reference?: string;
   account?: string;
   validationStatus?: 'valid' | 'warning' | 'error' | 'unchecked';
+}
+
+interface StatementMetadata {
+  bankName?: string;
+  accountHolder?: string;
+  accountNumberMasked?: string;
+  statementPeriodFrom?: string;
+  statementPeriodTo?: string;
+  openingBalance?: number;
+  closingBalance?: number;
+  currency?: string;
+  pagesProcessed: number;
+  pdfType: 'Text' | 'Scanned';
+  ocrUsed: boolean;
+  conversionTimestamp: string;
+  conversionConfidence: 'High' | 'Medium' | 'Low';
+}
+
+interface ValidationSummary {
+  openingBalanceFound: boolean;
+  closingBalanceFound: boolean;
+  balanceCheckPassed: boolean;
+  balanceDifference?: number;
+  rowsExtracted: number;
+  rowsMerged: number;
+  autoRepairApplied: boolean;
+  warnings: string[];
 }
 
 interface ValidationResult {
@@ -27,22 +61,26 @@ interface ValidationResult {
 
 interface ExportRequest {
   transactions: TransactionData[];
+  metadata?: StatementMetadata;
+  validationSummary?: ValidationSummary;
   exportType: "masked" | "full";
   format: "csv" | "xlsx";
   filename: string;
   pageCount?: number;
-  timestamp?: number; // Request timestamp for replay protection
-  validationResult?: ValidationResult; // Frontend validation result
+  timestamp?: number;
+  validationResult?: ValidationResult;
 }
 
-// PII masking patterns (server-side implementation)
+// =============================================================================
+// PII MASKING
+// =============================================================================
+
 const NAME_PATTERN = /\b(?:Mr\.?|Mrs\.?|Ms\.?|Dr\.?)?\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g;
 const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 const PHONE_PATTERN = /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/g;
 const ACCOUNT_PATTERN = /\b(?:ACC|ACCT|A\/C|Account)[\s#:]*\d{4,}/gi;
 const CARD_PATTERN = /(?:card\s+(?:ending\s+)?|ending\s+)(\d{4})/gi;
 
-// State for consistent name anonymization
 const nameMap = new Map<string, string>();
 let nameCounter = 0;
 
@@ -82,20 +120,10 @@ function maskPIIInText(text: string): string {
   if (!text) return text;
 
   let masked = text;
-
-  // Mask emails
   masked = masked.replace(EMAIL_PATTERN, (match) => maskEmail(match));
-
-  // Mask phone numbers
   masked = masked.replace(PHONE_PATTERN, (match) => maskPhone(match));
-
-  // Mask account numbers
   masked = masked.replace(ACCOUNT_PATTERN, () => "ACC ****XXXX");
-
-  // Mask card endings
   masked = masked.replace(CARD_PATTERN, "CARD ENDING XXXX");
-
-  // Mask names (last, as it's the most aggressive)
   masked = masked.replace(NAME_PATTERN, (match) => getAnonymizedName(match));
 
   return masked;
@@ -109,6 +137,10 @@ function maskTransactions(transactions: TransactionData[]): TransactionData[] {
     account: tx.account ? maskAccountNumber(tx.account) : undefined,
   }));
 }
+
+// =============================================================================
+// CSV GENERATOR
+// =============================================================================
 
 function generateCSV(transactions: TransactionData[], includeAccount: boolean): string {
   const headers = includeAccount
@@ -132,7 +164,238 @@ function generateCSV(transactions: TransactionData[], includeAccount: boolean): 
   return [headers.join(","), ...rows].join("\n");
 }
 
-// Generate fingerprint from IP address for anonymous user tracking
+// =============================================================================
+// EXCEL GENERATOR (Multi-Sheet)
+// =============================================================================
+
+async function generateExcel(
+  transactions: TransactionData[],
+  metadata: StatementMetadata,
+  validationSummary: ValidationSummary
+): Promise<Uint8Array> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'ClearlyLedger';
+  workbook.created = new Date();
+  workbook.modified = new Date();
+
+  // ========================================
+  // Sheet 1: Transactions (PRIMARY)
+  // ========================================
+  const txSheet = workbook.addWorksheet('Transactions', {
+    properties: { tabColor: { argb: '4472C4' } }
+  });
+
+  // Columns in exact order: Date | Description | Debit | Credit | Balance | Currency | Reference
+  txSheet.columns = [
+    { header: 'Date', key: 'date', width: 12 },
+    { header: 'Description', key: 'description', width: 50 },
+    { header: 'Debit', key: 'debit', width: 15 },
+    { header: 'Credit', key: 'credit', width: 15 },
+    { header: 'Balance', key: 'balance', width: 15 },
+    { header: 'Currency', key: 'currency', width: 10 },
+    { header: 'Reference', key: 'reference', width: 20 },
+  ];
+
+  // Style header row
+  const txHeaderRow = txSheet.getRow(1);
+  txHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+  txHeaderRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: '4472C4' }
+  };
+  txHeaderRow.alignment = { horizontal: 'center', vertical: 'middle' };
+  txHeaderRow.height = 20;
+
+  // Add transaction rows
+  transactions.forEach((tx, index) => {
+    const row = txSheet.addRow({
+      date: tx.date || '',
+      description: tx.description || '',
+      debit: tx.debit || '',
+      credit: tx.credit || '',
+      balance: tx.balance || '',
+      currency: tx.currency || '',
+      reference: tx.reference || '',
+    });
+
+    // Alternate row colors
+    if (index % 2 === 1) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'F2F2F2' }
+      };
+    }
+
+    // Right-align numeric columns
+    row.getCell('debit').alignment = { horizontal: 'right' };
+    row.getCell('credit').alignment = { horizontal: 'right' };
+    row.getCell('balance').alignment = { horizontal: 'right' };
+
+    // Highlight validation errors
+    if (tx.validationStatus === 'error') {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFCCCC' }
+      };
+    } else if (tx.validationStatus === 'warning') {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF2CC' }
+      };
+    }
+  });
+
+  // Freeze header row
+  txSheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+  // Add borders
+  txSheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'D0D0D0' } },
+        left: { style: 'thin', color: { argb: 'D0D0D0' } },
+        bottom: { style: 'thin', color: { argb: 'D0D0D0' } },
+        right: { style: 'thin', color: { argb: 'D0D0D0' } },
+      };
+    });
+  });
+
+  // ========================================
+  // Sheet 2: Statement_Info (METADATA)
+  // ========================================
+  const infoSheet = workbook.addWorksheet('Statement_Info', {
+    properties: { tabColor: { argb: '70AD47' } }
+  });
+
+  infoSheet.getColumn(1).width = 25;
+  infoSheet.getColumn(2).width = 40;
+
+  const infoHeaderRow = infoSheet.addRow(['Field', 'Value']);
+  infoHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+  infoHeaderRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: '70AD47' }
+  };
+  infoHeaderRow.alignment = { horizontal: 'center', vertical: 'middle' };
+  infoHeaderRow.height = 20;
+
+  // All fields must be present even if empty
+  const metadataRows: [string, string][] = [
+    ['Bank_Name', metadata.bankName || ''],
+    ['Account_Holder', metadata.accountHolder || ''],
+    ['Account_Number_Masked', metadata.accountNumberMasked || ''],
+    ['Statement_Period_From', metadata.statementPeriodFrom || ''],
+    ['Statement_Period_To', metadata.statementPeriodTo || ''],
+    ['Opening_Balance', metadata.openingBalance != null ? String(metadata.openingBalance) : ''],
+    ['Closing_Balance', metadata.closingBalance != null ? String(metadata.closingBalance) : ''],
+    ['Currency', metadata.currency || ''],
+    ['Pages_Processed', String(metadata.pagesProcessed)],
+    ['PDF_Type', metadata.pdfType],
+    ['OCR_Used', metadata.ocrUsed ? 'Yes' : 'No'],
+    ['Conversion_Timestamp', metadata.conversionTimestamp],
+    ['Conversion_Confidence', metadata.conversionConfidence],
+  ];
+
+  metadataRows.forEach(([field, value], index) => {
+    const row = infoSheet.addRow([field, value]);
+    row.getCell(1).font = { bold: true };
+    if (index % 2 === 0) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'E2EFDA' }
+      };
+    }
+  });
+
+  infoSheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'D0D0D0' } },
+        left: { style: 'thin', color: { argb: 'D0D0D0' } },
+        bottom: { style: 'thin', color: { argb: 'D0D0D0' } },
+        right: { style: 'thin', color: { argb: 'D0D0D0' } },
+      };
+    });
+  });
+
+  // ========================================
+  // Sheet 3: Validation (AUDIT)
+  // ========================================
+  const valSheet = workbook.addWorksheet('Validation', {
+    properties: { tabColor: { argb: 'ED7D31' } }
+  });
+
+  valSheet.getColumn(1).width = 25;
+  valSheet.getColumn(2).width = 50;
+
+  const valHeaderRow = valSheet.addRow(['Check', 'Result']);
+  valHeaderRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+  valHeaderRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'ED7D31' }
+  };
+  valHeaderRow.alignment = { horizontal: 'center', vertical: 'middle' };
+  valHeaderRow.height = 20;
+
+  const validationRows: [string, string][] = [
+    ['Opening_Balance_Found', validationSummary.openingBalanceFound ? 'Yes' : 'No'],
+    ['Closing_Balance_Found', validationSummary.closingBalanceFound ? 'Yes' : 'No'],
+    ['Balance_Check_Passed', validationSummary.balanceCheckPassed ? 'Yes' : 'No'],
+    ['Balance_Difference', validationSummary.balanceDifference != null ? String(validationSummary.balanceDifference) : 'N/A'],
+    ['Rows_Extracted', String(validationSummary.rowsExtracted)],
+    ['Rows_Merged', String(validationSummary.rowsMerged)],
+    ['Auto_Repair_Applied', validationSummary.autoRepairApplied ? 'Yes' : 'No'],
+    ['Warnings', validationSummary.warnings.length > 0 ? validationSummary.warnings.join('; ') : 'None'],
+  ];
+
+  validationRows.forEach(([check, result], index) => {
+    const row = valSheet.addRow([check, result]);
+    row.getCell(1).font = { bold: true };
+
+    // Color-code pass/fail
+    if (check === 'Balance_Check_Passed') {
+      row.getCell(2).font = {
+        bold: true,
+        color: { argb: validationSummary.balanceCheckPassed ? '008000' : 'FF0000' }
+      };
+    }
+
+    if (index % 2 === 0) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FCE4D6' }
+      };
+    }
+  });
+
+  valSheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'D0D0D0' } },
+        left: { style: 'thin', color: { argb: 'D0D0D0' } },
+        bottom: { style: 'thin', color: { argb: 'D0D0D0' } },
+        right: { style: 'thin', color: { argb: 'D0D0D0' } },
+      };
+    });
+  });
+
+  // Write to buffer
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Uint8Array(buffer as ArrayBuffer);
+}
+
+// =============================================================================
+// FINGERPRINT GENERATION
+// =============================================================================
+
 async function generateFingerprint(ip: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(ip);
@@ -141,8 +404,11 @@ async function generateFingerprint(ip: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
 }
 
+// =============================================================================
+// MAIN HANDLER
+// =============================================================================
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -152,7 +418,6 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Get auth header and client IP
     const authHeader = req.headers.get("Authorization");
     const clientIP = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
                      req.headers.get("x-real-ip") || 
@@ -162,7 +427,6 @@ Deno.serve(async (req) => {
     let isAuthenticated = false;
     let fingerprint: string | null = null;
 
-    // Try to authenticate user
     if (authHeader?.startsWith("Bearer ")) {
       const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
@@ -176,19 +440,27 @@ Deno.serve(async (req) => {
       }
     }
 
-    // For anonymous users, generate fingerprint from IP
     if (!isAuthenticated) {
       fingerprint = await generateFingerprint(clientIP);
     }
 
-    // Parse request body
     const body: ExportRequest = await req.json();
-    const { transactions, exportType, format, filename, pageCount, timestamp, validationResult } = body;
+    const { 
+      transactions, 
+      metadata, 
+      validationSummary,
+      exportType, 
+      format, 
+      filename, 
+      pageCount, 
+      timestamp, 
+      validationResult 
+    } = body;
 
-    // SECURITY: Request freshness validation (5-minute window)
+    // Request freshness validation (5-minute window)
     if (timestamp) {
       const now = Date.now();
-      const maxAge = 5 * 60 * 1000; // 5 minutes
+      const maxAge = 5 * 60 * 1000;
       if (Math.abs(now - timestamp) > maxAge) {
         return new Response(
           JSON.stringify({ 
@@ -196,9 +468,7 @@ Deno.serve(async (req) => {
             error: "Request expired. Please try again.",
             expired: true,
           }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
@@ -206,39 +476,29 @@ Deno.serve(async (req) => {
     if (!transactions || !Array.isArray(transactions)) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid transaction data" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (!["masked", "full"].includes(exportType)) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid export type" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (!["csv", "xlsx"].includes(format)) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid format" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // =========================================================================
-    // CRITICAL: BALANCE VALIDATION ENFORCEMENT
-    // Block exports if any transaction has validation errors
-    // =========================================================================
+    // Balance validation enforcement
     const errorTransactions = transactions.filter(tx => tx.validationStatus === 'error');
     const warningTransactions = transactions.filter(tx => tx.validationStatus === 'warning');
     
     if (errorTransactions.length > 0) {
-      // Build detailed error message with row numbers
       const errorDetails = errorTransactions.slice(0, 3).map((tx, i) => 
         `Row ${i + 1}: ${tx.date} - ${tx.description?.substring(0, 20) || 'N/A'}...`
       ).join('; ');
@@ -260,13 +520,11 @@ Deno.serve(async (req) => {
           })),
           guidance: 'Review the transactions marked in red in the preview. Ensure the running balance equation (Previous Balance + Credit - Debit = Current Balance) is correct for each row.'
         }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Log validation result if provided
+    // Log validation result
     if (validationResult) {
       console.log('[Export Validation]', {
         verdict: validationResult.verdict,
@@ -277,7 +535,6 @@ Deno.serve(async (req) => {
         corruptedRows: validationResult.corruptedRows || 0
       });
       
-      // Block export if validation shows missing rows
       if (validationResult.missingRows && validationResult.missingRows > 0) {
         return new Response(
           JSON.stringify({
@@ -287,17 +544,14 @@ Deno.serve(async (req) => {
             missingRows: validationResult.missingRows,
             guidance: 'This is an unexpected error. Please re-upload your PDF or contact support with your file.'
           }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // Create admin client for database operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user's plan (or anonymous plan)
+    // Get user's plan
     const { data: planData, error: planError } = await supabaseAdmin.rpc("get_user_plan", {
       p_user_id: userId,
     });
@@ -306,9 +560,7 @@ Deno.serve(async (req) => {
       console.error("Error fetching user plan:", planError);
       return new Response(
         JSON.stringify({ success: false, error: "Failed to verify user plan" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -320,14 +572,11 @@ Deno.serve(async (req) => {
           error: "No active plan found",
           upgradeRequired: true,
         }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ENFORCEMENT: Check format restrictions
-    // Anonymous and free users can only export xlsx (Excel)
+    // Check format restrictions
     const allowedFormats: string[] = plan.allowed_formats || ['csv', 'xlsx'];
     if (!allowedFormats.includes(format)) {
       return new Response(
@@ -336,25 +585,17 @@ Deno.serve(async (req) => {
           error: `${format.toUpperCase()} export requires a paid plan. Please upgrade to access CSV exports.`,
           upgradeRequired: true,
         }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // PII POLICY: Anonymous/Free users get FULL DATA by default
-    // pii_masking: 'none' = full data allowed (anonymous/free) - no forced masking
-    // pii_masking: 'optional' = can choose masked or full (starter/pro)
-    // pii_masking: 'enforced' = must use masked (business/lifetime for compliance)
+    // PII policy
     let actualExportType = exportType;
-    
     if (plan.pii_masking === "enforced") {
-      // Only enforce masking for business/lifetime compliance plans
       actualExportType = "masked";
     }
-    // 'none' and 'optional' both allow full data export
 
-    // Check remaining quota
+    // Check quota
     const { data: remainingPages, error: quotaError } = await supabaseAdmin.rpc(
       "get_remaining_pages",
       { 
@@ -367,7 +608,6 @@ Deno.serve(async (req) => {
       console.error("Error checking quota:", quotaError);
     }
 
-    // -1 means unlimited
     if (remainingPages !== null && remainingPages !== -1 && remainingPages <= 0) {
       const resetMessage = plan.daily_limit 
         ? "Your daily limit resets in 24 hours."
@@ -380,38 +620,83 @@ Deno.serve(async (req) => {
           quotaExceeded: true,
           upgradeRequired: true,
         }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Apply masking if needed (server-side enforcement - ALWAYS for none/enforced)
-    const processedTransactions =
-      actualExportType === "masked"
-        ? maskTransactions(transactions)
-        : transactions;
+    // Apply masking if needed
+    const processedTransactions = actualExportType === "masked"
+      ? maskTransactions(transactions)
+      : transactions;
 
-    // Generate file content (currently only CSV supported, xlsx comes as CSV for now)
-    const hasAccountColumn = transactions.some((tx) => tx.account);
-    const csvContent = generateCSV(processedTransactions, hasAccountColumn);
-
-    // Generate filename
+    // Generate output based on format
+    let content: string;
+    let contentType: string;
+    let outputFilename: string;
     const suffix = actualExportType === "masked" ? "_anonymized" : "_full";
-    // Always output as CSV for now (xlsx support coming)
-    const outputFilename = `${filename.replace(/\.pdf$/i, "")}${suffix}.csv`;
 
-    // Determine if PII was exposed (for audit logging)
+    if (format === "xlsx") {
+      // Build default metadata if not provided
+      const defaultMetadata: StatementMetadata = metadata || {
+        bankName: '',
+        accountHolder: '',
+        accountNumberMasked: '',
+        statementPeriodFrom: '',
+        statementPeriodTo: '',
+        openingBalance: undefined,
+        closingBalance: undefined,
+        currency: '',
+        pagesProcessed: pageCount || 0,
+        pdfType: 'Text',
+        ocrUsed: false,
+        conversionTimestamp: new Date().toISOString(),
+        conversionConfidence: 'Medium',
+      };
+
+      // Build default validation summary if not provided
+      const defaultValidation: ValidationSummary = validationSummary || {
+        openingBalanceFound: false,
+        closingBalanceFound: false,
+        balanceCheckPassed: warningTransactions.length === 0,
+        balanceDifference: undefined,
+        rowsExtracted: transactions.length,
+        rowsMerged: 0,
+        autoRepairApplied: false,
+        warnings: warningTransactions.length > 0 
+          ? [`${warningTransactions.length} transaction(s) have balance warnings`] 
+          : [],
+      };
+
+      // Generate multi-sheet Excel
+      const excelBuffer = await generateExcel(
+        processedTransactions,
+        defaultMetadata,
+        defaultValidation
+      );
+      
+      // Convert to base64
+      content = btoa(String.fromCharCode(...excelBuffer));
+      contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      outputFilename = `${filename.replace(/\.pdf$/i, "")}${suffix}.xlsx`;
+    } else {
+      // CSV format
+      const hasAccountColumn = transactions.some((tx) => tx.account);
+      const csvContent = generateCSV(processedTransactions, hasAccountColumn);
+      content = btoa(unescape(encodeURIComponent(csvContent)));
+      contentType = "text/csv";
+      outputFilename = `${filename.replace(/\.pdf$/i, "")}${suffix}.csv`;
+    }
+
+    // Determine if PII was exposed
     const piiExposed = actualExportType === "full";
 
-    // Log export for audit trail (using service role to bypass RLS)
-    // For anonymous users, store fingerprint instead of user_id
+    // Log export for audit trail
     if (isAuthenticated && userId) {
       const { error: logError } = await supabaseAdmin.from("export_logs").insert({
         user_id: userId,
         filename: outputFilename,
         export_type: actualExportType,
-        format: "csv", // Currently only CSV supported
+        format: format,
         transaction_count: transactions.length,
         page_count: pageCount || null,
         pii_exposed: piiExposed,
@@ -419,26 +704,22 @@ Deno.serve(async (req) => {
 
       if (logError) {
         console.error("Failed to log export:", logError);
-        // Don't fail the export, just log the error
       }
       
-      // Log validation verdict for analytics
       if (validationResult) {
-        console.log(`[Export Audit] User: ${userId}, Verdict: ${validationResult.verdict}, Confidence: ${validationResult.confidence}, Transactions: ${transactions.length}`);
+        console.log(`[Export Audit] User: ${userId}, Verdict: ${validationResult.verdict}, Confidence: ${validationResult.confidence}, Transactions: ${transactions.length}, Format: ${format}`);
       }
     }
-
-    // Return the file as base64 (for smaller files)
-    const base64Content = btoa(unescape(encodeURIComponent(csvContent)));
 
     return new Response(
       JSON.stringify({
         success: true,
         filename: outputFilename,
-        content: base64Content,
-        contentType: "text/csv",
+        content,
+        contentType,
         transactionCount: processedTransactions.length,
         exportType: actualExportType,
+        format,
         warningCount: warningTransactions.length,
         message:
           actualExportType !== exportType
@@ -461,9 +742,7 @@ Deno.serve(async (req) => {
         success: false,
         error: error instanceof Error ? error.message : "Export failed",
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

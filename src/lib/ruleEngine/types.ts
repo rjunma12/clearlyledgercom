@@ -236,3 +236,70 @@ export interface ProcessingError {
   row?: number;
   recoverable: boolean;
 }
+
+// =============================================================================
+// STANDARDIZED EXCEL EXPORT TYPES
+// =============================================================================
+
+/**
+ * Statement metadata extracted from PDF header
+ * Used for Statement_Info sheet in Excel export
+ */
+export interface StatementMetadata {
+  bankName?: string;
+  accountHolder?: string;
+  accountNumberMasked?: string;           // Last 4 digits only
+  statementPeriodFrom?: string;           // YYYY-MM-DD
+  statementPeriodTo?: string;             // YYYY-MM-DD
+  openingBalance?: number;
+  closingBalance?: number;
+  currency?: string;
+  pagesProcessed: number;
+  pdfType: 'Text' | 'Scanned';
+  ocrUsed: boolean;
+  conversionTimestamp: string;            // ISO format UTC
+  conversionConfidence: 'High' | 'Medium' | 'Low';
+}
+
+/**
+ * Validation summary for Validation sheet in Excel export
+ */
+export interface ValidationSummary {
+  openingBalanceFound: boolean;
+  closingBalanceFound: boolean;
+  balanceCheckPassed: boolean;
+  balanceDifference?: number;
+  rowsExtracted: number;
+  rowsMerged: number;
+  autoRepairApplied: boolean;
+  warnings: string[];
+}
+
+/**
+ * Standardized Excel export request structure
+ */
+export interface StandardizedExcelRequest {
+  transactions: StandardizedTransaction[];
+  metadata: StatementMetadata;
+  validationSummary: ValidationSummary;
+  exportType: 'masked' | 'full';
+  filename: string;
+}
+
+/**
+ * Standardized transaction row for Excel export
+ * Follows accounting-safe rules:
+ * - Never negative numbers
+ * - Never both debit and credit in same row
+ * - Empty cells allowed, fake data forbidden
+ */
+export interface StandardizedTransaction {
+  date: string;                           // YYYY-MM-DD or empty
+  description: string;                    // Cleaned, merged multi-line
+  debit: string;                          // Positive number or empty
+  credit: string;                         // Positive number or empty
+  balance: string;                        // As extracted, never calculated
+  currency?: string;                      // Optional currency code
+  reference?: string;                     // Optional transaction reference
+  validationStatus: ValidationStatus;
+}

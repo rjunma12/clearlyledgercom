@@ -551,6 +551,48 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
     [toast]
   );
 
+  // Build metadata and validation summary for Excel export
+  const buildExportMetadata = useCallback((file: UploadedFile) => {
+    const doc = file.result?.document;
+    if (!doc) return { metadata: undefined, validationSummary: undefined };
+
+    // Count merged rows
+    const stitchedCount = doc.segments.flatMap(s => s.transactions)
+      .filter(tx => tx.isStitchedRow).length;
+
+    // Build metadata from document
+    const metadata = {
+      bankName: '', // Would come from bank detection
+      accountHolder: '',
+      accountNumberMasked: '',
+      statementPeriodFrom: doc.segments[0]?.statementPeriod?.from || '',
+      statementPeriodTo: doc.segments[0]?.statementPeriod?.to || '',
+      openingBalance: doc.segments[0]?.openingBalance,
+      closingBalance: doc.segments[0]?.closingBalance,
+      currency: doc.localCurrency || '',
+      pagesProcessed: doc.totalPages,
+      pdfType: 'Text' as const, // Would be detected from pdfAnalysis
+      ocrUsed: false,
+      conversionTimestamp: new Date().toISOString(),
+      conversionConfidence: doc.overallValidation === 'valid' ? 'High' as const :
+        doc.overallValidation === 'warning' ? 'Medium' as const : 'Low' as const,
+    };
+
+    // Build validation summary
+    const validationSummary = {
+      openingBalanceFound: doc.segments[0]?.openingBalance != null,
+      closingBalanceFound: doc.segments[0]?.closingBalance != null,
+      balanceCheckPassed: doc.overallValidation === 'valid',
+      balanceDifference: undefined,
+      rowsExtracted: doc.totalTransactions,
+      rowsMerged: stitchedCount,
+      autoRepairApplied: file.result?.warnings?.some(w => w.includes('Auto-repair')) || false,
+      warnings: file.result?.warnings || [],
+    };
+
+    return { metadata, validationSummary };
+  }, []);
+
   // Separate function to perform the actual export (called after validation)
   const performExport = useCallback(
     async (
@@ -572,13 +614,19 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
       console.log('[Export] Sending to backend:', {
         transactionCount: transactions.length,
         verdict: validationResult.verdict,
-        confidence: validationResult.confidence_score
+        confidence: validationResult.confidence_score,
+        format
       });
+
+      // Build metadata and validation summary for multi-sheet Excel
+      const { metadata, validationSummary } = buildExportMetadata(file);
 
       // Call backend to generate export (enforces authentication and plan checks)
       const { data, error } = await supabase.functions.invoke('generate-export', {
         body: {
           transactions,
+          metadata,
+          validationSummary,
           exportType,
           format,
           filename: file.name,
@@ -633,8 +681,25 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
       }
 
       // Decode base64 content and download
-      const csvContent = decodeURIComponent(escape(atob(data.content)));
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      // Handle both CSV (text) and XLSX (binary) formats
+      let blob: Blob;
+      
+      if (data.format === 'xlsx' || data.contentType?.includes('spreadsheet')) {
+        // XLSX is binary - decode base64 to binary
+        const binaryString = atob(data.content);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        blob = new Blob([bytes], { 
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+        });
+      } else {
+        // CSV is text
+        const csvContent = decodeURIComponent(escape(atob(data.content)));
+        blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      }
+      
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -654,19 +719,15 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
           title: "Download started",
           description: data.message + confidenceMsg,
         });
-      } else if (format === "xlsx") {
-        toast({
-          title: "Downloaded as CSV",
-          description: "Excel export coming soon. File saved as CSV." + confidenceMsg,
-        });
       } else {
+        const formatLabel = data.format === 'xlsx' ? 'Excel' : 'CSV';
         toast({
-          title: "Download started",
+          title: `${formatLabel} download started`,
           description: `${data.filename} is being downloaded${confidenceMsg}`,
         });
       }
     },
-    [toast]
+    [toast, buildExportMetadata]
   );
 
   const getStatusIcon = (status: UploadedFile["status"]) => {
