@@ -1,6 +1,8 @@
 /**
  * PDF Utilities for Text Extraction and Page Rendering
  * Uses pdfjs-dist for PDF processing (dynamically loaded)
+ * 
+ * HARDENED: Implements mandatory PDF type detection
  */
 
 import type { PDFDocumentProxy, PDFPageProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
@@ -20,6 +22,62 @@ async function getPdfLib() {
   }
   return pdfjsLib;
 }
+
+// =============================================================================
+// PDF TYPE DETECTION (MANDATORY FIRST STEP)
+// =============================================================================
+
+export type PdfType = 'TEXT_BASED' | 'SCANNED';
+
+export interface PdfAnalysisResult {
+  pdfType: PdfType;
+  textLength: number;
+  pageCount: number;
+  analysisTimeMs: number;
+}
+
+// Threshold: >200 chars on page 1 = text-based PDF
+const TEXT_THRESHOLD = 200;
+
+/**
+ * MANDATORY FIRST STEP: Analyze ONLY page 1 to determine PDF type
+ * Rule: If textLength > 200 on page 1, NEVER run OCR on any page
+ */
+export async function analyzePdfType(document: PDFDocumentProxy): Promise<PdfAnalysisResult> {
+  const startTime = performance.now();
+  
+  const page = await document.getPage(1);
+  const textContent = await page.getTextContent();
+  
+  // Extract all text from page 1
+  const totalText = textContent.items
+    .filter((item): item is TextItem => 'str' in item)
+    .map(item => item.str)
+    .join('');
+  
+  const textLength = totalText.trim().length;
+  const analysisTimeMs = performance.now() - startTime;
+  
+  console.log(`[PDF Analyzer] Page 1 text length: ${textLength} chars (threshold: ${TEXT_THRESHOLD})`);
+  
+  return {
+    pdfType: textLength > TEXT_THRESHOLD ? 'TEXT_BASED' : 'SCANNED',
+    textLength,
+    pageCount: document.numPages,
+    analysisTimeMs,
+  };
+}
+
+/**
+ * Check if OCR should be used for this PDF
+ */
+export function shouldUseOCR(analysis: PdfAnalysisResult): boolean {
+  return analysis.pdfType === 'SCANNED';
+}
+
+// =============================================================================
+// PDF LOADING
+// =============================================================================
 
 export interface PDFLoadResult {
   document: PDFDocumentProxy;
@@ -48,6 +106,7 @@ export async function loadPdfDocument(file: File): Promise<PDFLoadResult> {
 
 /**
  * Check if a page is scanned (has minimal or no text layer)
+ * @deprecated Use analyzePdfType() at document level instead
  */
 export async function isScannedPage(page: PDFPageProxy, threshold: number = 10): Promise<boolean> {
   const textContent = await page.getTextContent();
