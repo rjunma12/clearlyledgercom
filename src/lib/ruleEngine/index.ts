@@ -261,6 +261,7 @@ import { processMultiCurrencyTransactions, isMultiCurrencyDocument, type Currenc
 // Legacy imports for fallback
 import { detectColumnAnchors, groupIntoRows, extendColumnBounds, inferColumnAnchorsFromLayout } from './coordinateMapper';
 import { applyLookBackStitching, convertToRawTransactions as convertStitchedToRawTransactions, getOriginalLines } from './multiLineStitcher';
+import { canAttemptRepair, attemptSafeRepair } from './autoRepair';
 
 /**
  * Main processing pipeline - converts raw text elements to validated transactions
@@ -422,6 +423,50 @@ export async function processDocument(
     
     // Validate document
     document = validateDocument(document);
+    
+    // NEW: Attempt safe auto-repair if validation failed
+    if (document.overallValidation === 'error') {
+      const allTransactions = document.segments.flatMap(s => s.transactions);
+      
+      // Get opening/closing balance from processingResult or segment
+      // StitchedTransaction has primaryRow which contains the balance field
+      const openingBalanceRow = processingResult.openingBalance?.primaryRow;
+      const closingBalanceRow = processingResult.closingBalance?.primaryRow;
+      
+      // Parse balance from the row's balance field (string) or fall back to segment
+      const openingBalance = openingBalanceRow?.balance 
+        ? parseNumber(openingBalanceRow.balance, numberFormat) ?? document.segments[0]?.openingBalance ?? 0
+        : document.segments[0]?.openingBalance ?? 0;
+        
+      const closingBalance = closingBalanceRow?.balance
+        ? parseNumber(closingBalanceRow.balance, numberFormat) ?? document.segments[0]?.closingBalance ?? 0
+        : document.segments[0]?.closingBalance ?? 0;
+      
+      const repairEligibility = canAttemptRepair(allTransactions, openingBalance, closingBalance);
+      
+      if (repairEligibility.canRepair) {
+        console.log('[RuleEngine] Attempting safe auto-repair...');
+        const repairResult = attemptSafeRepair(allTransactions, openingBalance, closingBalance);
+        
+        if (repairResult.repaired) {
+          console.log('[RuleEngine] Auto-repair successful:', repairResult.repairs.length, 'repair(s) applied');
+          
+          // Apply repaired transactions back to first segment
+          if (document.segments.length > 0) {
+            document.segments[0].transactions = repairResult.repairedTransactions;
+          }
+          
+          // Re-validate after repair
+          document = validateDocument(document);
+          
+          warnings.push(`Auto-repair applied: ${repairResult.repairs.length} debit/credit correction(s) reduced imbalance from ${repairResult.originalImbalance.toFixed(2)} to ${repairResult.newImbalance.toFixed(2)}`);
+        } else {
+          console.log('[RuleEngine] Auto-repair could not improve balance');
+        }
+      } else {
+        console.log('[RuleEngine] Auto-repair not eligible:', repairEligibility.reason);
+      }
+    }
     
     stages[4] = { ...stages[4], status: 'complete', progress: 100 };
     

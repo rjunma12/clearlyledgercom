@@ -700,15 +700,33 @@ export function getShortErrorMessage(result: ExportValidationResult): string {
 
 /**
  * Determine if export should be blocked based on validation result
+ * 
+ * UPDATED: Allow export with small discrepancies (< $1 total)
+ * Only block for missing transactions or large discrepancies
  */
 export function shouldBlockExport(result: ExportValidationResult): { blocked: boolean; reason: string } {
-  const { missing_transactions, confidence_score } = result;
+  const { missing_transactions, corrupted_transactions, confidence_score } = result;
   
   // Block if any transactions are missing
   if (missing_transactions.length > 0) {
     return {
       blocked: true,
       reason: `Export blocked: ${missing_transactions.length} transaction(s) would be missing from the export file. This indicates a data processing error.`
+    };
+  }
+  
+  // Calculate total discrepancy from corrupted transactions
+  const totalDiscrepancy = corrupted_transactions.reduce((sum, tx) => {
+    const pdfVal = typeof tx.pdf_value === 'number' ? tx.pdf_value : parseFloat(String(tx.pdf_value)) || 0;
+    const exportVal = typeof tx.export_value === 'number' ? tx.export_value : parseFloat(String(tx.export_value)) || 0;
+    return sum + Math.abs(pdfVal - exportVal);
+  }, 0);
+  
+  // Allow export if total discrepancy is small (< $1)
+  if (totalDiscrepancy > 1.0) {
+    return {
+      blocked: true,
+      reason: `Export blocked: Total data discrepancy of ${totalDiscrepancy.toFixed(2)} detected across ${corrupted_transactions.length} transaction(s).`
     };
   }
   

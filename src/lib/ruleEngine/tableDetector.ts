@@ -316,8 +316,12 @@ const DATE_PATTERNS = [
 ];
 
 const NUMERIC_PATTERN = /^[\d\s,.\-()]+$/;
-const CREDIT_KEYWORDS = /\bcr\b|credit|\+/i;
-const DEBIT_KEYWORDS = /\bdr\b|debit|\-/i;
+const CREDIT_KEYWORDS = /\bcr\b|credit|deposit|in\b|\+/i;
+const DEBIT_KEYWORDS = /\bdr\b|debit|withdrawal|out\b|\-/i;
+
+// Header keywords for explicit column type detection
+const HEADER_DEBIT_PATTERNS = /^(debit|withdrawal|dr|out|withdrawals)$/i;
+const HEADER_CREDIT_PATTERNS = /^(credit|deposit|cr|in|deposits)$/i;
 
 export interface ColumnAnalysis {
   boundary: ColumnBoundary;
@@ -445,6 +449,21 @@ function inferColumnType(
   allAnalyses: ColumnAnalysis[],
   index: number
 ): { type: ColumnType; confidence: number } {
+  // NEW: Check header row for explicit debit/credit keywords FIRST
+  // This takes priority over position-based inference
+  if (analysis.samples.length > 0) {
+    const firstSample = analysis.samples[0].trim();
+    
+    if (HEADER_DEBIT_PATTERNS.test(firstSample)) {
+      console.log('[ColumnClassifier] Found DEBIT header keyword:', firstSample);
+      return { type: 'debit', confidence: 0.95 };
+    }
+    if (HEADER_CREDIT_PATTERNS.test(firstSample)) {
+      console.log('[ColumnClassifier] Found CREDIT header keyword:', firstSample);
+      return { type: 'credit', confidence: 0.95 };
+    }
+  }
+  
   // High date score -> Date column
   if (analysis.dateScore > 0.5) {
     return { type: 'date', confidence: analysis.dateScore };

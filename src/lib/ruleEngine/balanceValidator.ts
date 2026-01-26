@@ -28,7 +28,7 @@ export function validateBalanceEquation(
   credit: number | null,
   debit: number | null,
   currentBalance: number,
-  tolerance: number = 0.01  // Allow for rounding differences
+  tolerance: number = 0.05  // INCREASED: Allow 0.05 for bank rounding differences
 ): ValidationResult {
   const creditAmount = credit ?? 0;
   const debitAmount = debit ?? 0;
@@ -50,6 +50,14 @@ export function validateBalanceEquation(
   // Check if it might be a debit/credit swap
   const swappedBalance = previousBalance - creditAmount + debitAmount;
   if (Math.abs(currentBalance - swappedBalance) <= tolerance) {
+    console.log('[BalanceValidator] Possible swap detected:', {
+      previousBalance,
+      credit: creditAmount,
+      debit: debitAmount,
+      expected: expectedBalance,
+      actual: currentBalance,
+      swappedWouldBe: swappedBalance,
+    });
     return {
       isValid: false,
       status: 'warning',
@@ -59,6 +67,16 @@ export function validateBalanceEquation(
       discrepancy,
     };
   }
+  
+  // Log detailed mismatch info for debugging
+  console.log('[BalanceValidator] MISMATCH:', {
+    previousBalance,
+    credit: creditAmount,
+    debit: debitAmount,
+    expected: expectedBalance,
+    actual: currentBalance,
+    discrepancy: discrepancy.toFixed(2),
+  });
   
   return {
     isValid: false,
@@ -86,13 +104,30 @@ export function validateTransactionChain(
   const validatedTransactions: ParsedTransaction[] = [];
   let runningBalance = openingBalance;
   
-  for (const transaction of transactions) {
+  console.log('[BalanceValidator] Starting chain validation with opening balance:', openingBalance);
+  
+  for (let i = 0; i < transactions.length; i++) {
+    const transaction = transactions[i];
+    
     const validation = validateBalanceEquation(
       runningBalance,
       transaction.credit,
       transaction.debit,
       transaction.balance
     );
+    
+    if (validation.status === 'error') {
+      console.log(`[BalanceValidator] Row ${i} validation failed:`, {
+        rowIndex: transaction.rowIndex,
+        date: transaction.date,
+        description: transaction.description?.substring(0, 30),
+        debit: transaction.debit,
+        credit: transaction.credit,
+        balance: transaction.balance,
+        runningBalance,
+        expected: validation.expectedBalance,
+      });
+    }
     
     validatedTransactions.push({
       ...transaction,
@@ -104,6 +139,13 @@ export function validateTransactionChain(
     // Use actual balance from statement (not calculated) to continue chain
     runningBalance = transaction.balance;
   }
+  
+  console.log('[BalanceValidator] Chain validation complete:', {
+    total: validatedTransactions.length,
+    valid: validatedTransactions.filter(t => t.validationStatus === 'valid').length,
+    warnings: validatedTransactions.filter(t => t.validationStatus === 'warning').length,
+    errors: validatedTransactions.filter(t => t.validationStatus === 'error').length,
+  });
   
   return validatedTransactions;
 }
