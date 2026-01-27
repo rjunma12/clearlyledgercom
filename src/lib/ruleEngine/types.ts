@@ -105,6 +105,25 @@ export interface DocumentSegment {
 
 export type DateOrder = 'ascending' | 'descending' | 'mixed' | 'unknown';
 
+/**
+ * Extracted statement header metadata
+ * Populated by statementHeaderExtractor from PDF header lines
+ */
+export interface ExtractedStatementHeader {
+  accountHolder?: string;
+  accountNumberMasked?: string;     // Last 4 digits only (security)
+  statementPeriodFrom?: string;     // YYYY-MM-DD format
+  statementPeriodTo?: string;       // YYYY-MM-DD format
+  bankName?: string;
+  ifscCode?: string;                // Indian banks
+  branchName?: string;
+  customerId?: string;
+  currency?: string;
+  bsbNumber?: string;               // Australian banks
+  sortCode?: string;                // UK banks
+  routingNumber?: string;           // US banks
+}
+
 export interface ParsedDocument {
   fileName: string;
   totalPages: number;
@@ -126,6 +145,9 @@ export interface ParsedDocument {
   
   // Export fallback - raw transactions before segmentation
   rawTransactions?: ParsedTransaction[];
+  
+  // Statement header metadata (NEW - extracted from PDF header)
+  extractedHeader?: ExtractedStatementHeader;
 }
 
 // =============================================================================

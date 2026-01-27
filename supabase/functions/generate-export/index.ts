@@ -37,6 +37,13 @@ interface StatementMetadata {
   ocrUsed: boolean;
   conversionTimestamp: string;
   conversionConfidence: 'High' | 'Medium' | 'Low';
+  // Additional extracted fields (NEW)
+  ifscCode?: string;
+  branchName?: string;
+  customerId?: string;
+  bsbNumber?: string;
+  sortCode?: string;
+  routingNumber?: string;
 }
 
 interface ValidationSummary {
@@ -299,6 +306,13 @@ async function generateExcel(
     ['OCR_Used', metadata.ocrUsed ? 'Yes' : 'No'],
     ['Conversion_Timestamp', metadata.conversionTimestamp],
     ['Conversion_Confidence', metadata.conversionConfidence],
+    // Additional extracted fields (NEW)
+    ['IFSC_Code', metadata.ifscCode || ''],
+    ['Branch_Name', metadata.branchName || ''],
+    ['Customer_ID', metadata.customerId || ''],
+    ['BSB_Number', metadata.bsbNumber || ''],
+    ['Sort_Code', metadata.sortCode || ''],
+    ['Routing_Number', metadata.routingNumber || ''],
   ];
 
   metadataRows.forEach(([field, value], index) => {
