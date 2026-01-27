@@ -560,22 +560,32 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
     const stitchedCount = doc.segments.flatMap(s => s.transactions)
       .filter(tx => tx.isStitchedRow).length;
 
-    // Build metadata from document
+    // Get extracted header from document (NEW)
+    const header = doc.extractedHeader;
+
+    // Build metadata from document with extracted header data
     const metadata = {
-      bankName: '', // Would come from bank detection
-      accountHolder: '',
-      accountNumberMasked: '',
-      statementPeriodFrom: doc.segments[0]?.statementPeriod?.from || '',
-      statementPeriodTo: doc.segments[0]?.statementPeriod?.to || '',
+      bankName: header?.bankName || '',
+      accountHolder: header?.accountHolder || '',
+      accountNumberMasked: header?.accountNumberMasked || '',
+      statementPeriodFrom: header?.statementPeriodFrom || doc.segments[0]?.statementPeriod?.from || '',
+      statementPeriodTo: header?.statementPeriodTo || doc.segments[0]?.statementPeriod?.to || '',
       openingBalance: doc.segments[0]?.openingBalance,
       closingBalance: doc.segments[0]?.closingBalance,
-      currency: doc.localCurrency || '',
+      currency: header?.currency || doc.localCurrency || '',
       pagesProcessed: doc.totalPages,
       pdfType: 'Text' as const, // Would be detected from pdfAnalysis
       ocrUsed: false,
       conversionTimestamp: new Date().toISOString(),
       conversionConfidence: doc.overallValidation === 'valid' ? 'High' as const :
         doc.overallValidation === 'warning' ? 'Medium' as const : 'Low' as const,
+      // Additional extracted fields
+      ifscCode: header?.ifscCode || '',
+      branchName: header?.branchName || '',
+      customerId: header?.customerId || '',
+      bsbNumber: header?.bsbNumber || '',
+      sortCode: header?.sortCode || '',
+      routingNumber: header?.routingNumber || '',
     };
 
     // Build validation summary
@@ -583,7 +593,7 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
       openingBalanceFound: doc.segments[0]?.openingBalance != null,
       closingBalanceFound: doc.segments[0]?.closingBalance != null,
       balanceCheckPassed: doc.overallValidation === 'valid',
-      balanceDifference: undefined,
+      balanceDifference: undefined as number | undefined,
       rowsExtracted: doc.totalTransactions,
       rowsMerged: stitchedCount,
       autoRepairApplied: file.result?.warnings?.some(w => w.includes('Auto-repair')) || false,

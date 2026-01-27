@@ -1,15 +1,15 @@
+# COMPLETED: Extract Account Details from PDF Headers for Statement_Info Sheet
 
+## Status: ✅ IMPLEMENTED
 
-# Plan: Extract Account Details from PDF Headers for Statement_Info Sheet
-
-## Overview
-Create a dedicated Statement Header Extractor module that parses the first few lines of each PDF page to extract account holder name, account number, statement period dates, bank name, and other metadata. This extracted data will populate the `Statement_Info` sheet in Excel exports.
+The Statement Header Extractor has been implemented and integrated into the processing pipeline.
 
 ---
 
-## Current State
+## Implementation Summary
 
-The `buildExportMetadata` function in `FileUpload.tsx` currently returns empty values:
+### Created Files:
+- `src/lib/ruleEngine/statementHeaderExtractor.ts` - New extraction module with regex patterns for global bank formats
 ```typescript
 const metadata = {
   bankName: '',           // Empty - needs extraction

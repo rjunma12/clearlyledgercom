@@ -170,6 +170,14 @@ export {
   type TrackedValue,
 } from './provenance';
 
+// Statement Header Extractor (NEW - Account details extraction)
+export {
+  extractStatementHeader,
+  extractStatementHeaderFromText,
+  maskAccountNumber,
+  type ExtractedStatementHeader,
+} from './statementHeaderExtractor';
+
 // Number & Date Parsing
 export {
   detectNumberFormat,
@@ -248,6 +256,7 @@ import type {
   ProcessingResult,
   ProcessingStage,
   RawTransaction,
+  ExtractedStatementHeader,
 } from './types';
 import { DEFAULT_CONFIG } from './types';
 import { detectAndExtractTables } from './tableDetector';
@@ -262,6 +271,8 @@ import { processMultiCurrencyTransactions, isMultiCurrencyDocument, type Currenc
 import { detectColumnAnchors, groupIntoRows, extendColumnBounds, inferColumnAnchorsFromLayout } from './coordinateMapper';
 import { applyLookBackStitching, convertToRawTransactions as convertStitchedToRawTransactions, getOriginalLines } from './multiLineStitcher';
 import { canAttemptRepair, attemptSafeRepair } from './autoRepair';
+import { extractStatementHeader, type ExtractedStatementHeader as HeaderExtraction } from './statementHeaderExtractor';
+import { detectBank } from './bankProfiles';
 
 /**
  * Main processing pipeline - converts raw text elements to validated transactions
@@ -403,6 +414,33 @@ export async function processDocument(
       hasMultipleCurrencies = isMultiCurrencyDocument(allTx as any);
     }
     
+    // NEW: Extract statement header metadata from PDF header
+    const bankDetection = detectBank(textElements.map(e => e.text), fileName);
+    const headerInfo = extractStatementHeader(tableResult.allRows, bankDetection.profile);
+    
+    // Build extracted header for export
+    const extractedHeader: ExtractedStatementHeader = {
+      accountHolder: headerInfo.accountHolder,
+      accountNumberMasked: headerInfo.accountNumberMasked,
+      statementPeriodFrom: headerInfo.statementPeriodFrom || segments[0]?.statementPeriod?.from,
+      statementPeriodTo: headerInfo.statementPeriodTo || segments[0]?.statementPeriod?.to,
+      bankName: bankDetection.profile?.name || headerInfo.bankName,
+      ifscCode: headerInfo.ifscCode,
+      branchName: headerInfo.branchName,
+      customerId: headerInfo.customerId,
+      currency: headerInfo.currency || fullConfig.localCurrency,
+      bsbNumber: headerInfo.bsbNumber,
+      sortCode: headerInfo.sortCode,
+      routingNumber: headerInfo.routingNumber,
+    };
+    
+    console.log('[RuleEngine] Extracted header:', {
+      hasAccountHolder: !!extractedHeader.accountHolder,
+      hasAccountNumber: !!extractedHeader.accountNumberMasked,
+      hasPeriod: !!(extractedHeader.statementPeriodFrom && extractedHeader.statementPeriodTo),
+      bankName: extractedHeader.bankName,
+    });
+    
     // Create document with rawTransactions fallback for export
     let document: ParsedDocument = {
       fileName,
@@ -419,6 +457,7 @@ export async function processDocument(
       hasMultipleCurrencies,
       localCurrency: fullConfig.localCurrency,
       rawTransactions: parsedTransactions, // Store for export fallback
+      extractedHeader, // NEW: Statement header metadata
     };
     
     // Validate document
