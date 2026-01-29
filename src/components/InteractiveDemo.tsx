@@ -171,6 +171,7 @@ const InteractiveDemo = forwardRef<HTMLElement>((_, ref) => {
 
       if (error) {
         console.error('Export error:', error);
+        toast.error(error.message || 'Failed to export. Please try again.');
         logError({
           errorType: ErrorTypes.EXPORT,
           errorMessage: error.message || 'Failed to generate demo export',
@@ -181,8 +182,18 @@ const InteractiveDemo = forwardRef<HTMLElement>((_, ref) => {
       }
 
       if (!data?.success) {
-        // Log specific error cases silently
+        // Log specific error cases and show user feedback
         const errorMsg = data?.error || 'Failed to export demo file';
+        
+        // Show appropriate toast based on error type
+        if (data?.quotaExceeded) {
+          toast.error('Daily export limit reached. Please try again tomorrow.');
+        } else if (data?.upgradeRequired) {
+          toast.error('Please upgrade your plan to use this feature.');
+        } else if (!data?.requiresAuth) {
+          toast.error(errorMsg);
+        }
+        
         logError({
           errorType: ErrorTypes.EXPORT,
           errorMessage: errorMsg,
@@ -222,6 +233,7 @@ const InteractiveDemo = forwardRef<HTMLElement>((_, ref) => {
       });
     } catch (error) {
       console.error('Export error:', error);
+      toast.error('Failed to export. Please try again.');
       logError({
         errorType: ErrorTypes.EXPORT,
         errorMessage: error instanceof Error ? error.message : 'Failed to export demo file',

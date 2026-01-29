@@ -43,6 +43,7 @@ export function useCheckout(): UseCheckoutReturn {
 
       if (error) {
         console.error('Checkout error:', error);
+        toast.error(error.message || 'Failed to start checkout. Please try again.');
         logError({
           errorType: ErrorTypes.CHECKOUT,
           errorMessage: error.message || 'Failed to create checkout session',
@@ -57,6 +58,7 @@ export function useCheckout(): UseCheckoutReturn {
         // Redirect to Dodo hosted checkout
         window.location.href = data.checkoutUrl;
       } else {
+        toast.error('Failed to start checkout. Please try again.');
         logError({
           errorType: ErrorTypes.CHECKOUT,
           errorMessage: 'Failed to get checkout URL',
@@ -67,6 +69,7 @@ export function useCheckout(): UseCheckoutReturn {
       }
     } catch (error) {
       console.error('Checkout error:', error);
+      toast.error('Failed to start checkout. Please try again.');
       logError({
         errorType: ErrorTypes.CHECKOUT,
         errorMessage: error instanceof Error ? error.message : 'Unknown checkout error',

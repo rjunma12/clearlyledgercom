@@ -37,6 +37,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
 
       if (error) {
         console.error('Cancel error:', error);
+        toast.error(error.message || 'Failed to cancel subscription');
         logError({
           errorType: ErrorTypes.SUBSCRIPTION,
           errorMessage: error.message || 'Failed to cancel subscription',
@@ -50,6 +51,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
         toast.success(data.message || 'Subscription cancelled');
         return true;
       } else {
+        toast.error(data?.error || 'Failed to cancel subscription');
         logError({
           errorType: ErrorTypes.SUBSCRIPTION,
           errorMessage: data?.error || 'Failed to cancel subscription',
@@ -61,6 +63,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
       }
     } catch (error) {
       console.error('Cancel error:', error);
+      toast.error('Failed to cancel subscription. Please try again.');
       logError({
         errorType: ErrorTypes.SUBSCRIPTION,
         errorMessage: error instanceof Error ? error.message : 'Unknown cancel error',
@@ -96,6 +99,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
 
       if (error) {
         console.error('Reactivate error:', error);
+        toast.error(error.message || 'Failed to reactivate subscription');
         logError({
           errorType: ErrorTypes.SUBSCRIPTION,
           errorMessage: error.message || 'Failed to reactivate subscription',
@@ -109,6 +113,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
         toast.success(data.message || 'Subscription reactivated');
         return true;
       } else {
+        toast.error(data?.error || 'Failed to reactivate subscription');
         logError({
           errorType: ErrorTypes.SUBSCRIPTION,
           errorMessage: data?.error || 'Failed to reactivate subscription',
@@ -120,6 +125,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
       }
     } catch (error) {
       console.error('Reactivate error:', error);
+      toast.error('Failed to reactivate subscription. Please try again.');
       logError({
         errorType: ErrorTypes.SUBSCRIPTION,
         errorMessage: error instanceof Error ? error.message : 'Unknown reactivate error',

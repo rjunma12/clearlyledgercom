@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Helmet } from "react-helmet-async";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -115,6 +116,7 @@ const Contact = () => {
       setIsSuccess(true);
     } catch (error: any) {
       console.error("Contact form error:", error);
+      toast.error("Failed to send message. Please try again.");
       logError({
         errorType: ErrorTypes.CONTACT,
         errorMessage: error.message || 'Failed to send contact message',
