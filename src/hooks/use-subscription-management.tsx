@@ -99,6 +99,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
 
       if (error) {
         console.error('Reactivate error:', error);
+        toast.error(error.message || 'Failed to reactivate subscription');
         logError({
           errorType: ErrorTypes.SUBSCRIPTION,
           errorMessage: error.message || 'Failed to reactivate subscription',
