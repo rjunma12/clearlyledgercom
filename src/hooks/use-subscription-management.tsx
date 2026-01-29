@@ -113,6 +113,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
         toast.success(data.message || 'Subscription reactivated');
         return true;
       } else {
+        toast.error(data?.error || 'Failed to reactivate subscription');
         logError({
           errorType: ErrorTypes.SUBSCRIPTION,
           errorMessage: data?.error || 'Failed to reactivate subscription',
