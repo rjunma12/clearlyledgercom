@@ -58,6 +58,7 @@ export function useCheckout(): UseCheckoutReturn {
         // Redirect to Dodo hosted checkout
         window.location.href = data.checkoutUrl;
       } else {
+        toast.error('Failed to start checkout. Please try again.');
         logError({
           errorType: ErrorTypes.CHECKOUT,
           errorMessage: 'Failed to get checkout URL',
