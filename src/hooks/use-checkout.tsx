@@ -43,6 +43,7 @@ export function useCheckout(): UseCheckoutReturn {
 
       if (error) {
         console.error('Checkout error:', error);
+        toast.error(error.message || 'Failed to start checkout. Please try again.');
         logError({
           errorType: ErrorTypes.CHECKOUT,
           errorMessage: error.message || 'Failed to create checkout session',
