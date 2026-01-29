@@ -116,6 +116,7 @@ const Contact = () => {
       setIsSuccess(true);
     } catch (error: any) {
       console.error("Contact form error:", error);
+      toast.error("Failed to send message. Please try again.");
       logError({
         errorType: ErrorTypes.CONTACT,
         errorMessage: error.message || 'Failed to send contact message',

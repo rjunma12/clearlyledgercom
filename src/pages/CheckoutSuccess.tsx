@@ -77,6 +77,13 @@ const CheckoutSuccess = () => {
         }
       } catch (error) {
         console.error('Verification failed:', error);
+        logError({
+          errorType: ErrorTypes.CHECKOUT,
+          errorMessage: error instanceof Error ? error.message : 'Payment verification failed',
+          component: 'CheckoutSuccess',
+          action: 'verifyPayment',
+          metadata: { planName, sessionId }
+        });
         setStatus('error');
       }
     };

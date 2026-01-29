@@ -233,6 +233,7 @@ const InteractiveDemo = forwardRef<HTMLElement>((_, ref) => {
       });
     } catch (error) {
       console.error('Export error:', error);
+      toast.error('Failed to export. Please try again.');
       logError({
         errorType: ErrorTypes.EXPORT,
         errorMessage: error instanceof Error ? error.message : 'Failed to export demo file',

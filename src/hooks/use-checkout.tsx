@@ -69,6 +69,7 @@ export function useCheckout(): UseCheckoutReturn {
       }
     } catch (error) {
       console.error('Checkout error:', error);
+      toast.error('Failed to start checkout. Please try again.');
       logError({
         errorType: ErrorTypes.CHECKOUT,
         errorMessage: error instanceof Error ? error.message : 'Unknown checkout error',

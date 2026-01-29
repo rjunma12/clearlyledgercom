@@ -125,6 +125,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
       }
     } catch (error) {
       console.error('Reactivate error:', error);
+      toast.error('Failed to reactivate subscription. Please try again.');
       logError({
         errorType: ErrorTypes.SUBSCRIPTION,
         errorMessage: error instanceof Error ? error.message : 'Unknown reactivate error',

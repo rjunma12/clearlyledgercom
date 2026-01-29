@@ -134,6 +134,7 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
         });
       }
     } catch (error) {
+      toast.error('Batch processing failed. Please try again.');
       logError({
         errorType: ErrorTypes.PROCESSING,
         errorMessage: error instanceof Error ? error.message : 'Unknown batch processing error',
