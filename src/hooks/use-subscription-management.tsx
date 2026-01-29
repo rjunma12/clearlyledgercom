@@ -51,6 +51,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
         toast.success(data.message || 'Subscription cancelled');
         return true;
       } else {
+        toast.error(data?.error || 'Failed to cancel subscription');
         logError({
           errorType: ErrorTypes.SUBSCRIPTION,
           errorMessage: data?.error || 'Failed to cancel subscription',
