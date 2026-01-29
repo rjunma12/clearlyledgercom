@@ -28,6 +28,7 @@ export default function Signup() {
       });
 
       if (error) {
+        toast.error(error.message || "Sign up failed. Please try again.");
         logError({
           errorType: ErrorTypes.AUTH,
           errorMessage: error.message,
@@ -49,9 +50,11 @@ export default function Signup() {
         navigate("/dashboard");
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown signup error';
+      toast.error(message);
       logError({
         errorType: ErrorTypes.AUTH,
-        errorMessage: error instanceof Error ? error.message : 'Unknown signup error',
+        errorMessage: message,
         component: 'Signup',
         action: 'signUp',
         metadata: { email }
