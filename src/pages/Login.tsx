@@ -25,6 +25,7 @@ export default function Login() {
       });
 
       if (error) {
+        toast.error(error.message || "Sign in failed. Please check your credentials.");
         logError({
           errorType: ErrorTypes.AUTH,
           errorMessage: error.message,
@@ -37,9 +38,11 @@ export default function Login() {
         navigate("/");
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown login error';
+      toast.error(message);
       logError({
         errorType: ErrorTypes.AUTH,
-        errorMessage: error instanceof Error ? error.message : 'Unknown login error',
+        errorMessage: message,
         component: 'Login',
         action: 'signIn',
         metadata: { email }
