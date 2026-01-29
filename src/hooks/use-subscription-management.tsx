@@ -37,6 +37,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
 
       if (error) {
         console.error('Cancel error:', error);
+        toast.error(error.message || 'Failed to cancel subscription');
         logError({
           errorType: ErrorTypes.SUBSCRIPTION,
           errorMessage: error.message || 'Failed to cancel subscription',
