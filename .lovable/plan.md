@@ -1,119 +1,89 @@
 
 
-# Plan: Fix Sign In Not Working - Missing Error Feedback
+# Plan: Add Missing User Feedback for Error States
 
 ## Problem Identified
-When users attempt to sign in (or sign up) and encounter an error, **no feedback is shown to the user**. The error is logged silently to the database, but the user sees:
-1. Button shows "Signing in..." spinner
-2. Spinner disappears
-3. Nothing happens - no error message, stays on login page
+Several components log errors silently to the database but don't show any feedback to users. This leaves users confused when actions fail - they click buttons, see loading spinners, then nothing happens.
 
-This is because the code calls `logError()` (which is silent) but doesn't call `toast.error()` to show the user what went wrong.
+## Components Requiring Fixes
 
-## Root Cause
-Both `Login.tsx` and `Signup.tsx` handle errors like this:
-```typescript
-if (error) {
-  logError({ ... });  // Silent logging only
-  // Missing: toast.error(error.message) to show feedback
-}
-```
+### 1. `src/hooks/use-subscription-management.tsx`
+**Issue**: Cancel and reactivate subscription errors are logged but no toast is shown.
 
-The "silent error logging" approach was intended for non-blocking errors, but **authentication errors require immediate user feedback**.
+**Changes needed**:
+- Line 39-46: Add `toast.error()` when cancel fails
+- Line 52-60: Add `toast.error()` when cancel returns `success: false`
+- Line 62-70: Add `toast.error()` in catch block for cancel
+- Line 97-105: Add `toast.error()` when reactivate fails
+- Line 111-119: Add `toast.error()` when reactivate returns `success: false`
+- Line 121-129: Add `toast.error()` in catch block for reactivate
 
-## Solution
-Add `toast.error()` calls alongside the silent logging so users see error messages like:
-- "Invalid login credentials"
-- "Email already registered"
-- "Password must be at least 6 characters"
+### 2. `src/hooks/use-checkout.tsx`
+**Issue**: Checkout errors are logged but no toast is shown.
 
----
+**Changes needed**:
+- Line 44-54: Add `toast.error()` when checkout API fails
+- Line 59-67: Add `toast.error()` when no checkout URL is returned
+- Line 68-77: Add `toast.error()` in catch block
 
-## Files to Modify
+### 3. `src/pages/Contact.tsx`
+**Issue**: Contact form submission errors are logged but no toast is shown.
 
-### 1. `src/pages/Login.tsx`
-Add toast notifications for login errors:
+**Changes needed**:
+- Line 116-125: Add `toast.error("Failed to send message. Please try again.")` in catch block
 
-**Current (lines 27-34):**
-```typescript
-if (error) {
-  logError({
-    errorType: ErrorTypes.AUTH,
-    errorMessage: error.message,
-    component: 'Login',
-    action: 'signIn',
-    metadata: { email }
-  });
-}
-```
+### 4. `src/components/InteractiveDemo.tsx`
+**Issue**: Demo export errors are logged but no toast is shown.
 
-**After:**
-```typescript
-if (error) {
-  // Show user-friendly error message
-  toast.error(error.message || "Sign in failed. Please check your credentials.");
-  
-  logError({
-    errorType: ErrorTypes.AUTH,
-    errorMessage: error.message,
-    component: 'Login',
-    action: 'signIn',
-    metadata: { email }
-  });
-}
-```
+**Changes needed**:
+- Line 172-180: Add toast for export API error
+- Line 183-205: Add toast for specific export failure cases
+- Line 223-230: Add toast in catch block
 
-Also add error handling in the catch block (lines 39-46).
+### 5. `src/components/dashboard/BatchProcessingSection.tsx`
+**Issue**: Batch processing failures are logged but no toast is shown.
 
-### 2. `src/pages/Signup.tsx`
-Add toast notifications for signup errors:
+**Changes needed**:
+- Line 126-133: Add `toast.error()` when batch processing fails with errors
+- Line 135-142: Add `toast.error()` in catch block
 
-**Current (lines 30-37):**
-```typescript
-if (error) {
-  logError({
-    errorType: ErrorTypes.AUTH,
-    errorMessage: error.message,
-    component: 'Signup',
-    action: 'signUp',
-    metadata: { email }
-  });
-}
-```
+### 6. `src/pages/CheckoutSuccess.tsx`
+**Issue**: Verification errors set status to 'error' but don't call `logError`.
 
-**After:**
-```typescript
-if (error) {
-  // Show user-friendly error message
-  toast.error(error.message || "Sign up failed. Please try again.");
-  
-  logError({
-    errorType: ErrorTypes.AUTH,
-    errorMessage: error.message,
-    component: 'Signup',
-    action: 'signUp',
-    metadata: { email }
-  });
-}
-```
-
-Also add error handling in the catch block (lines 51-58).
+**Changes needed**:
+- Line 54-58: Add `logError()` call for verification API error
+- Line 71-74: Add `logError()` call for verification catch block
 
 ---
 
 ## Changes Summary
 
-| File | Change |
+| File | Action |
 |------|--------|
-| `src/pages/Login.tsx` | Add `toast.error()` for sign in failures |
-| `src/pages/Signup.tsx` | Add `toast.error()` for sign up failures |
+| `src/hooks/use-subscription-management.tsx` | Add `toast.error()` for cancel/reactivate failures |
+| `src/hooks/use-checkout.tsx` | Add `toast.error()` for checkout failures |
+| `src/pages/Contact.tsx` | Add `toast.error()` for contact form failures |
+| `src/components/InteractiveDemo.tsx` | Add `toast.error()` for demo export failures |
+| `src/components/dashboard/BatchProcessingSection.tsx` | Add `toast.error()` for batch processing failures |
+| `src/pages/CheckoutSuccess.tsx` | Add `logError()` for verification failures |
 
 ---
 
-## Expected Result
-After this fix:
-1. User enters wrong credentials → sees "Invalid login credentials" toast
-2. User tries to sign up with existing email → sees "User already registered" toast
-3. User enters password too short → sees validation error toast
-4. Silent logging to database continues in the background
+## Expected Outcome
+
+After these fixes:
+1. Subscription cancel/reactivate failures show clear error messages
+2. Checkout failures show "Failed to start checkout" toast
+3. Contact form failures show "Failed to send message" toast
+4. Demo export failures show appropriate error toasts
+5. Batch processing failures show "Batch processing failed" toast
+6. All error paths are consistently logged to the database
+
+---
+
+## Technical Notes
+
+This follows the established pattern where:
+- **Silent logging only**: Processing errors, validation errors, quota exceeded (handled by UI states)
+- **Toast + logging**: User-initiated actions that fail (auth, subscription, checkout, contact form)
 
