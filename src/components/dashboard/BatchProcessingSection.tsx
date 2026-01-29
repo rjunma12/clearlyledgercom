@@ -124,6 +124,7 @@ export function BatchProcessingSection({ className }: BatchProcessingSectionProp
           description: `Merged ${batchResult.totalTransactions} transactions from ${files.length} files`,
         });
       } else {
+        toast.error(batchResult.errors[0] || 'Batch processing failed. Please try again.');
         logError({
           errorType: ErrorTypes.PROCESSING,
           errorMessage: batchResult.errors[0] || 'Unknown batch processing error',
