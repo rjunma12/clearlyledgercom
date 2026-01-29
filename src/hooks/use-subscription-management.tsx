@@ -63,6 +63,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
       }
     } catch (error) {
       console.error('Cancel error:', error);
+      toast.error('Failed to cancel subscription. Please try again.');
       logError({
         errorType: ErrorTypes.SUBSCRIPTION,
         errorMessage: error instanceof Error ? error.message : 'Unknown cancel error',
