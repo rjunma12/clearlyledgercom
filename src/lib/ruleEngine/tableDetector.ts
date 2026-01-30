@@ -551,6 +551,18 @@ function inferColumnType(
       console.log('[ColumnClassifier] Found CREDIT header keyword:', firstSample);
       return { type: 'credit', confidence: 0.95 };
     }
+    
+    // NEW: Check for merged amount column header
+    if (MERGED_AMOUNT_HEADER.test(firstSample)) {
+      console.log('[ColumnClassifier] Found AMOUNT header keyword:', firstSample);
+      return { type: 'amount', confidence: 0.9 };
+    }
+  }
+  
+  // NEW: Check for merged debit/credit column (mixed CR/DR suffixes)
+  if (analysis.numericScore > 0.3 && detectMergedAmountColumn(analysis.samples)) {
+    console.log('[ColumnClassifier] Detected merged Debit/Credit column with CR/DR suffixes');
+    return { type: 'amount', confidence: 0.85 };
   }
   
   // High date score -> Date column
