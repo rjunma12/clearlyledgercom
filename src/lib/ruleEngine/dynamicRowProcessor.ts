@@ -58,11 +58,45 @@ const CLOSING_BALANCE_PATTERNS = [
   /ending\s*balance/i,
 ];
 
+// Patterns for merged amount column CR/DR suffix extraction
+const DEBIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*(dr|debit|\-)\s*$/i;
+const CREDIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*(cr|credit|\+)\s*$/i;
+
+/**
+ * Extract debit/credit from merged amount column based on suffix
+ */
+function splitMergedAmount(amountText: string): { debit: string | null; credit: string | null } {
+  if (!amountText) return { debit: null, credit: null };
+  
+  const debitMatch = amountText.match(DEBIT_SUFFIX_PATTERN);
+  if (debitMatch) {
+    return { debit: debitMatch[1].trim(), credit: null };
+  }
+  
+  const creditMatch = amountText.match(CREDIT_SUFFIX_PATTERN);
+  if (creditMatch) {
+    return { debit: null, credit: creditMatch[1].trim() };
+  }
+  
+  // No suffix found - return as-is (will need manual classification)
+  return { debit: null, credit: null };
+}
+
 /**
  * Classify a row to determine its type
  */
 export function classifyRow(row: ExtractedRow): RowClassification {
-  const fullText = [row.date, row.description, row.debit, row.credit, row.balance]
+  // Handle merged amount column by splitting into debit/credit
+  let effectiveDebit = row.debit;
+  let effectiveCredit = row.credit;
+  
+  if (row.amount && !row.debit && !row.credit) {
+    const { debit, credit } = splitMergedAmount(row.amount);
+    effectiveDebit = debit;
+    effectiveCredit = credit;
+  }
+  
+  const fullText = [row.date, row.description, effectiveDebit, effectiveCredit, row.balance]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
@@ -77,7 +111,7 @@ export function classifyRow(row: ExtractedRow): RowClassification {
   // Check if it's a valid transaction (has date and at least one amount)
   const hasValidDate = row.date !== null && 
     DATE_VALIDATION_PATTERNS.some(p => p.test(row.date!));
-  const hasAmount = row.debit !== null || row.credit !== null || row.balance !== null;
+  const hasAmount = effectiveDebit !== null || effectiveCredit !== null || row.balance !== null || row.amount !== null;
   const isTransaction = hasValidDate && hasAmount && !isSkip;
 
   // Continuation row: has description but no date or amounts
