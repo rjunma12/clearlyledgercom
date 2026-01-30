@@ -59,8 +59,84 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     'closing balance', 'bal', 'शेष', '余额', 'baki'
   ],
   reference: ['ref', 'reference', 'ref no', 'txn id', 'transaction id'],
+  amount: ['amount', 'value', 'transaction amount', 'txn amt'],
+  value_date: ['value date', 'val date', 'effective date'],
   unknown: [],
 };
+
+// =============================================================================
+// MULTI-LINE HEADER DETECTION
+// =============================================================================
+
+/**
+ * Merge adjacent header lines that are within Y-tolerance
+ * Handles headers like "Transaction\nDate" split across lines
+ */
+function mergeAdjacentHeaderLines(lines: PdfLine[]): PdfLine[] {
+  if (lines.length === 0) return [];
+  
+  const searchLimit = Math.min(15, lines.length);
+  const mergedLines: PdfLine[] = [];
+  let currentMerge: PdfWord[] = [];
+  let currentBottom = -100;
+  let currentPage = -1;
+  
+  for (let i = 0; i < searchLimit; i++) {
+    const line = lines[i];
+    
+    // Check if line contains any header keywords
+    const lineText = line.words.map(w => w.text.toLowerCase()).join(' ');
+    const hasHeaderWord = Object.values(HEADER_KEYWORDS).flat().some(kw => 
+      lineText.includes(kw.toLowerCase())
+    );
+    
+    if (!hasHeaderWord) {
+      // Finalize current merge if exists
+      if (currentMerge.length > 0) {
+        mergedLines.push(createMergedLine(currentMerge));
+        currentMerge = [];
+      }
+      continue;
+    }
+    
+    // Check if line is within 10px of previous header line (same page)
+    const yGap = line.top - currentBottom;
+    const samePage = line.pageNumber === currentPage;
+    
+    if (samePage && yGap >= 0 && yGap < 10 && currentMerge.length > 0) {
+      // Merge with current
+      currentMerge.push(...line.words);
+    } else {
+      // Finalize previous merge and start new
+      if (currentMerge.length > 0) {
+        mergedLines.push(createMergedLine(currentMerge));
+      }
+      currentMerge = [...line.words];
+    }
+    
+    currentBottom = line.bottom;
+    currentPage = line.pageNumber;
+  }
+  
+  // Finalize last merge
+  if (currentMerge.length > 0) {
+    mergedLines.push(createMergedLine(currentMerge));
+  }
+  
+  return mergedLines;
+}
+
+function createMergedLine(words: PdfWord[]): PdfLine {
+  words.sort((a, b) => a.x0 - b.x0);
+  return {
+    words,
+    top: Math.min(...words.map(w => w.top)),
+    bottom: Math.max(...words.map(w => w.bottom)),
+    left: Math.min(...words.map(w => w.x0)),
+    right: Math.max(...words.map(w => w.x1)),
+    pageNumber: words[0].pageNumber,
+  };
+}
 
 // =============================================================================
 // HEADER DETECTION
@@ -68,19 +144,22 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
 
 /**
  * Detect header row by finding line with most column keyword matches
- * Searches first 15 lines only
+ * Now includes multi-line header merging for split headers
  */
 export function detectAndLockHeaders(lines: PdfLine[]): HeaderDetectionResult {
+  // First, try to merge adjacent header lines
+  const mergedHeaderLines = mergeAdjacentHeaderLines(lines);
+  
+  // Search both original and merged lines
+  const searchLines = [...mergedHeaderLines, ...lines.slice(0, 15)];
+  
   let bestHeaderLine: PdfLine | null = null;
   let bestHeaderIndex = -1;
   let bestMatchCount = 0;
   let bestAnchors: LockedColumnAnchors = createEmptyAnchors();
   
-  // Search first 15 lines for potential header
-  const searchLimit = Math.min(15, lines.length);
-  
-  for (let i = 0; i < searchLimit; i++) {
-    const line = lines[i];
+  for (let i = 0; i < searchLines.length; i++) {
+    const line = searchLines[i];
     const lineText = line.words.map(w => w.text.toLowerCase()).join(' ');
     
     // Count how many column types are matched
@@ -187,15 +266,23 @@ function createEmptyAnchors(): LockedColumnAnchors {
 // ANCHOR USAGE
 // =============================================================================
 
+// Default page drift tolerance in pixels
+const DEFAULT_PAGE_DRIFT_TOLERANCE = 15;
+
 /**
  * Assign a word to a column based on locked anchors
  * Uses X-position overlap with anchors
+ * @param pageNumber - Page number for tolerance-based matching (page 1 = strict, page 2+ = allow drift)
  */
 export function assignWordToColumn(
   word: PdfWord,
-  anchors: LockedColumnAnchors
+  anchors: LockedColumnAnchors,
+  pageNumber: number = 1
 ): ColumnType | null {
   const wordCenter = (word.x0 + word.x1) / 2;
+  
+  // Page 1: strict matching. Page 2+: allow tolerance for column drift
+  const tolerance = pageNumber === 1 ? 0 : DEFAULT_PAGE_DRIFT_TOLERANCE;
   
   // Check each anchor
   const anchorEntries: Array<[string, ColumnAnchor | null]> = [
@@ -209,16 +296,19 @@ export function assignWordToColumn(
   for (const [colType, anchor] of anchorEntries) {
     if (!anchor) continue;
     
-    // Check if word overlaps with anchor
-    const overlap = calculateOverlap(word.x0, word.x1, anchor.x0, anchor.x1);
+    // Apply tolerance to anchor bounds
+    const anchorLeft = anchor.x0 - tolerance;
+    const anchorRight = anchor.x1 + tolerance;
+    
+    // Check if word overlaps with anchor (with tolerance)
+    const overlap = calculateOverlap(word.x0, word.x1, anchorLeft, anchorRight);
     
     if (overlap > 0.3) { // >30% overlap
       return colType as ColumnType;
     }
     
     // Or if word center is within anchor bounds (with tolerance)
-    const tolerance = (anchor.x1 - anchor.x0) * 0.5;
-    if (wordCenter >= anchor.x0 - tolerance && wordCenter <= anchor.x1 + tolerance) {
+    if (wordCenter >= anchorLeft && wordCenter <= anchorRight) {
       return colType as ColumnType;
     }
   }

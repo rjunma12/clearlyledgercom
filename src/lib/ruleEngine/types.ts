@@ -30,6 +30,23 @@ export interface ColumnAnchor {
 
 export type ColumnType = 'date' | 'description' | 'debit' | 'credit' | 'balance';
 
+// Extended column types for edge case handling
+export type ExtendedColumnType = ColumnType | 'amount' | 'value_date';
+
+// Document layout density for adaptive detection
+export type LayoutDensity = 'sparse' | 'normal' | 'dense';
+
+// Anchor with tolerance for multi-page matching
+export interface ToleranceAnchor {
+  x0: number;
+  x1: number;
+  centerX: number;
+  headerText: string;
+  confidence: number;
+  pageDriftTolerance: number;
+  originalPageNumber: number;
+}
+
 // =============================================================================
 // TRANSACTION TYPES
 // =============================================================================

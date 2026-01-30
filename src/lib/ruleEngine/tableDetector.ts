@@ -38,7 +38,10 @@ export interface ColumnBoundary {
   confidence: number;   // 0-1 confidence in type inference
 }
 
-export type ColumnType = 'date' | 'description' | 'debit' | 'credit' | 'balance' | 'reference' | 'unknown';
+export type ColumnType = 'date' | 'description' | 'debit' | 'credit' | 'balance' | 'reference' | 'amount' | 'value_date' | 'unknown';
+
+// Document layout density for adaptive detection
+export type LayoutDensity = 'sparse' | 'normal' | 'dense';
 
 export interface TableRegion {
   top: number;
@@ -216,7 +219,22 @@ function createTableRegion(lines: PdfLine[], startIdx: number, endIdx: number): 
 // =============================================================================
 
 /**
+ * Detect layout density based on average words per line
+ */
+function detectLayoutDensity(lines: PdfLine[]): LayoutDensity {
+  if (lines.length === 0) return 'normal';
+  
+  const totalWords = lines.reduce((sum, l) => sum + l.words.length, 0);
+  const avgWordsPerLine = totalWords / lines.length;
+  
+  if (avgWordsPerLine > 8) return 'dense';
+  if (avgWordsPerLine > 4) return 'normal';
+  return 'sparse';
+}
+
+/**
  * Detect column boundaries by finding vertical gutters (gaps between text)
+ * Now uses adaptive thresholds based on document density
  */
 export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
   if (lines.length === 0) return [];
@@ -249,8 +267,25 @@ export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
     }
   }
 
+  // NEW: Adaptive thresholds based on document density
+  const density = detectLayoutDensity(lines);
+  const gutterThresholds: Record<LayoutDensity, number> = {
+    dense: 0.03,   // 3% for dense layouts (many columns)
+    normal: 0.08,  // 8% for normal
+    sparse: 0.15,  // 15% for sparse layouts
+  };
+  const minGutterBuckets: Record<LayoutDensity, number> = {
+    dense: 2,   // 4px minimum gutter for dense
+    normal: 3,  // 6px minimum gutter for normal
+    sparse: 5,  // 10px minimum gutter for sparse
+  };
+  
+  const gutterThreshold = Math.max(1, lines.length * gutterThresholds[density]);
+  const minGutterWidth = minGutterBuckets[density];
+  
+  console.log(`[ColumnDetector] Density: ${density}, Gutter threshold: ${gutterThreshold.toFixed(1)}, Min gutter: ${minGutterWidth * 2}px`);
+
   // Find gutters (consecutive buckets with low coverage)
-  const gutterThreshold = lines.length * 0.1; // Less than 10% of lines have text here
   const gutters: { start: number; end: number }[] = [];
   let gutterStart = -1;
 
@@ -258,7 +293,7 @@ export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
     if (coverage[i] <= gutterThreshold) {
       if (gutterStart === -1) gutterStart = i;
     } else {
-      if (gutterStart !== -1 && i - gutterStart >= 3) { // Min 6px gutter
+      if (gutterStart !== -1 && i - gutterStart >= minGutterWidth) {
         gutters.push({ start: gutterStart, end: i - 1 });
       }
       gutterStart = -1;
@@ -266,18 +301,21 @@ export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
   }
 
   // Handle gutter at end
-  if (gutterStart !== -1 && bucketCount - gutterStart >= 3) {
+  if (gutterStart !== -1 && bucketCount - gutterStart >= minGutterWidth) {
     gutters.push({ start: gutterStart, end: bucketCount - 1 });
   }
 
   // Convert gutters to column boundaries
   const boundaries: ColumnBoundary[] = [];
   let columnStart = pageLeft;
+  
+  // Adaptive minimum column width based on density
+  const minColumnWidth = density === 'dense' ? 15 : 20;
 
   for (const gutter of gutters) {
     const gutterCenterX = pageLeft + ((gutter.start + gutter.end) / 2) * resolution;
     
-    if (gutterCenterX - columnStart > 20) { // Min column width 20px
+    if (gutterCenterX - columnStart > minColumnWidth) {
       boundaries.push({
         x0: columnStart,
         x1: gutterCenterX,
@@ -290,7 +328,7 @@ export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
   }
 
   // Add final column
-  if (pageRight - columnStart > 20) {
+  if (pageRight - columnStart > minColumnWidth) {
     boundaries.push({
       x0: columnStart,
       x1: pageRight,
@@ -317,6 +355,24 @@ const DATE_PATTERNS = [
 
 const CREDIT_KEYWORDS = /\bcr\b|credit|deposit|in\b|\+/i;
 const DEBIT_KEYWORDS = /\bdr\b|debit|withdrawal|out\b|\-/i;
+
+// Patterns for merged amount column detection
+const MERGED_AMOUNT_HEADER = /^(amount|value|transaction\s*amount|txn\s*amt)$/i;
+const DEBIT_SUFFIX = /(dr|debit|\-)\s*$/i;
+const CREDIT_SUFFIX = /(cr|credit|\+)\s*$/i;
+
+/**
+ * Detect if a column contains merged debit/credit values with CR/DR suffixes
+ */
+function detectMergedAmountColumn(samples: string[]): boolean {
+  if (samples.length < 3) return false;
+  
+  const drCount = samples.filter(s => DEBIT_SUFFIX.test(s)).length;
+  const crCount = samples.filter(s => CREDIT_SUFFIX.test(s)).length;
+  
+  // Must have both DR and CR suffixes present
+  return drCount > 0 && crCount > 0;
+}
 
 // Header keywords for explicit column type detection
 const HEADER_DEBIT_PATTERNS = /^(debit|withdrawal|dr|out|withdrawals)$/i;
@@ -434,9 +490,19 @@ function analyzeColumn(lines: PdfLine[], boundary: ColumnBoundary): ColumnAnalys
   };
 }
 
-function isWordInColumn(word: PdfWord, boundary: ColumnBoundary): boolean {
+/**
+ * Check if a word belongs to a column
+ * @param strict - If true, word center MUST be within boundary (prevents cascade)
+ */
+function isWordInColumn(word: PdfWord, boundary: ColumnBoundary, strict: boolean = false): boolean {
   const wordCenter = (word.x0 + word.x1) / 2;
-  // Word is in column if its center is within bounds, or significant overlap
+  
+  if (strict) {
+    // Strict mode: word center MUST be within boundary
+    return wordCenter >= boundary.x0 && wordCenter <= boundary.x1;
+  }
+  
+  // Flexible mode: word center within bounds, or significant overlap
   const overlap = Math.min(word.x1, boundary.x1) - Math.max(word.x0, boundary.x0);
   return wordCenter >= boundary.x0 && wordCenter <= boundary.x1 ||
          overlap > word.width * 0.5;
@@ -485,6 +551,18 @@ function inferColumnType(
       console.log('[ColumnClassifier] Found CREDIT header keyword:', firstSample);
       return { type: 'credit', confidence: 0.95 };
     }
+    
+    // NEW: Check for merged amount column header
+    if (MERGED_AMOUNT_HEADER.test(firstSample)) {
+      console.log('[ColumnClassifier] Found AMOUNT header keyword:', firstSample);
+      return { type: 'amount', confidence: 0.9 };
+    }
+  }
+  
+  // NEW: Check for merged debit/credit column (mixed CR/DR suffixes)
+  if (analysis.numericScore > 0.3 && detectMergedAmountColumn(analysis.samples)) {
+    console.log('[ColumnClassifier] Detected merged Debit/Credit column with CR/DR suffixes');
+    return { type: 'amount', confidence: 0.85 };
   }
   
   // High date score -> Date column
@@ -535,8 +613,26 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
   let hasDate = boundaries.some(b => b.inferredType === 'date');
   let hasBalance = boundaries.some(b => b.inferredType === 'balance');
   let hasDescription = boundaries.some(b => b.inferredType === 'description');
-  const hasDebit = boundaries.some(b => b.inferredType === 'debit');
-  const hasCredit = boundaries.some(b => b.inferredType === 'credit');
+  let hasDebit = boundaries.some(b => b.inferredType === 'debit');
+  let hasCredit = boundaries.some(b => b.inferredType === 'credit');
+  const hasAmount = boundaries.some(b => b.inferredType === 'amount');
+  
+  // NEW: Handle dual date columns (Transaction Date + Value Date)
+  const dateColumns = boundaries
+    .map((b, i) => ({ boundary: b, index: i }))
+    .filter(({ boundary }) => boundary.inferredType === 'date');
+  
+  if (dateColumns.length > 1) {
+    // Keep leftmost as date, demote others to value_date (reference)
+    for (let i = 1; i < dateColumns.length; i++) {
+      boundaries[dateColumns[i].index] = {
+        ...boundaries[dateColumns[i].index],
+        inferredType: 'value_date',
+        confidence: 0.6,
+      };
+      console.log(`[PostProcess] Demoted secondary date column ${dateColumns[i].index} to value_date`);
+    }
+  }
 
   if (!hasDate && boundaries.length > 0) {
     // Assign leftmost column as date if none found
@@ -570,7 +666,14 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
     }
   }
 
-  // NEW: Assign unknown columns between date and balance as debit/credit
+  // NEW: Handle merged amount column - no need to assign debit/credit separately
+  // The dynamicRowProcessor will split based on CR/DR suffixes
+  if (hasAmount && !hasDebit && !hasCredit) {
+    console.log('[PostProcess] Merged amount column detected - will split in row processor');
+    return boundaries;
+  }
+
+  // Assign unknown columns between date and balance as debit/credit
   if (!hasDebit || !hasCredit) {
     const dateIndex = boundaries.findIndex(b => b.inferredType === 'date');
     const balanceIndex = boundaries.findIndex(b => b.inferredType === 'balance');
@@ -580,7 +683,7 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
       const candidateColumns = boundaries
         .map((b, i) => ({ boundary: b, index: i }))
         .filter(({ boundary, index }) => 
-          (boundary.inferredType === 'unknown' || boundary.inferredType === 'reference') &&
+          (boundary.inferredType === 'unknown' || boundary.inferredType === 'reference' || boundary.inferredType === 'value_date') &&
           index > dateIndex && 
           index < balanceIndex
         )
@@ -593,6 +696,7 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
           inferredType: 'credit',
           confidence: 0.5,
         };
+        hasCredit = true;
         console.log(`[PostProcess] Promoted column ${candidateColumns[0].index} to CREDIT`);
       }
       
@@ -602,6 +706,7 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
           inferredType: 'debit',
           confidence: 0.5,
         };
+        hasDebit = true;
         console.log(`[PostProcess] Promoted column ${candidateColumns[1].index} to DEBIT`);
       }
       
@@ -634,11 +739,17 @@ export interface ExtractedRow {
   credit: string | null;
   balance: string | null;
   reference: string | null;
+  amount: string | null;      // NEW: For merged debit/credit columns
+  valueDate: string | null;   // NEW: Secondary date column
   rawLine: PdfLine;
 }
 
 /**
  * Extract structured rows from lines using detected column boundaries
+ */
+/**
+ * Extract structured rows from lines using detected column boundaries
+ * Uses strict boundary matching to prevent column cascade on sparse rows
  */
 export function extractRowsFromTable(
   table: TableRegion,
@@ -657,12 +768,15 @@ export function extractRowsFromTable(
       credit: null,
       balance: null,
       reference: null,
+      amount: null,
+      valueDate: null,
       rawLine: line,
     };
 
-    // Extract text for each column
+    // Extract text for each column using STRICT boundary matching
     for (const boundary of boundaries) {
-      const wordsInColumn = line.words.filter(w => isWordInColumn(w, boundary));
+      // Use strict mode to prevent cascade on sparse rows
+      const wordsInColumn = line.words.filter(w => isWordInColumn(w, boundary, true));
       const text = wordsInColumn.map(w => w.text).join(' ').trim();
 
       if (text && boundary.inferredType) {
@@ -684,6 +798,12 @@ export function extractRowsFromTable(
             break;
           case 'reference':
             row.reference = text;
+            break;
+          case 'amount':
+            row.amount = text;
+            break;
+          case 'value_date':
+            row.valueDate = text;
             break;
         }
       }
