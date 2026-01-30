@@ -613,8 +613,26 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
   let hasDate = boundaries.some(b => b.inferredType === 'date');
   let hasBalance = boundaries.some(b => b.inferredType === 'balance');
   let hasDescription = boundaries.some(b => b.inferredType === 'description');
-  const hasDebit = boundaries.some(b => b.inferredType === 'debit');
-  const hasCredit = boundaries.some(b => b.inferredType === 'credit');
+  let hasDebit = boundaries.some(b => b.inferredType === 'debit');
+  let hasCredit = boundaries.some(b => b.inferredType === 'credit');
+  const hasAmount = boundaries.some(b => b.inferredType === 'amount');
+  
+  // NEW: Handle dual date columns (Transaction Date + Value Date)
+  const dateColumns = boundaries
+    .map((b, i) => ({ boundary: b, index: i }))
+    .filter(({ boundary }) => boundary.inferredType === 'date');
+  
+  if (dateColumns.length > 1) {
+    // Keep leftmost as date, demote others to value_date (reference)
+    for (let i = 1; i < dateColumns.length; i++) {
+      boundaries[dateColumns[i].index] = {
+        ...boundaries[dateColumns[i].index],
+        inferredType: 'value_date',
+        confidence: 0.6,
+      };
+      console.log(`[PostProcess] Demoted secondary date column ${dateColumns[i].index} to value_date`);
+    }
+  }
 
   if (!hasDate && boundaries.length > 0) {
     // Assign leftmost column as date if none found
@@ -648,7 +666,14 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
     }
   }
 
-  // NEW: Assign unknown columns between date and balance as debit/credit
+  // NEW: Handle merged amount column - no need to assign debit/credit separately
+  // The dynamicRowProcessor will split based on CR/DR suffixes
+  if (hasAmount && !hasDebit && !hasCredit) {
+    console.log('[PostProcess] Merged amount column detected - will split in row processor');
+    return boundaries;
+  }
+
+  // Assign unknown columns between date and balance as debit/credit
   if (!hasDebit || !hasCredit) {
     const dateIndex = boundaries.findIndex(b => b.inferredType === 'date');
     const balanceIndex = boundaries.findIndex(b => b.inferredType === 'balance');
@@ -658,7 +683,7 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
       const candidateColumns = boundaries
         .map((b, i) => ({ boundary: b, index: i }))
         .filter(({ boundary, index }) => 
-          (boundary.inferredType === 'unknown' || boundary.inferredType === 'reference') &&
+          (boundary.inferredType === 'unknown' || boundary.inferredType === 'reference' || boundary.inferredType === 'value_date') &&
           index > dateIndex && 
           index < balanceIndex
         )
@@ -671,6 +696,7 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
           inferredType: 'credit',
           confidence: 0.5,
         };
+        hasCredit = true;
         console.log(`[PostProcess] Promoted column ${candidateColumns[0].index} to CREDIT`);
       }
       
@@ -680,6 +706,7 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
           inferredType: 'debit',
           confidence: 0.5,
         };
+        hasDebit = true;
         console.log(`[PostProcess] Promoted column ${candidateColumns[1].index} to DEBIT`);
       }
       
