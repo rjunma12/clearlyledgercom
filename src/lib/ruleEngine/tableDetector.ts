@@ -219,7 +219,22 @@ function createTableRegion(lines: PdfLine[], startIdx: number, endIdx: number): 
 // =============================================================================
 
 /**
+ * Detect layout density based on average words per line
+ */
+function detectLayoutDensity(lines: PdfLine[]): LayoutDensity {
+  if (lines.length === 0) return 'normal';
+  
+  const totalWords = lines.reduce((sum, l) => sum + l.words.length, 0);
+  const avgWordsPerLine = totalWords / lines.length;
+  
+  if (avgWordsPerLine > 8) return 'dense';
+  if (avgWordsPerLine > 4) return 'normal';
+  return 'sparse';
+}
+
+/**
  * Detect column boundaries by finding vertical gutters (gaps between text)
+ * Now uses adaptive thresholds based on document density
  */
 export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
   if (lines.length === 0) return [];
@@ -252,8 +267,25 @@ export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
     }
   }
 
+  // NEW: Adaptive thresholds based on document density
+  const density = detectLayoutDensity(lines);
+  const gutterThresholds: Record<LayoutDensity, number> = {
+    dense: 0.03,   // 3% for dense layouts (many columns)
+    normal: 0.08,  // 8% for normal
+    sparse: 0.15,  // 15% for sparse layouts
+  };
+  const minGutterBuckets: Record<LayoutDensity, number> = {
+    dense: 2,   // 4px minimum gutter for dense
+    normal: 3,  // 6px minimum gutter for normal
+    sparse: 5,  // 10px minimum gutter for sparse
+  };
+  
+  const gutterThreshold = Math.max(1, lines.length * gutterThresholds[density]);
+  const minGutterWidth = minGutterBuckets[density];
+  
+  console.log(`[ColumnDetector] Density: ${density}, Gutter threshold: ${gutterThreshold.toFixed(1)}, Min gutter: ${minGutterWidth * 2}px`);
+
   // Find gutters (consecutive buckets with low coverage)
-  const gutterThreshold = lines.length * 0.1; // Less than 10% of lines have text here
   const gutters: { start: number; end: number }[] = [];
   let gutterStart = -1;
 
@@ -261,7 +293,7 @@ export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
     if (coverage[i] <= gutterThreshold) {
       if (gutterStart === -1) gutterStart = i;
     } else {
-      if (gutterStart !== -1 && i - gutterStart >= 3) { // Min 6px gutter
+      if (gutterStart !== -1 && i - gutterStart >= minGutterWidth) {
         gutters.push({ start: gutterStart, end: i - 1 });
       }
       gutterStart = -1;
@@ -269,18 +301,21 @@ export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
   }
 
   // Handle gutter at end
-  if (gutterStart !== -1 && bucketCount - gutterStart >= 3) {
+  if (gutterStart !== -1 && bucketCount - gutterStart >= minGutterWidth) {
     gutters.push({ start: gutterStart, end: bucketCount - 1 });
   }
 
   // Convert gutters to column boundaries
   const boundaries: ColumnBoundary[] = [];
   let columnStart = pageLeft;
+  
+  // Adaptive minimum column width based on density
+  const minColumnWidth = density === 'dense' ? 15 : 20;
 
   for (const gutter of gutters) {
     const gutterCenterX = pageLeft + ((gutter.start + gutter.end) / 2) * resolution;
     
-    if (gutterCenterX - columnStart > 20) { // Min column width 20px
+    if (gutterCenterX - columnStart > minColumnWidth) {
       boundaries.push({
         x0: columnStart,
         x1: gutterCenterX,
@@ -293,7 +328,7 @@ export function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
   }
 
   // Add final column
-  if (pageRight - columnStart > 20) {
+  if (pageRight - columnStart > minColumnWidth) {
     boundaries.push({
       x0: columnStart,
       x1: pageRight,
