@@ -356,6 +356,24 @@ const DATE_PATTERNS = [
 const CREDIT_KEYWORDS = /\bcr\b|credit|deposit|in\b|\+/i;
 const DEBIT_KEYWORDS = /\bdr\b|debit|withdrawal|out\b|\-/i;
 
+// Patterns for merged amount column detection
+const MERGED_AMOUNT_HEADER = /^(amount|value|transaction\s*amount|txn\s*amt)$/i;
+const DEBIT_SUFFIX = /(dr|debit|\-)\s*$/i;
+const CREDIT_SUFFIX = /(cr|credit|\+)\s*$/i;
+
+/**
+ * Detect if a column contains merged debit/credit values with CR/DR suffixes
+ */
+function detectMergedAmountColumn(samples: string[]): boolean {
+  if (samples.length < 3) return false;
+  
+  const drCount = samples.filter(s => DEBIT_SUFFIX.test(s)).length;
+  const crCount = samples.filter(s => CREDIT_SUFFIX.test(s)).length;
+  
+  // Must have both DR and CR suffixes present
+  return drCount > 0 && crCount > 0;
+}
+
 // Header keywords for explicit column type detection
 const HEADER_DEBIT_PATTERNS = /^(debit|withdrawal|dr|out|withdrawals)$/i;
 const HEADER_CREDIT_PATTERNS = /^(credit|deposit|cr|in|deposits)$/i;
