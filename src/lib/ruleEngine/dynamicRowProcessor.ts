@@ -211,12 +211,27 @@ function cleanDescription(description: string): string {
 
 /**
  * Convert stitched transactions to RawTransaction format for downstream processing
+ * Handles merged amount columns by splitting based on CR/DR suffixes
  */
 export function convertToRawTransactions(
   stitchedTransactions: StitchedTransaction[]
 ): RawTransaction[] {
   return stitchedTransactions.map((tx, index) => {
     const row = tx.primaryRow;
+    
+    // Handle merged amount column
+    let effectiveDebit = row.debit;
+    let effectiveCredit = row.credit;
+    
+    if (row.amount && !row.debit && !row.credit) {
+      const { debit, credit } = splitMergedAmount(row.amount);
+      effectiveDebit = debit;
+      effectiveCredit = credit;
+      
+      if (debit || credit) {
+        console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${debit}, credit: ${credit}`);
+      }
+    }
     
     // Collect all text elements from primary and continuation rows
     const allElements: TextElement[] = [];
@@ -248,8 +263,8 @@ export function convertToRawTransactions(
       elements: allElements,
       rawDate: row.date || undefined,
       rawDescription: tx.fullDescription,
-      rawDebit: row.debit || undefined,
-      rawCredit: row.credit || undefined,
+      rawDebit: effectiveDebit || undefined,
+      rawCredit: effectiveCredit || undefined,
       rawBalance: row.balance || undefined,
     };
   });
