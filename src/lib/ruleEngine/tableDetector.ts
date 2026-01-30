@@ -490,9 +490,19 @@ function analyzeColumn(lines: PdfLine[], boundary: ColumnBoundary): ColumnAnalys
   };
 }
 
-function isWordInColumn(word: PdfWord, boundary: ColumnBoundary): boolean {
+/**
+ * Check if a word belongs to a column
+ * @param strict - If true, word center MUST be within boundary (prevents cascade)
+ */
+function isWordInColumn(word: PdfWord, boundary: ColumnBoundary, strict: boolean = false): boolean {
   const wordCenter = (word.x0 + word.x1) / 2;
-  // Word is in column if its center is within bounds, or significant overlap
+  
+  if (strict) {
+    // Strict mode: word center MUST be within boundary
+    return wordCenter >= boundary.x0 && wordCenter <= boundary.x1;
+  }
+  
+  // Flexible mode: word center within bounds, or significant overlap
   const overlap = Math.min(word.x1, boundary.x1) - Math.max(word.x0, boundary.x0);
   return wordCenter >= boundary.x0 && wordCenter <= boundary.x1 ||
          overlap > word.width * 0.5;
