@@ -59,6 +59,8 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     'closing balance', 'bal', 'शेष', '余额', 'baki'
   ],
   reference: ['ref', 'reference', 'ref no', 'txn id', 'transaction id'],
+  amount: ['amount', 'value', 'transaction amount', 'txn amt'],
+  value_date: ['value date', 'val date', 'effective date'],
   unknown: [],
 };
 
