@@ -38,7 +38,10 @@ export interface ColumnBoundary {
   confidence: number;   // 0-1 confidence in type inference
 }
 
-export type ColumnType = 'date' | 'description' | 'debit' | 'credit' | 'balance' | 'reference' | 'unknown';
+export type ColumnType = 'date' | 'description' | 'debit' | 'credit' | 'balance' | 'reference' | 'amount' | 'value_date' | 'unknown';
+
+// Document layout density for adaptive detection
+export type LayoutDensity = 'sparse' | 'normal' | 'dense';
 
 export interface TableRegion {
   top: number;
