@@ -739,6 +739,8 @@ export interface ExtractedRow {
   credit: string | null;
   balance: string | null;
   reference: string | null;
+  amount: string | null;      // NEW: For merged debit/credit columns
+  valueDate: string | null;   // NEW: Secondary date column
   rawLine: PdfLine;
 }
 
