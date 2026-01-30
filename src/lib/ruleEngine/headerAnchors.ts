@@ -266,15 +266,23 @@ function createEmptyAnchors(): LockedColumnAnchors {
 // ANCHOR USAGE
 // =============================================================================
 
+// Default page drift tolerance in pixels
+const DEFAULT_PAGE_DRIFT_TOLERANCE = 15;
+
 /**
  * Assign a word to a column based on locked anchors
  * Uses X-position overlap with anchors
+ * @param pageNumber - Page number for tolerance-based matching (page 1 = strict, page 2+ = allow drift)
  */
 export function assignWordToColumn(
   word: PdfWord,
-  anchors: LockedColumnAnchors
+  anchors: LockedColumnAnchors,
+  pageNumber: number = 1
 ): ColumnType | null {
   const wordCenter = (word.x0 + word.x1) / 2;
+  
+  // Page 1: strict matching. Page 2+: allow tolerance for column drift
+  const tolerance = pageNumber === 1 ? 0 : DEFAULT_PAGE_DRIFT_TOLERANCE;
   
   // Check each anchor
   const anchorEntries: Array<[string, ColumnAnchor | null]> = [
@@ -288,16 +296,19 @@ export function assignWordToColumn(
   for (const [colType, anchor] of anchorEntries) {
     if (!anchor) continue;
     
-    // Check if word overlaps with anchor
-    const overlap = calculateOverlap(word.x0, word.x1, anchor.x0, anchor.x1);
+    // Apply tolerance to anchor bounds
+    const anchorLeft = anchor.x0 - tolerance;
+    const anchorRight = anchor.x1 + tolerance;
+    
+    // Check if word overlaps with anchor (with tolerance)
+    const overlap = calculateOverlap(word.x0, word.x1, anchorLeft, anchorRight);
     
     if (overlap > 0.3) { // >30% overlap
       return colType as ColumnType;
     }
     
     // Or if word center is within anchor bounds (with tolerance)
-    const tolerance = (anchor.x1 - anchor.x0) * 0.5;
-    if (wordCenter >= anchor.x0 - tolerance && wordCenter <= anchor.x1 + tolerance) {
+    if (wordCenter >= anchorLeft && wordCenter <= anchorRight) {
       return colType as ColumnType;
     }
   }
