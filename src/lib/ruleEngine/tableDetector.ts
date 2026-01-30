@@ -747,6 +747,10 @@ export interface ExtractedRow {
 /**
  * Extract structured rows from lines using detected column boundaries
  */
+/**
+ * Extract structured rows from lines using detected column boundaries
+ * Uses strict boundary matching to prevent column cascade on sparse rows
+ */
 export function extractRowsFromTable(
   table: TableRegion,
   boundaries: ColumnBoundary[]
@@ -764,12 +768,15 @@ export function extractRowsFromTable(
       credit: null,
       balance: null,
       reference: null,
+      amount: null,
+      valueDate: null,
       rawLine: line,
     };
 
-    // Extract text for each column
+    // Extract text for each column using STRICT boundary matching
     for (const boundary of boundaries) {
-      const wordsInColumn = line.words.filter(w => isWordInColumn(w, boundary));
+      // Use strict mode to prevent cascade on sparse rows
+      const wordsInColumn = line.words.filter(w => isWordInColumn(w, boundary, true));
       const text = wordsInColumn.map(w => w.text).join(' ').trim();
 
       if (text && boundary.inferredType) {
@@ -791,6 +798,12 @@ export function extractRowsFromTable(
             break;
           case 'reference':
             row.reference = text;
+            break;
+          case 'amount':
+            row.amount = text;
+            break;
+          case 'value_date':
+            row.valueDate = text;
             break;
         }
       }
