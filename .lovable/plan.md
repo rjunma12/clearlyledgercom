@@ -1,320 +1,446 @@
 
-# Plan: Improve Table Column Detection for Unusual PDF Layouts
+
+# Plan: Comprehensive Conversion Improvements
 
 ## Overview
-Enhance the geometry-based table detection algorithm in `tableDetector.ts` and related modules to better handle edge cases with unusual PDF layouts, including:
-- Merged column headers (e.g., "Debit/Credit" in single column)
-- Variable column widths across pages
-- Non-standard layouts (rotated text, split headers, multi-line headers)
-- Sparse data rows with missing columns
-- PDFs with multiple distinct table sections
+
+This plan implements 5 major enhancements to the PDF-to-Excel conversion pipeline to improve accuracy, particularly for Indian bank statements and scanned documents.
 
 ---
 
-## Current Architecture Analysis
+## Improvement 1: Indian Lakh/Crore Number Format Support
 
-The existing pipeline uses:
-1. **`groupWordsIntoLines()`** - Groups text elements by Y-tolerance (3px)
-2. **`detectTableRegions()`** - Identifies table areas by consistent word counts
-3. **`detectColumnBoundaries()`** - Finds vertical gutters (gaps) to identify columns
-4. **`classifyColumns()`** - Uses content analysis (date patterns, numeric scores) to infer types
-5. **`postProcessColumnTypes()`** - Fallback assignment for missing required columns
+### Problem
+Indian banks use a unique number grouping system: `1,00,000.00` (one lakh) instead of the Western `100,000.00`. The current parser fails to recognize this pattern.
 
----
+### Solution
+Update `src/lib/ruleEngine/numberParser.ts` to detect and parse Indian number format.
 
-## Identified Edge Cases & Solutions
+### Technical Changes
 
-### Edge Case 1: Merged Debit/Credit Columns
-**Problem**: Some banks use a single "Amount" or "Debit/Credit" column with CR/DR suffixes.
+**File: `src/lib/ruleEngine/numberParser.ts`**
 
-**Solution**: Add merged column detection and sign inference:
+Add Indian number format detection:
 ```typescript
-// In classifyColumns()
-const MERGED_AMOUNT_PATTERNS = /\b(amount|value|transaction)\b/i;
-const DEBIT_SUFFIX = /(dr|debit|\-)\s*$/i;
-const CREDIT_SUFFIX = /(cr|credit|\+)\s*$/i;
+// New pattern for Indian numbering (1,00,000.00)
+const INDIAN_NUMBER_PATTERN = /^\d{1,2}(,\d{2})*(,\d{3})?\.\d{2}$/;
 
-// Detect if column has mixed CR/DR suffixes
-function detectMergedAmountColumn(samples: string[]): boolean {
-  const drCount = samples.filter(s => DEBIT_SUFFIX.test(s)).length;
-  const crCount = samples.filter(s => CREDIT_SUFFIX.test(s)).length;
-  return drCount > 0 && crCount > 0;
+// In detectNumberFormat():
+// Check for Indian format: 1,00,000.00
+if (/^\d{1,2}(,\d{2})+,\d{3}\.\d{2}$/.test(sample)) {
+  indianFormatCount++;
 }
 ```
 
-### Edge Case 2: Variable Gutter Widths
-**Problem**: Current gutter threshold (10% of lines) fails with sparse or inconsistent layouts.
-
-**Solution**: Implement adaptive gutter detection:
+Add Indian format parsing in `parseNumber()`:
 ```typescript
-function detectColumnBoundaries(lines: PdfLine[]): ColumnBoundary[] {
-  // NEW: Adaptive thresholds based on document density
-  const avgWordsPerLine = lines.reduce((sum, l) => sum + l.words.length, 0) / lines.length;
-  const gutterThreshold = Math.max(1, lines.length * (avgWordsPerLine > 6 ? 0.05 : 0.15));
-  const minGutterWidth = avgWordsPerLine > 6 ? 2 : 4; // Narrower gutters for dense layouts
-  // ... rest of detection
+// Handle Indian format: 1,00,000.00 -> remove all commas
+else if (isIndianFormat(cleaned)) {
+  cleaned = cleaned.replace(/,/g, '');
 }
 ```
 
-### Edge Case 3: Multi-Line Headers
-**Problem**: Headers spanning multiple lines (e.g., "Transaction\nDate") aren't detected.
-
-**Solution**: Expand header search to merge adjacent header lines:
+Add new type to `NumberFormat`:
 ```typescript
-function detectMultiLineHeaders(lines: PdfLine[]): PdfLine {
-  // Search first 15 lines
-  // Merge lines that are within 5px Y-distance AND don't contain date patterns
-  // Return combined "super-line" for header detection
-}
-```
-
-### Edge Case 4: Page-to-Page Column Drift
-**Problem**: Column positions shift slightly between pages due to PDF rendering.
-
-**Solution**: Use first page anchors with tolerance-based matching:
-```typescript
-interface AnchorTolerance {
-  x: number;        // Original anchor X
-  tolerance: number; // Allowed drift (typically 5-15px)
-}
-
-function matchColumnAcrossPages(
-  word: PdfWord, 
-  anchors: ColumnAnchor[], 
-  pageNumber: number
-): ColumnType {
-  // For page 1: exact match
-  // For page 2+: use tolerance-based matching
-  const tolerance = pageNumber === 1 ? 0 : 15;
-  // ... matching logic
-}
-```
-
-### Edge Case 5: Empty/Sparse Data Cells
-**Problem**: Rows with missing values (e.g., no credit amount) can misalign subsequent columns.
-
-**Solution**: Use strict column boundary enforcement:
-```typescript
-function extractRowWithStrictBounds(
-  line: PdfLine, 
-  boundaries: ColumnBoundary[]
-): ExtractedRow {
-  // For each column boundary:
-  // - Collect words whose CENTER falls within [x0, x1]
-  // - If no words found, mark as null (not try to borrow from adjacent)
-  // - This prevents column-shift cascade
-}
-```
-
-### Edge Case 6: Dual Date Columns (Trans Date + Value Date)
-**Problem**: Some banks have two date columns, causing date detection to pick wrong one.
-
-**Solution**: Prioritize leftmost date column, label second as reference:
-```typescript
-function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] {
-  const dateColumns = boundaries.filter(b => b.inferredType === 'date');
-  if (dateColumns.length > 1) {
-    // Keep leftmost as date, demote others to 'reference' or 'value_date'
-    dateColumns.slice(1).forEach(col => {
-      col.inferredType = 'reference';
-      console.log('[PostProcess] Demoted secondary date column to reference');
-    });
-  }
-  // ... existing logic
+export interface NumberFormat {
+  thousandsSeparator: ',' | '.' | ' ' | "'" | 'indian';
+  // ...
 }
 ```
 
 ---
 
-## Files to Modify
+## Improvement 2: OCR Error Correction for Dates
 
-| File | Changes |
-|------|---------|
-| `src/lib/ruleEngine/tableDetector.ts` | Add adaptive gutter detection, merged column handling, multi-line header support, strict boundary enforcement |
-| `src/lib/ruleEngine/headerAnchors.ts` | Add page-drift tolerance, multi-line header merging |
-| `src/lib/ruleEngine/dynamicRowProcessor.ts` | Improve merged amount column parsing with CR/DR sign extraction |
-| `src/lib/ruleEngine/types.ts` | Add new types for merged columns and anchor tolerance |
+### Problem
+OCR commonly misreads digits in dates: `O1/O2/2025` instead of `01/02/2025`, `l5/O1/2024` instead of `15/01/2024`.
 
----
+### Solution
+Add date-specific OCR correction before parsing in `numberParser.ts` and `ocrCorrection.ts`.
 
-## Technical Implementation Details
+### Technical Changes
 
-### 1. Enhanced Gutter Detection (`tableDetector.ts`)
+**File: `src/lib/ruleEngine/ocrCorrection.ts`**
 
-**Current logic (lines 253-266)**:
+Add new date correction function:
 ```typescript
-const gutterThreshold = lines.length * 0.1; // Fixed 10%
-```
+// Date-specific OCR corrections (more restrictive than numeric)
+const DATE_OCR_CORRECTIONS: Record<string, string> = {
+  'O': '0',
+  'o': '0',
+  'l': '1',
+  'I': '1',
+  '|': '1',
+  'Z': '2',
+  'S': '5',
+  'B': '8',
+};
 
-**Improved logic**:
-```typescript
-// Adaptive thresholds
-const avgWordsPerLine = lines.reduce((s, l) => s + l.words.length, 0) / lines.length;
-const documentDensity = avgWordsPerLine > 8 ? 'dense' : avgWordsPerLine > 4 ? 'normal' : 'sparse';
-
-const gutterThreshold = {
-  dense: lines.length * 0.03,   // 3% for dense layouts
-  normal: lines.length * 0.08,  // 8% for normal
-  sparse: lines.length * 0.15,  // 15% for sparse
-}[documentDensity];
-
-const minGutterPixels = {
-  dense: 4,   // 4px minimum gutter
-  normal: 6,  // 6px minimum
-  sparse: 10, // 10px minimum
-}[documentDensity];
-```
-
-### 2. Merged Amount Column Detection (`tableDetector.ts`)
-
-Add new classification in `inferColumnType()`:
-```typescript
-function inferColumnType(analysis: ColumnAnalysis, ...): { type: ColumnType; confidence: number } {
-  // Check for merged debit/credit column
-  const hasMixedSuffixes = analysis.samples.some(s => /\b(cr|dr|credit|debit)\b/i.test(s));
-  const hasNumericContent = analysis.numericScore > 0.3;
+export function correctOCRDate(raw: string): string {
+  // Only apply corrections to date-like patterns
+  if (!isLikelyDate(raw)) return raw;
   
-  if (hasNumericContent && hasMixedSuffixes) {
-    console.log('[ColumnClassifier] Detected merged Debit/Credit column');
-    return { type: 'amount', confidence: 0.85 }; // New 'amount' type
-  }
-  // ... existing logic
-}
-```
-
-Update `postProcessColumnTypes()` to handle 'amount' type:
-```typescript
-if (hasAmountColumn && !hasDebit && !hasCredit) {
-  // Mark amount column for special processing in dynamicRowProcessor
-  // which will split values into debit/credit based on suffix
-}
-```
-
-### 3. Multi-Line Header Detection (`headerAnchors.ts`)
-
-Add header line merging:
-```typescript
-function mergeAdjacentHeaderLines(lines: PdfLine[]): PdfLine[] {
-  const mergedLines: PdfLine[] = [];
-  let currentMerge: PdfWord[] = [];
-  let currentY = -100;
-  
-  for (const line of lines.slice(0, 15)) {
-    // If line is within 10px of previous and contains header keywords
-    const yGap = line.top - currentY;
-    const hasHeaderWord = line.words.some(w => 
-      Object.values(HEADER_KEYWORDS).flat().some(kw => 
-        w.text.toLowerCase().includes(kw.toLowerCase())
-      )
-    );
-    
-    if (yGap < 10 && hasHeaderWord) {
-      currentMerge.push(...line.words);
-    } else if (currentMerge.length > 0) {
-      mergedLines.push(createLineFromWords(currentMerge));
-      currentMerge = [...line.words];
-    }
-    currentY = line.bottom;
-  }
-  
-  return mergedLines;
-}
-```
-
-### 4. Page Drift Tolerance (`headerAnchors.ts`)
-
-Add tolerance to `assignWordToColumn()`:
-```typescript
-export function assignWordToColumn(
-  word: PdfWord,
-  anchors: LockedColumnAnchors,
-  pageNumber: number = 1
-): ColumnType | null {
-  const wordCenter = (word.x0 + word.x1) / 2;
-  
-  // Page 1: strict matching. Page 2+: allow 15px drift
-  const tolerance = pageNumber === 1 ? 0 : 15;
-  
-  for (const [colType, anchor] of anchorEntries) {
-    if (!anchor) continue;
-    
-    const anchorLeft = anchor.x0 - tolerance;
-    const anchorRight = anchor.x1 + tolerance;
-    
-    if (wordCenter >= anchorLeft && wordCenter <= anchorRight) {
-      return colType as ColumnType;
+  let result = raw;
+  for (let i = 0; i < result.length; i++) {
+    const char = result[i];
+    if (DATE_OCR_CORRECTIONS[char]) {
+      result = result.slice(0, i) + DATE_OCR_CORRECTIONS[char] + result.slice(i + 1);
     }
   }
-  return null;
+  return result;
+}
+
+function isLikelyDate(str: string): boolean {
+  // Has date separators and appropriate length
+  return /[\/\-\.]/.test(str) && str.length >= 6 && str.length <= 12;
 }
 ```
 
-### 5. Strict Boundary Enforcement (`tableDetector.ts`)
+**File: `src/lib/ruleEngine/numberParser.ts`**
 
-Update `isWordInColumn()` for stricter matching:
+Import and apply date correction before parsing:
 ```typescript
-function isWordInColumn(word: PdfWord, boundary: ColumnBoundary, strict: boolean = false): boolean {
-  const wordCenter = (word.x0 + word.x1) / 2;
+import { correctOCRDate } from './ocrCorrection';
+
+export function parseDate(dateStr: string, locale: Locale = 'auto'): string | null {
+  // NEW: Apply OCR correction first
+  const corrected = correctOCRDate(dateStr.trim());
   
-  if (strict) {
-    // Word center MUST be within boundary
-    return wordCenter >= boundary.x0 && wordCenter <= boundary.x1;
+  for (const { pattern, format } of DATE_PATTERNS) {
+    const match = corrected.match(pattern);
+    // ... rest of parsing
+  }
+}
+```
+
+---
+
+## Improvement 3: Extract Reference/Cheque Numbers as Separate Field
+
+### Problem
+Reference numbers, UTR codes, and cheque numbers are currently merged into the description field, making them hard to search and filter.
+
+### Solution
+Extract reference identifiers to a dedicated `reference` field in the transaction schema.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/types.ts`**
+
+Update `ParsedTransaction` interface:
+```typescript
+export interface ParsedTransaction {
+  // ... existing fields
+  reference?: string;              // NEW: Extracted reference/UTR/Cheque number
+  referenceType?: 'UTR' | 'IMPS' | 'NEFT' | 'RTGS' | 'Cheque' | 'RefNo' | 'Other';
+}
+```
+
+**File: `src/lib/ruleEngine/dynamicRowProcessor.ts`**
+
+Add reference extraction logic:
+```typescript
+// Reference extraction patterns
+const REFERENCE_PATTERNS: Array<{ pattern: RegExp; type: string }> = [
+  { pattern: /\bUTR\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'UTR' },
+  { pattern: /\bIMPS\s*[:\-]?\s*(\d{12,16})\b/i, type: 'IMPS' },
+  { pattern: /\bNEFT\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'NEFT' },
+  { pattern: /\bRTGS\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'RTGS' },
+  { pattern: /\bCHQ\s*(?:NO)?\.?\s*[:\-]?\s*(\d{6,8})\b/i, type: 'Cheque' },
+  { pattern: /\bCHEQUE\s*(?:NO)?\.?\s*[:\-]?\s*(\d{6,8})\b/i, type: 'Cheque' },
+  { pattern: /\bREF\s*(?:NO)?\.?\s*[:\-]?\s*([A-Z0-9]{6,20})\b/i, type: 'RefNo' },
+  { pattern: /\bTXN\s*(?:ID)?\.?\s*[:\-]?\s*([A-Z0-9]{10,20})\b/i, type: 'RefNo' },
+];
+
+export function extractReference(description: string): { 
+  reference: string | null; 
+  referenceType: string | null;
+  cleanedDescription: string;
+} {
+  for (const { pattern, type } of REFERENCE_PATTERNS) {
+    const match = description.match(pattern);
+    if (match) {
+      return {
+        reference: match[1],
+        referenceType: type,
+        cleanedDescription: description.replace(match[0], '').trim(),
+      };
+    }
+  }
+  return { reference: null, referenceType: null, cleanedDescription: description };
+}
+```
+
+Update `convertToRawTransactions()` to extract references:
+```typescript
+export function convertToRawTransactions(stitched: StitchedTransaction[]): RawTransaction[] {
+  return stitched.map((tx, index) => {
+    const { reference, referenceType, cleanedDescription } = extractReference(tx.fullDescription);
+    
+    return {
+      // ... existing fields
+      rawDescription: cleanedDescription,
+      rawReference: reference,        // NEW
+      referenceType: referenceType,   // NEW
+    };
+  });
+}
+```
+
+---
+
+## Improvement 4: Adaptive Balance Tolerance Based on Currency
+
+### Problem
+Fixed 0.05 tolerance is too tight for currencies with no decimals (JPY, KRW) and potentially too loose for others. Japanese Yen transactions using 1.0 tolerance prevents false positives.
+
+### Solution
+Implement currency-aware tolerance in `balanceValidator.ts`.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/balanceValidator.ts`**
+
+Add currency tolerance lookup:
+```typescript
+// Currency-specific balance tolerances
+const CURRENCY_TOLERANCES: Record<string, number> = {
+  // No-decimal currencies (allow rounding to nearest unit)
+  JPY: 1.0,
+  KRW: 1.0,
+  IDR: 1.0,
+  
+  // Standard 2-decimal currencies
+  USD: 0.01,
+  EUR: 0.01,
+  GBP: 0.01,
+  AUD: 0.01,
+  CAD: 0.01,
+  
+  // INR - some banks round to nearest rupee
+  INR: 0.50,
+  
+  // Default fallback
+  DEFAULT: 0.05,
+};
+
+export function getToleranceForCurrency(currency?: string): number {
+  if (!currency) return CURRENCY_TOLERANCES.DEFAULT;
+  return CURRENCY_TOLERANCES[currency] ?? CURRENCY_TOLERANCES.DEFAULT;
+}
+```
+
+Update `validateBalanceEquation()` to accept currency:
+```typescript
+export function validateBalanceEquation(
+  previousBalance: number,
+  credit: number | null,
+  debit: number | null,
+  currentBalance: number,
+  currency?: string  // NEW parameter
+): ValidationResult {
+  const tolerance = getToleranceForCurrency(currency);
+  // ... rest of validation
+}
+```
+
+Update `validateTransactionChain()` to pass currency:
+```typescript
+export function validateTransactionChain(
+  transactions: ParsedTransaction[],
+  openingBalance: number,
+  currency?: string  // NEW parameter
+): ParsedTransaction[] {
+  // Pass currency to each validation call
+  const validation = validateBalanceEquation(
+    runningBalance,
+    transaction.credit,
+    transaction.debit,
+    transaction.balance,
+    currency
+  );
+  // ...
+}
+```
+
+---
+
+## Improvement 5: Per-Transaction Confidence Scoring
+
+### Problem
+Current confidence scoring is document-level only. Users can't see which specific transactions might have parsing issues.
+
+### Solution
+Add per-row confidence scoring based on multiple factors.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/types.ts`**
+
+Update `ParsedTransaction`:
+```typescript
+export interface ParsedTransaction {
+  // ... existing fields
+  
+  // Per-transaction confidence scoring
+  confidence?: TransactionConfidence;
+}
+
+export interface TransactionConfidence {
+  overall: number;           // 0-100
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  factors: {
+    dateConfidence: number;      // Was date parsed cleanly?
+    amountConfidence: number;    // Were amounts numeric?
+    balanceConfidence: number;   // Did balance validate?
+    ocrConfidence?: number;      // OCR quality if applicable
+    descriptionConfidence: number; // Description completeness
+  };
+  flags: string[];           // Specific concerns
+}
+```
+
+**New File: `src/lib/ruleEngine/transactionConfidence.ts`**
+
+```typescript
+export interface TransactionConfidence {
+  overall: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  factors: {
+    dateConfidence: number;
+    amountConfidence: number;
+    balanceConfidence: number;
+    ocrConfidence?: number;
+    descriptionConfidence: number;
+  };
+  flags: string[];
+}
+
+export function calculateTransactionConfidence(
+  transaction: ParsedTransaction,
+  rawTransaction: RawTransaction
+): TransactionConfidence {
+  const flags: string[] = [];
+  
+  // Date confidence
+  let dateConfidence = 100;
+  if (!transaction.date || transaction.date.length === 0) {
+    dateConfidence = 0;
+    flags.push('Missing date');
+  } else if (transaction.date.includes('NaN')) {
+    dateConfidence = 20;
+    flags.push('Invalid date format');
   }
   
-  // Existing flexible logic
-  const overlap = Math.min(word.x1, boundary.x1) - Math.max(word.x0, boundary.x0);
-  return wordCenter >= boundary.x0 && wordCenter <= boundary.x1 ||
-         overlap > word.width * 0.5;
+  // Amount confidence
+  let amountConfidence = 100;
+  if (transaction.debit === null && transaction.credit === null) {
+    amountConfidence = 50;
+    flags.push('No amount detected');
+  }
+  
+  // Balance confidence (based on validation status)
+  let balanceConfidence = 100;
+  if (transaction.validationStatus === 'error') {
+    balanceConfidence = 20;
+    flags.push('Balance mismatch');
+  } else if (transaction.validationStatus === 'warning') {
+    balanceConfidence = 60;
+    flags.push('Balance warning');
+  }
+  
+  // Description confidence
+  let descriptionConfidence = 100;
+  if (!transaction.description || transaction.description.length < 3) {
+    descriptionConfidence = 40;
+    flags.push('Short/missing description');
+  } else if (transaction.isStitchedRow) {
+    descriptionConfidence = 90; // Slight penalty for stitched rows
+  }
+  
+  // OCR confidence (if available)
+  const ocrConfidence = rawTransaction.elements
+    .filter(e => e.source === 'ocr' && e.confidence !== undefined)
+    .reduce((sum, e) => sum + (e.confidence || 0), 0) / 
+    Math.max(1, rawTransaction.elements.filter(e => e.source === 'ocr').length) * 100;
+  
+  // Weighted overall score
+  const weights = { date: 0.20, amount: 0.30, balance: 0.30, description: 0.20 };
+  const overall = 
+    dateConfidence * weights.date +
+    amountConfidence * weights.amount +
+    balanceConfidence * weights.balance +
+    descriptionConfidence * weights.description;
+  
+  // Grade
+  const grade = overall >= 95 ? 'A' : overall >= 85 ? 'B' : overall >= 70 ? 'C' : overall >= 50 ? 'D' : 'F';
+  
+  return {
+    overall: Math.round(overall),
+    grade,
+    factors: {
+      dateConfidence,
+      amountConfidence,
+      balanceConfidence,
+      ocrConfidence: ocrConfidence > 0 ? ocrConfidence : undefined,
+      descriptionConfidence,
+    },
+    flags,
+  };
+}
+
+export function aggregateConfidenceScores(
+  confidences: TransactionConfidence[]
+): { average: number; grade: string; lowConfidenceCount: number } {
+  if (confidences.length === 0) return { average: 0, grade: 'F', lowConfidenceCount: 0 };
+  
+  const average = confidences.reduce((sum, c) => sum + c.overall, 0) / confidences.length;
+  const lowConfidenceCount = confidences.filter(c => c.overall < 70).length;
+  const grade = average >= 95 ? 'A' : average >= 85 ? 'B' : average >= 70 ? 'C' : average >= 50 ? 'D' : 'F';
+  
+  return { average: Math.round(average), grade, lowConfidenceCount };
 }
 ```
 
 ---
 
-## New Type Definitions (`types.ts`)
+## Files to Create/Modify
 
-```typescript
-// Merged column support
-export type ExtendedColumnType = ColumnType | 'amount' | 'value_date';
-
-// Document layout density
-export type LayoutDensity = 'sparse' | 'normal' | 'dense';
-
-// Anchor with tolerance for multi-page matching
-export interface ToleranceAnchor extends ColumnAnchor {
-  pageDriftTolerance: number;
-  originalPageNumber: number;
-}
-```
+| File | Action | Changes |
+|------|--------|---------|
+| `src/lib/ruleEngine/numberParser.ts` | Modify | Add Indian number format detection, import OCR date correction |
+| `src/lib/ruleEngine/ocrCorrection.ts` | Modify | Add `correctOCRDate()` function |
+| `src/lib/ruleEngine/types.ts` | Modify | Add `reference`, `referenceType`, `TransactionConfidence` fields |
+| `src/lib/ruleEngine/dynamicRowProcessor.ts` | Modify | Add `extractReference()` function, update conversion |
+| `src/lib/ruleEngine/balanceValidator.ts` | Modify | Add currency-aware tolerance, update validation signatures |
+| `src/lib/ruleEngine/transactionConfidence.ts` | Create | New module for per-transaction confidence scoring |
 
 ---
 
-## Testing Scenarios
+## Integration Points
 
-After implementation, test with:
-1. **Indian bank statement** with merged "Amount" column (ICICI, SBI format)
-2. **Multi-page PDF** where columns drift 5-10px between pages
-3. **Statement with dual date columns** (Transaction Date + Value Date)
-4. **Sparse layout** with many empty credit cells
-5. **Dense layout** with narrow gutters (5-6 columns in tight space)
+1. **Main Pipeline** (`pdfProcessor.ts`): Call `calculateTransactionConfidence()` after parsing each transaction
+2. **Excel Export** (`excelGenerator.ts`): Include confidence grade in output, optionally add to Validation sheet
+3. **UI Display**: Show confidence badges per transaction (future enhancement)
 
 ---
 
 ## Expected Improvements
 
-| Edge Case | Current Behavior | After Fix |
-|-----------|------------------|-----------|
-| Merged Amount column | Misclassified as single numeric | Correctly split to debit/credit |
-| Page drift >5px | Columns shift on page 2+ | Consistent mapping across pages |
-| Multi-line header | Header not detected | Combined header line detected |
-| Sparse rows | Column cascade | Strict boundary prevents shift |
-| Dual date columns | Both marked as 'date' | Primary date + reference |
-| Very narrow gutters | Missed columns | Adaptive threshold catches |
+| Feature | Before | After |
+|---------|--------|-------|
+| Indian amounts (₹1,00,000.00) | Parse fails | Correctly parsed |
+| OCR dates (O1/O2/2025) | Invalid date | Corrected to 01/02/2025 |
+| Reference extraction | Buried in description | Separate searchable field |
+| JPY validation | False positives | 1.0 tolerance eliminates noise |
+| Transaction quality | Unknown | Per-row A-F grade |
 
 ---
 
 ## Risk Assessment
 
-- **Low risk**: All changes are additive to existing logic
-- **Fallback preserved**: Original detection still runs if adaptive detection fails
-- **No breaking changes**: Existing bank profiles and parsing continue to work
-- **Logging enhanced**: All new detection paths include console logs for debugging
+- **Low risk**: All changes are additive and backward-compatible
+- **Fallback preserved**: Existing parsing continues to work if new detection fails
+- **No breaking changes**: New fields are optional (`?`) in interfaces
+- **Performance impact**: Minimal - simple regex and arithmetic operations
+
