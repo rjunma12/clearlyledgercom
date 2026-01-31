@@ -47,6 +47,7 @@ export function parseIndianNumber(value: string): number | null {
 /**
  * Detect the number format from sample numbers
  * Analyzes patterns to determine regional separators
+ * Supports: US/UK, European, Indian lakh/crore formats
  */
 export function detectNumberFormat(sampleNumbers: string[]): NumberFormat {
   const cleanSamples = sampleNumbers
@@ -62,10 +63,16 @@ export function detectNumberFormat(sampleNumbers: string[]): NumberFormat {
   let commaAsDecimal = 0;
   let dotAsThousands = 0;
   let commaAsThousands = 0;
+  let indianFormatCount = 0;
   
   for (const sample of cleanSamples) {
+    // Pattern: Indian lakh/crore format (1,00,000.00 or 1,00,00,000.00)
+    if (/^\d{1,2}(,\d{2})+(,\d{3})?\.\d{1,2}$/.test(sample)) {
+      indianFormatCount++;
+      dotAsDecimal++; // Indian format uses dot as decimal
+    }
     // Pattern: European format (1.234,56 or 1 234,56)
-    if (/^\d{1,3}([.\s']\d{3})*,\d{2}$/.test(sample)) {
+    else if (/^\d{1,3}([.\s']\d{3})*,\d{2}$/.test(sample)) {
       commaAsDecimal++;
       if (sample.includes('.')) dotAsThousands++;
     }
@@ -82,6 +89,17 @@ export function detectNumberFormat(sampleNumbers: string[]): NumberFormat {
     else if (/^\d+,\d{2}$/.test(sample)) {
       commaAsDecimal++;
     }
+  }
+  
+  // Check if majority are Indian format
+  if (indianFormatCount > cleanSamples.length * 0.3) {
+    console.log('[NumberParser] Detected Indian lakh/crore format');
+    return {
+      thousandsSeparator: ',' as const, // Will be handled specially in parseNumber
+      decimalSeparator: '.',
+      currencyPosition: 'prefix',
+      // Note: We use ',' but the parser will detect Indian format specifically
+    };
   }
   
   // Determine format based on patterns
