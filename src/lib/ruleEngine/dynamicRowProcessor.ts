@@ -255,6 +255,7 @@ function cleanDescription(description: string): string {
 /**
  * Convert stitched transactions to RawTransaction format for downstream processing
  * Handles merged amount columns by splitting based on CR/DR suffixes
+ * Extracts reference numbers (UTR, NEFT, cheque, etc.) to separate field
  */
 export function convertToRawTransactions(
   stitchedTransactions: StitchedTransaction[]
@@ -275,6 +276,9 @@ export function convertToRawTransactions(
         console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${debit}, credit: ${credit}`);
       }
     }
+    
+    // Extract reference from description
+    const { reference, referenceType, cleanedDescription } = extractReference(tx.fullDescription);
     
     // Collect all text elements from primary and continuation rows
     const allElements: TextElement[] = [];
@@ -305,10 +309,12 @@ export function convertToRawTransactions(
       pageNumber: row.pageNumber,
       elements: allElements,
       rawDate: row.date || undefined,
-      rawDescription: tx.fullDescription,
+      rawDescription: cleanedDescription,  // Use cleaned description (reference removed)
       rawDebit: effectiveDebit || undefined,
       rawCredit: effectiveCredit || undefined,
       rawBalance: row.balance || undefined,
+      rawReference: reference || undefined,
+      referenceType: referenceType || undefined,
     };
   });
 }

@@ -60,6 +60,8 @@ export interface RawTransaction {
   rawDebit?: string;
   rawCredit?: string;
   rawBalance?: string;
+  rawReference?: string;           // Extracted reference number (NEW)
+  referenceType?: 'UTR' | 'IMPS' | 'NEFT' | 'RTGS' | 'Cheque' | 'RefNo' | 'Other';
 }
 
 export interface ParsedTransaction {
