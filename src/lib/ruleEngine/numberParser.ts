@@ -1,10 +1,44 @@
 /**
  * Regional Number Parsing Engine
- * Handles international decimal/thousands separators
+ * Handles international decimal/thousands separators including Indian lakh/crore format
  */
 
 import type { NumberFormat, Locale } from './types';
 import { LOCALE_CONFIGS } from './locales';
+import { correctOCRDate } from './ocrCorrection';
+
+// =============================================================================
+// INDIAN NUMBER FORMAT SUPPORT
+// =============================================================================
+
+/**
+ * Indian numbering pattern: 1,00,000.00 (one lakh) or 1,00,00,000.00 (one crore)
+ * Format: Start with 1-2 digits, then groups of 2 digits, last group is 3 digits before decimal
+ */
+const INDIAN_NUMBER_PATTERN = /^\d{1,2}(,\d{2})*(,\d{3})?\.\d{1,2}$/;
+const INDIAN_NUMBER_PATTERN_NO_DECIMAL = /^\d{1,2}(,\d{2})*(,\d{3})?$/;
+
+/**
+ * Check if a number string follows Indian lakh/crore format
+ */
+export function isIndianNumberFormat(value: string): boolean {
+  const cleaned = value.replace(/[\s₹Rs\.INR]/gi, '').trim();
+  return INDIAN_NUMBER_PATTERN.test(cleaned) || INDIAN_NUMBER_PATTERN_NO_DECIMAL.test(cleaned);
+}
+
+/**
+ * Parse an Indian formatted number (1,00,000.00 -> 100000.00)
+ */
+export function parseIndianNumber(value: string): number | null {
+  // Remove currency symbols and spaces
+  let cleaned = value.replace(/[\s₹Rs\.INR]/gi, '').trim();
+  
+  // Remove all commas
+  cleaned = cleaned.replace(/,/g, '');
+  
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? null : parsed;
+}
 
 // =============================================================================
 // NUMBER FORMAT DETECTION
