@@ -124,6 +124,7 @@ export function detectNumberFormat(sampleNumbers: string[]): NumberFormat {
 
 /**
  * Parse a number string according to the specified format
+ * Handles US/UK, European, and Indian lakh/crore formats
  */
 export function parseNumber(
   value: string,
@@ -132,6 +133,20 @@ export function parseNumber(
   if (!value || value.trim().length === 0) return null;
   
   let cleaned = value.trim();
+  
+  // Check for Indian format FIRST (before removing currency symbols)
+  if (isIndianNumberFormat(value)) {
+    const indianParsed = parseIndianNumber(value);
+    if (indianParsed !== null) {
+      // Check for negative indicators
+      const isNegative = value.includes('(') && value.includes(')');
+      const hasExplicitMinus = value.startsWith('-') || value.includes('-');
+      const isDebitIndicator = /DR$/i.test(value.trim());
+      
+      const sign = (isNegative || hasExplicitMinus || isDebitIndicator) ? -1 : 1;
+      return Math.abs(indianParsed) * sign;
+    }
+  }
   
   // Remove currency symbols
   cleaned = cleaned.replace(/[$€£¥₹₽₩฿₪₫₱₦₵AEDSARًQAR]/gi, '');
