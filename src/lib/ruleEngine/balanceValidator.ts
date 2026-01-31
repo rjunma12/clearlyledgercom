@@ -13,6 +13,53 @@ import type {
 import { isOpeningBalanceRow, isClosingBalanceRow } from './locales';
 
 // =============================================================================
+// CURRENCY-AWARE TOLERANCE
+// =============================================================================
+
+/**
+ * Currency-specific balance tolerances
+ * No-decimal currencies need higher tolerance, standard currencies use 0.01
+ */
+const CURRENCY_TOLERANCES: Record<string, number> = {
+  // No-decimal currencies (allow rounding to nearest unit)
+  JPY: 1.0,
+  KRW: 1.0,
+  IDR: 1.0,
+  VND: 1.0,
+  
+  // Standard 2-decimal currencies
+  USD: 0.01,
+  EUR: 0.01,
+  GBP: 0.01,
+  AUD: 0.01,
+  CAD: 0.01,
+  NZD: 0.01,
+  CHF: 0.01,
+  SGD: 0.01,
+  HKD: 0.01,
+  
+  // INR - some banks round to nearest paisa or rupee
+  INR: 0.50,
+  
+  // Middle East currencies
+  AED: 0.01,
+  SAR: 0.01,
+  QAR: 0.01,
+  
+  // Default fallback
+  DEFAULT: 0.05,
+};
+
+/**
+ * Get the appropriate tolerance for a given currency
+ */
+export function getToleranceForCurrency(currency?: string): number {
+  if (!currency) return CURRENCY_TOLERANCES.DEFAULT;
+  const upperCurrency = currency.toUpperCase();
+  return CURRENCY_TOLERANCES[upperCurrency] ?? CURRENCY_TOLERANCES.DEFAULT;
+}
+
+// =============================================================================
 // BALANCE VALIDATION FORMULA
 // =============================================================================
 
@@ -28,8 +75,10 @@ export function validateBalanceEquation(
   credit: number | null,
   debit: number | null,
   currentBalance: number,
-  tolerance: number = 0.05  // INCREASED: Allow 0.05 for bank rounding differences
+  currency?: string
 ): ValidationResult {
+  // Get currency-aware tolerance
+  const tolerance = getToleranceForCurrency(currency);
   const creditAmount = credit ?? 0;
   const debitAmount = debit ?? 0;
   
