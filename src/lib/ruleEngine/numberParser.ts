@@ -241,15 +241,17 @@ const MONTH_NAMES: Record<string, number> = {
 
 /**
  * Parse a date string and return in YYYY-MM-DD format
+ * Applies OCR correction before parsing
  */
 export function parseDate(
   dateStr: string,
   locale: Locale = 'auto'
 ): string | null {
-  const cleaned = dateStr.trim();
+  // Apply OCR correction first (handles O->0, l->1, etc.)
+  const corrected = correctOCRDate(dateStr.trim());
   
   for (const { pattern, format } of DATE_PATTERNS) {
-    const match = cleaned.match(pattern);
+    const match = corrected.match(pattern);
     if (!match) continue;
     
     let year: number, month: number, day: number;

@@ -143,17 +143,22 @@ export function validateBalanceEquation(
 
 /**
  * Validate an entire chain of transactions
+ * @param transactions - Array of parsed transactions to validate
+ * @param openingBalance - Starting balance for the chain
+ * @param currency - Optional currency code for tolerance calculation
  */
 export function validateTransactionChain(
   transactions: ParsedTransaction[],
-  openingBalance: number
+  openingBalance: number,
+  currency?: string
 ): ParsedTransaction[] {
   if (transactions.length === 0) return [];
   
   const validatedTransactions: ParsedTransaction[] = [];
   let runningBalance = openingBalance;
+  const tolerance = getToleranceForCurrency(currency);
   
-  console.log('[BalanceValidator] Starting chain validation with opening balance:', openingBalance);
+  console.log('[BalanceValidator] Starting chain validation with opening balance:', openingBalance, 'currency:', currency, 'tolerance:', tolerance);
   
   for (let i = 0; i < transactions.length; i++) {
     const transaction = transactions[i];
@@ -162,7 +167,8 @@ export function validateTransactionChain(
       runningBalance,
       transaction.credit,
       transaction.debit,
-      transaction.balance
+      transaction.balance,
+      currency
     );
     
     if (validation.status === 'error') {

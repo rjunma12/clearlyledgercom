@@ -5,6 +5,65 @@
 
 import type { TextElement } from './types';
 
+// =============================================================================
+// DATE-SPECIFIC OCR CORRECTIONS
+// =============================================================================
+
+// Date-specific corrections (more restrictive than numeric)
+const DATE_OCR_CORRECTIONS: Record<string, string> = {
+  'O': '0',
+  'o': '0',
+  'l': '1',
+  'I': '1',
+  '|': '1',
+  'Z': '2',
+  'S': '5',
+  'B': '8',
+  'g': '9',
+  'q': '9',
+};
+
+/**
+ * Check if a string looks like a date
+ */
+function isLikelyDate(str: string): boolean {
+  // Has date separators and appropriate length
+  return /[\/\-\.]/.test(str) && str.length >= 6 && str.length <= 12;
+}
+
+/**
+ * Correct OCR errors specifically in date strings
+ * More conservative than numeric corrections
+ */
+export function correctOCRDate(raw: string): string {
+  if (!isLikelyDate(raw)) return raw;
+  
+  let result = raw;
+  
+  for (let i = 0; i < result.length; i++) {
+    const char = result[i];
+    
+    // Skip separators and existing digits
+    if (/[\d\/\-\.\s]/.test(char)) continue;
+    
+    // Apply date-specific correction
+    if (DATE_OCR_CORRECTIONS[char]) {
+      result = result.slice(0, i) + DATE_OCR_CORRECTIONS[char] + result.slice(i + 1);
+    }
+  }
+  
+  // Log if corrections were made
+  if (result !== raw) {
+    console.log(`[OCR Date Correction] "${raw}" -> "${result}"`);
+  }
+  
+  return result;
+}
+
+// =============================================================================
+// NUMERIC OCR CORRECTIONS
+// =============================================================================
+
 // Common OCR character confusions in numeric contexts
 const NUMERIC_CORRECTIONS: Record<string, string> = {
   'O': '0',
