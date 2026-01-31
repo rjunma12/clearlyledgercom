@@ -71,6 +71,10 @@ export interface ParsedTransaction {
   credit: number | null;           // Positive float or null
   balance: number;                 // Running balance
   
+  // Reference extraction (NEW)
+  reference?: string;              // Extracted reference/UTR/Cheque number
+  referenceType?: 'UTR' | 'IMPS' | 'NEFT' | 'RTGS' | 'Cheque' | 'RefNo' | 'Other';
+  
   // Categorization
   category?: string;               // Transaction category (Transfer, Salary, etc.)
   categoryConfidence?: number;     // 0-1 confidence score for category
@@ -82,6 +86,9 @@ export interface ParsedTransaction {
   exchangeRate?: number;           // Conversion rate used
   localCurrency?: string;          // Target/local currency
   
+  // Per-transaction confidence scoring (NEW)
+  confidence?: TransactionConfidence;
+  
   // Audit metadata
   validationStatus: ValidationStatus;
   validationMessage?: string;
@@ -89,6 +96,23 @@ export interface ParsedTransaction {
   isStitchedRow: boolean;          // True if multi-line description was merged
   originalLines: string[];         // For audit trail
   notes?: string[];                // Manual review suggestions
+}
+
+/**
+ * Per-transaction confidence scoring
+ * Provides row-level quality metrics with A-F grading
+ */
+export interface TransactionConfidence {
+  overall: number;           // 0-100
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  factors: {
+    dateConfidence: number;        // Was date parsed cleanly?
+    amountConfidence: number;      // Were amounts numeric?
+    balanceConfidence: number;     // Did balance validate?
+    ocrConfidence?: number;        // OCR quality if applicable
+    descriptionConfidence: number; // Description completeness
+  };
+  flags: string[];           // Specific concerns
 }
 
 export type ValidationStatus = 'valid' | 'error' | 'warning' | 'unchecked';
