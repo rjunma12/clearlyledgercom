@@ -62,6 +62,49 @@ const CLOSING_BALANCE_PATTERNS = [
 const DEBIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*(dr|debit|\-)\s*$/i;
 const CREDIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*(cr|credit|\+)\s*$/i;
 
+// =============================================================================
+// REFERENCE EXTRACTION PATTERNS
+// =============================================================================
+
+export type ReferenceType = 'UTR' | 'IMPS' | 'NEFT' | 'RTGS' | 'Cheque' | 'RefNo' | 'Other';
+
+const REFERENCE_PATTERNS: Array<{ pattern: RegExp; type: ReferenceType }> = [
+  { pattern: /\bUTR\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'UTR' },
+  { pattern: /\bIMPS\s*[:\-]?\s*(\d{12,16})\b/i, type: 'IMPS' },
+  { pattern: /\bNEFT\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'NEFT' },
+  { pattern: /\bRTGS\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'RTGS' },
+  { pattern: /\bCHQ\s*(?:NO)?\.?\s*[:\-]?\s*(\d{6,8})\b/i, type: 'Cheque' },
+  { pattern: /\bCHEQUE\s*(?:NO)?\.?\s*[:\-]?\s*(\d{6,8})\b/i, type: 'Cheque' },
+  { pattern: /\bCHK\s*(?:NO)?\.?\s*[:\-]?\s*(\d{6,8})\b/i, type: 'Cheque' },
+  { pattern: /\bREF\s*(?:NO)?\.?\s*[:\-]?\s*([A-Z0-9]{6,20})\b/i, type: 'RefNo' },
+  { pattern: /\bTXN\s*(?:ID)?\.?\s*[:\-]?\s*([A-Z0-9]{10,20})\b/i, type: 'RefNo' },
+  { pattern: /\bTRAN\s*(?:ID)?\.?\s*[:\-]?\s*([A-Z0-9]{10,20})\b/i, type: 'RefNo' },
+  { pattern: /\bACH\s*[:\-]?\s*([A-Z0-9]{10,20})\b/i, type: 'RefNo' },
+];
+
+/**
+ * Extract reference/UTR/cheque numbers from transaction description
+ * Returns the extracted reference, its type, and cleaned description
+ */
+export function extractReference(description: string): { 
+  reference: string | null; 
+  referenceType: ReferenceType | null;
+  cleanedDescription: string;
+} {
+  for (const { pattern, type } of REFERENCE_PATTERNS) {
+    const match = description.match(pattern);
+    if (match) {
+      console.log(`[ReferenceExtractor] Found ${type}: ${match[1]} in "${description.substring(0, 50)}..."`);
+      return {
+        reference: match[1],
+        referenceType: type,
+        cleanedDescription: description.replace(match[0], '').replace(/\s+/g, ' ').trim(),
+      };
+    }
+  }
+  return { reference: null, referenceType: null, cleanedDescription: description };
+}
+
 /**
  * Extract debit/credit from merged amount column based on suffix
  */
@@ -212,6 +255,7 @@ function cleanDescription(description: string): string {
 /**
  * Convert stitched transactions to RawTransaction format for downstream processing
  * Handles merged amount columns by splitting based on CR/DR suffixes
+ * Extracts reference numbers (UTR, NEFT, cheque, etc.) to separate field
  */
 export function convertToRawTransactions(
   stitchedTransactions: StitchedTransaction[]
@@ -232,6 +276,9 @@ export function convertToRawTransactions(
         console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${debit}, credit: ${credit}`);
       }
     }
+    
+    // Extract reference from description
+    const { reference, referenceType, cleanedDescription } = extractReference(tx.fullDescription);
     
     // Collect all text elements from primary and continuation rows
     const allElements: TextElement[] = [];
@@ -262,10 +309,12 @@ export function convertToRawTransactions(
       pageNumber: row.pageNumber,
       elements: allElements,
       rawDate: row.date || undefined,
-      rawDescription: tx.fullDescription,
+      rawDescription: cleanedDescription,  // Use cleaned description (reference removed)
       rawDebit: effectiveDebit || undefined,
       rawCredit: effectiveCredit || undefined,
       rawBalance: row.balance || undefined,
+      rawReference: reference || undefined,
+      referenceType: referenceType || undefined,
     };
   });
 }
