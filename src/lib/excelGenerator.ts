@@ -66,6 +66,11 @@ function generateTransactionsSheet(
 
   // Add transaction rows
   transactions.forEach((tx, index) => {
+    // Extract confidence data from extended transaction
+    const extTx = tx as any;
+    const grade = extTx.grade || '';
+    const confidenceScore = extTx.confidenceScore != null ? `${extTx.confidenceScore}%` : '';
+    
     const row = sheet.addRow({
       date: tx.date || '',
       description: tx.description || '',
@@ -74,6 +79,8 @@ function generateTransactionsSheet(
       balance: tx.balance || '',
       currency: tx.currency || '',
       reference: tx.reference || '',
+      grade: grade,
+      confidence: confidenceScore,
     });
 
     // Alternate row colors
