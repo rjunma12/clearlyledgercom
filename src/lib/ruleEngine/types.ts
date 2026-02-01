@@ -20,6 +20,17 @@ export interface TextElement {
   pageNumber: number;
   confidence?: number;
   source?: 'text-layer' | 'ocr';
+  fontInfo?: FontInfo;             // Font metadata for header detection (NEW)
+}
+
+/**
+ * Font metadata extracted from PDF for header detection
+ */
+export interface FontInfo {
+  fontName?: string;
+  fontSize?: number;
+  isBold?: boolean;
+  isItalic?: boolean;
 }
 
 export interface ColumnAnchor {
