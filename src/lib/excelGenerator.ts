@@ -248,6 +248,10 @@ function generateValidationSheet(
     ['Rows_Extracted', String(validation.rowsExtracted)],
     ['Rows_Merged', String(validation.rowsMerged)],
     ['Auto_Repair_Applied', validation.autoRepairApplied ? 'Yes' : 'No'],
+    // NEW: Confidence scoring summary
+    ['Average_Confidence', validation.averageConfidence != null ? `${validation.averageConfidence}%` : 'N/A'],
+    ['Grade_Distribution', validation.gradeDistribution || 'N/A'],
+    ['Low_Confidence_Rows', validation.lowConfidenceCount != null ? String(validation.lowConfidenceCount) : '0'],
     ['Warnings', validation.warnings.length > 0 ? validation.warnings.join('; ') : 'None'],
   ];
 
