@@ -96,6 +96,20 @@ function generateTransactionsSheet(
     row.getCell('debit').alignment = { horizontal: 'right' };
     row.getCell('credit').alignment = { horizontal: 'right' };
     row.getCell('balance').alignment = { horizontal: 'right' };
+    row.getCell('grade').alignment = { horizontal: 'center' };
+    row.getCell('confidence').alignment = { horizontal: 'right' };
+    
+    // Color-code grades
+    const gradeCell = row.getCell('grade');
+    if (grade === 'A') {
+      gradeCell.font = { color: { argb: '008000' }, bold: true }; // Green
+    } else if (grade === 'B') {
+      gradeCell.font = { color: { argb: '0066CC' } }; // Blue
+    } else if (grade === 'C') {
+      gradeCell.font = { color: { argb: 'CC6600' } }; // Orange
+    } else if (grade === 'D' || grade === 'F') {
+      gradeCell.font = { color: { argb: 'CC0000' }, bold: true }; // Red
+    }
 
     // Highlight validation errors
     if (tx.validationStatus === 'error') {
