@@ -348,6 +348,59 @@ export function parseDate(
         year = parseInt(match[3]);
         break;
         
+      // NEW: Ordinal date formats
+      case 'DD_ORD MMM YYYY':
+        day = parseInt(match[1]);
+        month = MONTH_NAMES[match[2].toLowerCase()] ?? 1;
+        year = parseInt(match[3]);
+        break;
+        
+      case 'MMM DD_ORD YYYY':
+        month = MONTH_NAMES[match[1].toLowerCase()] ?? 1;
+        day = parseInt(match[2]);
+        year = parseInt(match[3]);
+        break;
+        
+      // NEW: Japanese format
+      case 'YYYY年MM月DD日':
+        year = parseInt(match[1]);
+        month = parseInt(match[2]);
+        day = parseInt(match[3]);
+        break;
+        
+      // NEW: German written format
+      case 'DD. MMMM YYYY':
+        day = parseInt(match[1]);
+        month = MONTH_NAMES[match[2].toLowerCase()] ?? 1;
+        year = parseInt(match[3]);
+        break;
+        
+      // NEW: Short formats with hyphen
+      case 'DD-MMM-YY':
+        day = parseInt(match[1]);
+        month = MONTH_NAMES[match[2].toLowerCase()] ?? 1;
+        year = parseInt(match[3]) + 2000;
+        break;
+        
+      case 'MMM-DD-YY':
+        month = MONTH_NAMES[match[1].toLowerCase()] ?? 1;
+        day = parseInt(match[2]);
+        year = parseInt(match[3]) + 2000;
+        break;
+        
+      // NEW: Day without year - infer current year
+      case 'DD MMM':
+        day = parseInt(match[1]);
+        month = MONTH_NAMES[match[2].toLowerCase()] ?? 1;
+        year = new Date().getFullYear();
+        break;
+        
+      case 'MMM DD':
+        month = MONTH_NAMES[match[1].toLowerCase()] ?? 1;
+        day = parseInt(match[2]);
+        year = new Date().getFullYear();
+        break;
+        
       default:
         continue;
     }
