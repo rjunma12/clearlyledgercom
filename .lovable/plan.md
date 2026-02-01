@@ -1,427 +1,608 @@
 
-
-# Plan: Comprehensive Conversion Improvements
+# Plan: Comprehensive Conversion Pipeline Improvements (10 Enhancements)
 
 ## Overview
 
-This plan implements 5 major enhancements to the PDF-to-Excel conversion pipeline to improve accuracy, particularly for Indian bank statements and scanned documents.
+This plan implements 10 major enhancements to the PDF-to-Excel conversion pipeline to maximize accuracy, handle edge cases, and improve user experience. The improvements are ordered by priority and impact.
 
 ---
 
-## Improvement 1: Indian Lakh/Crore Number Format Support
+## Improvement 1: Cross-Page Transaction Stitching
 
 ### Problem
-Indian banks use a unique number grouping system: `1,00,000.00` (one lakh) instead of the Western `100,000.00`. The current parser fails to recognize this pattern.
+Transactions with long descriptions may be split across PDF page boundaries. Currently, the pipeline treats each page independently, causing description fragments to be missed or orphaned.
 
 ### Solution
-Update `src/lib/ruleEngine/numberParser.ts` to detect and parse Indian number format.
+Implement page-aware continuation detection in `pdfProcessor.ts` and `dynamicRowProcessor.ts`.
 
 ### Technical Changes
 
-**File: `src/lib/ruleEngine/numberParser.ts`**
+**File: `src/lib/ruleEngine/pageBreakHandler.ts`** (NEW FILE)
 
-Add Indian number format detection:
 ```typescript
-// New pattern for Indian numbering (1,00,000.00)
-const INDIAN_NUMBER_PATTERN = /^\d{1,2}(,\d{2})*(,\d{3})?\.\d{2}$/;
+// Detect if a transaction spans page boundary
+// Look for:
+// 1. Page ends with incomplete transaction (has date but no balance)
+// 2. Next page starts with continuation line (no date, no amounts)
 
-// In detectNumberFormat():
-// Check for Indian format: 1,00,000.00
-if (/^\d{1,2}(,\d{2})+,\d{3}\.\d{2}$/.test(sample)) {
-  indianFormatCount++;
-}
-```
-
-Add Indian format parsing in `parseNumber()`:
-```typescript
-// Handle Indian format: 1,00,000.00 -> remove all commas
-else if (isIndianFormat(cleaned)) {
-  cleaned = cleaned.replace(/,/g, '');
-}
-```
-
-Add new type to `NumberFormat`:
-```typescript
-export interface NumberFormat {
-  thousandsSeparator: ',' | '.' | ' ' | "'" | 'indian';
-  // ...
-}
-```
-
----
-
-## Improvement 2: OCR Error Correction for Dates
-
-### Problem
-OCR commonly misreads digits in dates: `O1/O2/2025` instead of `01/02/2025`, `l5/O1/2024` instead of `15/01/2024`.
-
-### Solution
-Add date-specific OCR correction before parsing in `numberParser.ts` and `ocrCorrection.ts`.
-
-### Technical Changes
-
-**File: `src/lib/ruleEngine/ocrCorrection.ts`**
-
-Add new date correction function:
-```typescript
-// Date-specific OCR corrections (more restrictive than numeric)
-const DATE_OCR_CORRECTIONS: Record<string, string> = {
-  'O': '0',
-  'o': '0',
-  'l': '1',
-  'I': '1',
-  '|': '1',
-  'Z': '2',
-  'S': '5',
-  'B': '8',
-};
-
-export function correctOCRDate(raw: string): string {
-  // Only apply corrections to date-like patterns
-  if (!isLikelyDate(raw)) return raw;
-  
-  let result = raw;
-  for (let i = 0; i < result.length; i++) {
-    const char = result[i];
-    if (DATE_OCR_CORRECTIONS[char]) {
-      result = result.slice(0, i) + DATE_OCR_CORRECTIONS[char] + result.slice(i + 1);
-    }
-  }
-  return result;
+interface PageBoundaryContext {
+  previousPageLastRow: ExtractedRow | null;
+  currentPageFirstRow: ExtractedRow | null;
+  shouldStitch: boolean;
 }
 
-function isLikelyDate(str: string): boolean {
-  // Has date separators and appropriate length
-  return /[\/\-\.]/.test(str) && str.length >= 6 && str.length <= 12;
-}
-```
-
-**File: `src/lib/ruleEngine/numberParser.ts`**
-
-Import and apply date correction before parsing:
-```typescript
-import { correctOCRDate } from './ocrCorrection';
-
-export function parseDate(dateStr: string, locale: Locale = 'auto'): string | null {
-  // NEW: Apply OCR correction first
-  const corrected = correctOCRDate(dateStr.trim());
-  
-  for (const { pattern, format } of DATE_PATTERNS) {
-    const match = corrected.match(pattern);
-    // ... rest of parsing
-  }
-}
-```
-
----
-
-## Improvement 3: Extract Reference/Cheque Numbers as Separate Field
-
-### Problem
-Reference numbers, UTR codes, and cheque numbers are currently merged into the description field, making them hard to search and filter.
-
-### Solution
-Extract reference identifiers to a dedicated `reference` field in the transaction schema.
-
-### Technical Changes
-
-**File: `src/lib/ruleEngine/types.ts`**
-
-Update `ParsedTransaction` interface:
-```typescript
-export interface ParsedTransaction {
-  // ... existing fields
-  reference?: string;              // NEW: Extracted reference/UTR/Cheque number
-  referenceType?: 'UTR' | 'IMPS' | 'NEFT' | 'RTGS' | 'Cheque' | 'RefNo' | 'Other';
-}
+function detectPageBreakContinuation(
+  previousPageRows: ExtractedRow[],
+  currentPageRows: ExtractedRow[]
+): PageBoundaryContext
 ```
 
 **File: `src/lib/ruleEngine/dynamicRowProcessor.ts`**
 
-Add reference extraction logic:
+Add cross-page stitching logic:
 ```typescript
-// Reference extraction patterns
-const REFERENCE_PATTERNS: Array<{ pattern: RegExp; type: string }> = [
-  { pattern: /\bUTR\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'UTR' },
-  { pattern: /\bIMPS\s*[:\-]?\s*(\d{12,16})\b/i, type: 'IMPS' },
-  { pattern: /\bNEFT\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'NEFT' },
-  { pattern: /\bRTGS\s*[:\-]?\s*([A-Z0-9]{16,22})\b/i, type: 'RTGS' },
-  { pattern: /\bCHQ\s*(?:NO)?\.?\s*[:\-]?\s*(\d{6,8})\b/i, type: 'Cheque' },
-  { pattern: /\bCHEQUE\s*(?:NO)?\.?\s*[:\-]?\s*(\d{6,8})\b/i, type: 'Cheque' },
-  { pattern: /\bREF\s*(?:NO)?\.?\s*[:\-]?\s*([A-Z0-9]{6,20})\b/i, type: 'RefNo' },
-  { pattern: /\bTXN\s*(?:ID)?\.?\s*[:\-]?\s*([A-Z0-9]{10,20})\b/i, type: 'RefNo' },
-];
-
-export function extractReference(description: string): { 
-  reference: string | null; 
-  referenceType: string | null;
-  cleanedDescription: string;
-} {
-  for (const { pattern, type } of REFERENCE_PATTERNS) {
-    const match = description.match(pattern);
-    if (match) {
-      return {
-        reference: match[1],
-        referenceType: type,
-        cleanedDescription: description.replace(match[0], '').trim(),
-      };
-    }
-  }
-  return { reference: null, referenceType: null, cleanedDescription: description };
-}
-```
-
-Update `convertToRawTransactions()` to extract references:
-```typescript
-export function convertToRawTransactions(stitched: StitchedTransaction[]): RawTransaction[] {
-  return stitched.map((tx, index) => {
-    const { reference, referenceType, cleanedDescription } = extractReference(tx.fullDescription);
-    
-    return {
-      // ... existing fields
-      rawDescription: cleanedDescription,
-      rawReference: reference,        // NEW
-      referenceType: referenceType,   // NEW
-    };
-  });
+// NEW: Check if first row of new page continues previous transaction
+function shouldMergeAcrossPageBreak(
+  lastRow: StitchedTransaction,
+  firstRow: ExtractedRow
+): boolean {
+  // First row has no date AND no amounts = likely continuation
+  return !hasValidDate(firstRow) && !hasMonetaryAmount(firstRow);
 }
 ```
 
 ---
 
-## Improvement 4: Adaptive Balance Tolerance Based on Currency
+## Improvement 2: Gibberish Detection & OCR Fallback
 
 ### Problem
-Fixed 0.05 tolerance is too tight for currencies with no decimals (JPY, KRW) and potentially too loose for others. Japanese Yen transactions using 1.0 tolerance prevents false positives.
+Some PDFs have corrupted text layers where extraction returns garbage characters. Currently, the pipeline fails silently or produces unusable output.
 
 ### Solution
-Implement currency-aware tolerance in `balanceValidator.ts`.
+Add text quality scoring with automatic OCR fallback trigger.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/textQualityAnalyzer.ts`** (NEW FILE)
+
+```typescript
+// Text quality heuristics
+const GIBBERISH_INDICATORS = {
+  tooManySpecialChars: (text: string) => {
+    const special = text.replace(/[a-zA-Z0-9\s.,\-\/]/g, '').length;
+    return special / text.length > 0.4;
+  },
+  noValidWords: (text: string) => {
+    const words = text.split(/\s+/);
+    const validWords = words.filter(w => /^[a-zA-Z]{2,}$/.test(w));
+    return validWords.length < words.length * 0.2;
+  },
+  noDatePatterns: (text: string) => {
+    return !DATE_PATTERNS.some(p => p.test(text));
+  },
+  noNumericPatterns: (text: string) => {
+    return !/\d+[.,]\d{2}/.test(text);
+  },
+};
+
+function calculateTextQualityScore(elements: TextElement[]): number {
+  // Returns 0-100 score
+  // Below 40 = trigger OCR fallback
+}
+```
+
+**File: `src/lib/pdfProcessor.ts`**
+
+Add quality check after text extraction:
+```typescript
+// After extractTextBasedPDF():
+const qualityScore = calculateTextQualityScore(allTextElements);
+console.log(`[PDF Processor] Text quality score: ${qualityScore}`);
+
+if (qualityScore < 40 && pagesToProcess <= MAX_OCR_PAGES) {
+  console.log('[PDF Processor] Low text quality, triggering OCR fallback...');
+  // Fall through to OCR extraction
+}
+```
+
+---
+
+## Improvement 3: Enhanced Date Format Support
+
+### Problem
+Current date parsing misses regional formats like `15th Jan 2025`, Japanese dates, and non-English month names.
+
+### Solution
+Expand date patterns in `numberParser.ts` with ordinal handling and multilingual month names.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/numberParser.ts`**
+
+Add new date patterns:
+```typescript
+const DATE_PATTERNS = [
+  // Existing patterns...
+  
+  // NEW: Ordinal dates (15th Jan 2025, 1st February 2024)
+  { pattern: /^(\d{1,2})(?:st|nd|rd|th)\s+([A-Za-z]{3,9})\s+(\d{4})$/, format: 'DD_ORD MMM YYYY' },
+  { pattern: /^([A-Za-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th),?\s+(\d{4})$/, format: 'MMM DD_ORD YYYY' },
+  
+  // NEW: Japanese format (2025年1月15日)
+  { pattern: /^(\d{4})年(\d{1,2})月(\d{1,2})日$/, format: 'YYYY年MM月DD日' },
+  
+  // NEW: Arabic format (١٥/٠١/٢٠٢٥) - normalized
+  { pattern: /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/, format: 'DD/MM/YYYY' },
+  
+  // NEW: German written (15. Januar 2025)
+  { pattern: /^(\d{1,2})\.\s*([A-Za-zäöü]+)\s+(\d{4})$/, format: 'DD. MMMM YYYY' },
+];
+
+// Expanded month names
+const MONTH_NAMES: Record<string, number> = {
+  // English
+  jan: 1, january: 1, feb: 2, february: 2, ...
+  
+  // German
+  januar: 1, februar: 2, märz: 3, april: 4, mai: 5, juni: 6,
+  juli: 7, august: 8, september: 9, oktober: 10, november: 11, dezember: 12,
+  
+  // Japanese romanized
+  ichigatsu: 1, nigatsu: 2, sangatsu: 3, shigatsu: 4, gogatsu: 5,
+  rokugatsu: 6, shichigatsu: 7, hachigatsu: 8, kugatsu: 9, juugatsu: 10,
+  juuichigatsu: 11, juunigatsu: 12,
+  
+  // Arabic romanized
+  yanayir: 1, fibrayir: 2, maris: 3, abril: 4, mayu: 5, yunyu: 6,
+  yulyu: 7, aghustus: 8, sibtambir: 9, uktubar: 10, nufimbir: 11, disambir: 12,
+};
+```
+
+---
+
+## Improvement 4: Excel Export with Confidence Grades
+
+### Problem
+The newly added per-transaction confidence scores aren't displayed in Excel exports, limiting their usefulness for auditors.
+
+### Solution
+Update `excelGenerator.ts` to add confidence columns and summary to the Validation sheet.
+
+### Technical Changes
+
+**File: `src/lib/excelGenerator.ts`**
+
+Update transaction columns:
+```typescript
+const TRANSACTION_COLUMNS = [
+  { header: 'Date', key: 'date', width: 12 },
+  { header: 'Description', key: 'description', width: 50 },
+  { header: 'Debit', key: 'debit', width: 15 },
+  { header: 'Credit', key: 'credit', width: 15 },
+  { header: 'Balance', key: 'balance', width: 15 },
+  { header: 'Currency', key: 'currency', width: 10 },
+  { header: 'Reference', key: 'reference', width: 20 },
+  { header: 'Grade', key: 'grade', width: 8 },           // NEW
+  { header: 'Confidence', key: 'confidence', width: 12 }, // NEW (0-100)
+];
+```
+
+Add confidence summary to Validation sheet:
+```typescript
+// In generateValidationSheet():
+const validationRows: [string, string][] = [
+  // Existing rows...
+  ['Average_Confidence', `${validationSummary.averageConfidence}%`],     // NEW
+  ['Grade_Distribution', validationSummary.gradeDistribution],           // NEW
+  ['Low_Confidence_Rows', String(validationSummary.lowConfidenceCount)], // NEW
+];
+```
+
+Update `ValidationSummary` type:
+```typescript
+export interface ValidationSummary {
+  // Existing fields...
+  averageConfidence?: number;        // NEW
+  gradeDistribution?: string;        // NEW: "A:15, B:8, C:2, D:0, F:1"
+  lowConfidenceCount?: number;       // NEW: Rows with confidence < 70
+}
+```
+
+---
+
+## Improvement 5: Multi-Table Detection on Single Page
+
+### Problem
+Some statements have multiple table sections (e.g., Savings + Fixed Deposits) on the same page. Current detection merges them incorrectly.
+
+### Solution
+Enhance `tableDetector.ts` to detect and separate distinct table regions by vertical gaps.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/tableDetector.ts`**
+
+Update `detectTableRegions()`:
+```typescript
+function detectTableRegions(lines: PdfLine[]): TableRegion[] {
+  // NEW: Also split on large vertical gaps (>50px)
+  const GAP_THRESHOLD = 50;
+  
+  for (let i = 1; i < lines.length; i++) {
+    const gap = lines[i].top - lines[i-1].bottom;
+    
+    if (gap > GAP_THRESHOLD) {
+      // This is a table break - create separate region
+      if (consistentColumnCount >= 3) {
+        tables.push(createTableRegion(lines, tableStartIndex, i - 1));
+      }
+      tableStartIndex = i;
+      consistentColumnCount = 1;
+    }
+    // Existing column count logic...
+  }
+}
+```
+
+Add section header detection:
+```typescript
+const SECTION_HEADER_PATTERNS = [
+  /^(savings|current|fixed\s*deposit|credit\s*card|loan)\s+(account|statement)/i,
+  /^account\s+summary/i,
+  /^transaction\s+history/i,
+];
+
+function isTableSectionHeader(line: PdfLine): boolean {
+  const text = line.words.map(w => w.text).join(' ');
+  return SECTION_HEADER_PATTERNS.some(p => p.test(text));
+}
+```
+
+---
+
+## Improvement 6: Overdraft/Negative Balance Handling
+
+### Problem
+Current balance validation assumes all balances are positive. Overdraft accounts with legitimate negative balances trigger false errors.
+
+### Solution
+Update `balanceValidator.ts` to detect and handle overdraft accounts.
 
 ### Technical Changes
 
 **File: `src/lib/ruleEngine/balanceValidator.ts`**
 
-Add currency tolerance lookup:
+Add overdraft detection:
 ```typescript
-// Currency-specific balance tolerances
-const CURRENCY_TOLERANCES: Record<string, number> = {
-  // No-decimal currencies (allow rounding to nearest unit)
-  JPY: 1.0,
-  KRW: 1.0,
-  IDR: 1.0,
-  
-  // Standard 2-decimal currencies
-  USD: 0.01,
-  EUR: 0.01,
-  GBP: 0.01,
-  AUD: 0.01,
-  CAD: 0.01,
-  
-  // INR - some banks round to nearest rupee
-  INR: 0.50,
-  
-  // Default fallback
-  DEFAULT: 0.05,
-};
-
-export function getToleranceForCurrency(currency?: string): number {
-  if (!currency) return CURRENCY_TOLERANCES.DEFAULT;
-  return CURRENCY_TOLERANCES[currency] ?? CURRENCY_TOLERANCES.DEFAULT;
+// Detect if statement has overdraft (negative balances)
+function detectOverdraftAccount(transactions: ParsedTransaction[]): boolean {
+  return transactions.some(tx => tx.balance < 0);
 }
-```
 
-Update `validateBalanceEquation()` to accept currency:
-```typescript
+// Update validateBalanceEquation to handle negative balances
 export function validateBalanceEquation(
   previousBalance: number,
   credit: number | null,
   debit: number | null,
   currentBalance: number,
-  currency?: string  // NEW parameter
+  currency?: string,
+  allowNegative: boolean = false  // NEW parameter
 ): ValidationResult {
-  const tolerance = getToleranceForCurrency(currency);
-  // ... rest of validation
+  // Skip false-positive check for negative balances if overdraft detected
+  // ...
 }
 ```
 
-Update `validateTransactionChain()` to pass currency:
+Update chain validation:
 ```typescript
 export function validateTransactionChain(
   transactions: ParsedTransaction[],
   openingBalance: number,
-  currency?: string  // NEW parameter
+  currency?: string
 ): ParsedTransaction[] {
-  // Pass currency to each validation call
-  const validation = validateBalanceEquation(
-    runningBalance,
-    transaction.credit,
-    transaction.debit,
-    transaction.balance,
-    currency
-  );
+  // NEW: Detect overdraft at start
+  const isOverdraftAccount = detectOverdraftAccount(transactions);
+  
+  if (isOverdraftAccount) {
+    console.log('[BalanceValidator] Overdraft account detected - allowing negative balances');
+  }
   // ...
 }
 ```
 
 ---
 
-## Improvement 5: Per-Transaction Confidence Scoring
+## Improvement 7: Font Metadata for Header Detection
 
 ### Problem
-Current confidence scoring is document-level only. Users can't see which specific transactions might have parsing issues.
+Header detection relies solely on text patterns. PDFs with bold/larger headers could be detected more reliably using font metadata.
 
 ### Solution
-Add per-row confidence scoring based on multiple factors.
+Extract font information from pdf.js and use it to boost header detection confidence.
 
 ### Technical Changes
 
 **File: `src/lib/ruleEngine/types.ts`**
 
-Update `ParsedTransaction`:
+Extend TextElement:
 ```typescript
-export interface ParsedTransaction {
-  // ... existing fields
-  
-  // Per-transaction confidence scoring
-  confidence?: TransactionConfidence;
-}
-
-export interface TransactionConfidence {
-  overall: number;           // 0-100
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  factors: {
-    dateConfidence: number;      // Was date parsed cleanly?
-    amountConfidence: number;    // Were amounts numeric?
-    balanceConfidence: number;   // Did balance validate?
-    ocrConfidence?: number;      // OCR quality if applicable
-    descriptionConfidence: number; // Description completeness
+export interface TextElement {
+  text: string;
+  boundingBox: BoundingBox;
+  pageNumber: number;
+  confidence?: number;
+  source?: 'text-layer' | 'ocr';
+  fontInfo?: {             // NEW
+    fontName?: string;
+    fontSize?: number;
+    isBold?: boolean;
+    isItalic?: boolean;
   };
-  flags: string[];           // Specific concerns
 }
 ```
 
-**New File: `src/lib/ruleEngine/transactionConfidence.ts`**
+**File: `src/lib/pdfUtils.ts`**
 
+Extract font info:
 ```typescript
-export interface TransactionConfidence {
-  overall: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  factors: {
-    dateConfidence: number;
-    amountConfidence: number;
-    balanceConfidence: number;
-    ocrConfidence?: number;
-    descriptionConfidence: number;
-  };
-  flags: string[];
+export async function extractTextFromPage(
+  page: PDFPageProxy,
+  pageNumber: number
+): Promise<TextElement[]> {
+  // ...
+  for (const item of textContent.items) {
+    const textItem = item as TextItem;
+    
+    textElements.push({
+      text: textItem.str,
+      boundingBox: { ... },
+      pageNumber,
+      fontInfo: {
+        fontName: textItem.fontName,
+        fontSize: Math.abs(transform[0]),
+        isBold: textItem.fontName?.toLowerCase().includes('bold'),
+      },
+    });
+  }
 }
+```
 
-export function calculateTransactionConfidence(
-  transaction: ParsedTransaction,
-  rawTransaction: RawTransaction
-): TransactionConfidence {
-  const flags: string[] = [];
-  
-  // Date confidence
-  let dateConfidence = 100;
-  if (!transaction.date || transaction.date.length === 0) {
-    dateConfidence = 0;
-    flags.push('Missing date');
-  } else if (transaction.date.includes('NaN')) {
-    dateConfidence = 20;
-    flags.push('Invalid date format');
-  }
-  
-  // Amount confidence
-  let amountConfidence = 100;
-  if (transaction.debit === null && transaction.credit === null) {
-    amountConfidence = 50;
-    flags.push('No amount detected');
-  }
-  
-  // Balance confidence (based on validation status)
-  let balanceConfidence = 100;
-  if (transaction.validationStatus === 'error') {
-    balanceConfidence = 20;
-    flags.push('Balance mismatch');
-  } else if (transaction.validationStatus === 'warning') {
-    balanceConfidence = 60;
-    flags.push('Balance warning');
-  }
-  
-  // Description confidence
-  let descriptionConfidence = 100;
-  if (!transaction.description || transaction.description.length < 3) {
-    descriptionConfidence = 40;
-    flags.push('Short/missing description');
-  } else if (transaction.isStitchedRow) {
-    descriptionConfidence = 90; // Slight penalty for stitched rows
-  }
-  
-  // OCR confidence (if available)
-  const ocrConfidence = rawTransaction.elements
-    .filter(e => e.source === 'ocr' && e.confidence !== undefined)
-    .reduce((sum, e) => sum + (e.confidence || 0), 0) / 
-    Math.max(1, rawTransaction.elements.filter(e => e.source === 'ocr').length) * 100;
-  
-  // Weighted overall score
-  const weights = { date: 0.20, amount: 0.30, balance: 0.30, description: 0.20 };
-  const overall = 
-    dateConfidence * weights.date +
-    amountConfidence * weights.amount +
-    balanceConfidence * weights.balance +
-    descriptionConfidence * weights.description;
-  
-  // Grade
-  const grade = overall >= 95 ? 'A' : overall >= 85 ? 'B' : overall >= 70 ? 'C' : overall >= 50 ? 'D' : 'F';
-  
-  return {
-    overall: Math.round(overall),
-    grade,
-    factors: {
-      dateConfidence,
-      amountConfidence,
-      balanceConfidence,
-      ocrConfidence: ocrConfidence > 0 ? ocrConfidence : undefined,
-      descriptionConfidence,
-    },
-    flags,
-  };
-}
+**File: `src/lib/ruleEngine/headerAnchors.ts`**
 
-export function aggregateConfidenceScores(
-  confidences: TransactionConfidence[]
-): { average: number; grade: string; lowConfidenceCount: number } {
-  if (confidences.length === 0) return { average: 0, grade: 'F', lowConfidenceCount: 0 };
+Use font info for header detection:
+```typescript
+function isLikelyHeaderRow(line: PdfLine, elements: TextElement[]): boolean {
+  // Existing text-based detection...
   
-  const average = confidences.reduce((sum, c) => sum + c.overall, 0) / confidences.length;
-  const lowConfidenceCount = confidences.filter(c => c.overall < 70).length;
-  const grade = average >= 95 ? 'A' : average >= 85 ? 'B' : average >= 70 ? 'C' : average >= 50 ? 'D' : 'F';
+  // NEW: Boost confidence if row has bold/larger text
+  const rowElements = elements.filter(e => 
+    e.boundingBox.y >= line.top - 5 && 
+    e.boundingBox.y <= line.bottom + 5
+  );
   
-  return { average: Math.round(average), grade, lowConfidenceCount };
+  const hasBoldText = rowElements.some(e => e.fontInfo?.isBold);
+  const hasLargerText = rowElements.some(e => 
+    e.fontInfo?.fontSize && e.fontInfo.fontSize > 10
+  );
+  
+  if (hasBoldText || hasLargerText) {
+    confidence += 0.2;
+  }
+  
+  return confidence > 0.6;
 }
 ```
 
 ---
 
-## Files to Create/Modify
+## Improvement 8: Partial Statement Detection
+
+### Problem
+Users may upload mid-month statement snapshots that don't have opening/closing balance rows. Validation fails unnecessarily.
+
+### Solution
+Detect partial statements and adjust validation expectations.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/partialStatementDetector.ts`** (NEW FILE)
+
+```typescript
+interface StatementCompleteness {
+  hasOpeningBalance: boolean;
+  hasClosingBalance: boolean;
+  isPartialStatement: boolean;
+  detectedPeriod?: { from: string; to: string };
+}
+
+function detectStatementCompleteness(
+  transactions: ParsedTransaction[],
+  extractedHeader: ExtractedStatementHeader
+): StatementCompleteness {
+  // Check for opening/closing balance keywords in descriptions
+  const hasOpening = transactions.some(tx => 
+    isOpeningBalanceRow(tx.description)
+  );
+  const hasClosing = transactions.some(tx => 
+    isClosingBalanceRow(tx.description)
+  );
+  
+  return {
+    hasOpeningBalance: hasOpening,
+    hasClosingBalance: hasClosing,
+    isPartialStatement: !hasOpening || !hasClosing,
+    detectedPeriod: extractedHeader?.statementPeriodFrom 
+      ? { from: extractedHeader.statementPeriodFrom, to: extractedHeader.statementPeriodTo || '' }
+      : undefined,
+  };
+}
+```
+
+**File: `src/lib/ruleEngine/balanceValidator.ts`**
+
+Adjust validation for partial statements:
+```typescript
+export function validateTransactionChain(
+  transactions: ParsedTransaction[],
+  openingBalance: number,
+  currency?: string,
+  isPartialStatement: boolean = false  // NEW
+): ParsedTransaction[] {
+  if (isPartialStatement) {
+    // Use first transaction's calculated opening balance
+    // Don't fail if no explicit opening balance row found
+    console.log('[BalanceValidator] Partial statement - using derived opening balance');
+  }
+  // ...
+}
+```
+
+---
+
+## Improvement 9: Accounting Code Mapping
+
+### Problem
+Exported transactions have categories but no standardized accounting codes for import into accounting software.
+
+### Solution
+Add optional accounting code mapping for QuickBooks/Xero/MYOB compatibility.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/accountingCodeMapper.ts`** (NEW FILE)
+
+```typescript
+// Standard Chart of Accounts mapping
+const ACCOUNTING_CODES: Record<string, { code: string; name: string }> = {
+  // Income
+  'Salary': { code: '4000', name: 'Salary Income' },
+  'Interest': { code: '4100', name: 'Interest Income' },
+  'Dividends': { code: '4200', name: 'Dividend Income' },
+  
+  // Expenses
+  'Groceries': { code: '5100', name: 'Food & Groceries' },
+  'Utilities': { code: '5200', name: 'Utilities' },
+  'Transport': { code: '5300', name: 'Transportation' },
+  'Entertainment': { code: '5400', name: 'Entertainment' },
+  
+  // Transfers
+  'Transfer': { code: '6000', name: 'Inter-Account Transfer' },
+  'ATM': { code: '6100', name: 'Cash Withdrawal' },
+};
+
+function mapCategoryToAccountingCode(category: string): {
+  code: string;
+  accountName: string;
+} | null {
+  const mapping = ACCOUNTING_CODES[category];
+  return mapping ? { code: mapping.code, accountName: mapping.name } : null;
+}
+```
+
+Update `StandardizedTransaction` type:
+```typescript
+export interface StandardizedTransaction {
+  // Existing fields...
+  accountingCode?: string;    // NEW: QuickBooks/Xero compatible code
+  accountName?: string;       // NEW: Account name for mapping
+}
+```
+
+---
+
+## Improvement 10: Bank Profile Auto-Learning Suggestions
+
+### Problem
+When parsing fails or produces poor results, users have no way to help improve future parsing.
+
+### Solution
+Implement pattern learning suggestions that log unmatched patterns for future profile updates.
+
+### Technical Changes
+
+**File: `src/lib/ruleEngine/patternLearner.ts`** (NEW FILE)
+
+```typescript
+interface UnmatchedPattern {
+  type: 'date' | 'amount' | 'header' | 'reference';
+  rawText: string;
+  context: string;  // Surrounding text
+  frequency: number;
+  suggestedPattern?: string;
+}
+
+class PatternLearner {
+  private unmatchedPatterns: Map<string, UnmatchedPattern> = new Map();
+  
+  recordUnmatchedDate(text: string, context: string): void {
+    // Log date-like strings that failed to parse
+  }
+  
+  recordUnmatchedAmount(text: string, context: string): void {
+    // Log numeric-like strings that failed to parse
+  }
+  
+  getSuggestions(): UnmatchedPattern[] {
+    // Return patterns that appear frequently (>3 times)
+    return Array.from(this.unmatchedPatterns.values())
+      .filter(p => p.frequency >= 3)
+      .sort((a, b) => b.frequency - a.frequency);
+  }
+}
+```
+
+**File: `src/lib/ruleEngine/index.ts`**
+
+Add learning hooks:
+```typescript
+// At end of processDocument():
+const patternSuggestions = patternLearner.getSuggestions();
+if (patternSuggestions.length > 0) {
+  console.log('[PatternLearner] Unmatched patterns found:', patternSuggestions);
+  warnings.push(`${patternSuggestions.length} unrecognized patterns detected - results may be incomplete`);
+}
+```
+
+---
+
+## Files to Create/Modify Summary
 
 | File | Action | Changes |
 |------|--------|---------|
-| `src/lib/ruleEngine/numberParser.ts` | Modify | Add Indian number format detection, import OCR date correction |
-| `src/lib/ruleEngine/ocrCorrection.ts` | Modify | Add `correctOCRDate()` function |
-| `src/lib/ruleEngine/types.ts` | Modify | Add `reference`, `referenceType`, `TransactionConfidence` fields |
-| `src/lib/ruleEngine/dynamicRowProcessor.ts` | Modify | Add `extractReference()` function, update conversion |
-| `src/lib/ruleEngine/balanceValidator.ts` | Modify | Add currency-aware tolerance, update validation signatures |
-| `src/lib/ruleEngine/transactionConfidence.ts` | Create | New module for per-transaction confidence scoring |
+| `src/lib/ruleEngine/pageBreakHandler.ts` | CREATE | Cross-page transaction stitching |
+| `src/lib/ruleEngine/textQualityAnalyzer.ts` | CREATE | Gibberish detection & OCR fallback trigger |
+| `src/lib/ruleEngine/partialStatementDetector.ts` | CREATE | Partial statement detection |
+| `src/lib/ruleEngine/accountingCodeMapper.ts` | CREATE | QuickBooks/Xero code mapping |
+| `src/lib/ruleEngine/patternLearner.ts` | CREATE | Auto-learning pattern suggestions |
+| `src/lib/ruleEngine/numberParser.ts` | MODIFY | Add 10+ new date patterns, multilingual months |
+| `src/lib/ruleEngine/tableDetector.ts` | MODIFY | Multi-table detection, vertical gap splitting |
+| `src/lib/ruleEngine/balanceValidator.ts` | MODIFY | Overdraft handling, partial statement support |
+| `src/lib/ruleEngine/dynamicRowProcessor.ts` | MODIFY | Cross-page stitching integration |
+| `src/lib/ruleEngine/headerAnchors.ts` | MODIFY | Font-based header detection |
+| `src/lib/ruleEngine/types.ts` | MODIFY | Add fontInfo, accountingCode fields |
+| `src/lib/pdfProcessor.ts` | MODIFY | Quality score check, OCR fallback trigger |
+| `src/lib/pdfUtils.ts` | MODIFY | Extract font metadata from pdf.js |
+| `src/lib/excelGenerator.ts` | MODIFY | Add confidence columns, grade distribution |
 
 ---
 
-## Integration Points
+## Implementation Priority Order
 
-1. **Main Pipeline** (`pdfProcessor.ts`): Call `calculateTransactionConfidence()` after parsing each transaction
-2. **Excel Export** (`excelGenerator.ts`): Include confidence grade in output, optionally add to Validation sheet
-3. **UI Display**: Show confidence badges per transaction (future enhancement)
+1. **High Priority** (Core accuracy improvements):
+   - Gibberish Detection & OCR Fallback (Improvement 2)
+   - Enhanced Date Formats (Improvement 3)
+   - Cross-Page Transaction Stitching (Improvement 1)
+
+2. **Medium Priority** (Edge case handling):
+   - Multi-Table Detection (Improvement 5)
+   - Overdraft/Negative Balance (Improvement 6)
+   - Partial Statement Detection (Improvement 8)
+
+3. **Lower Priority** (User experience & exports):
+   - Excel Export with Confidence (Improvement 4)
+   - Font Metadata for Headers (Improvement 7)
+   - Accounting Code Mapping (Improvement 9)
+   - Pattern Auto-Learning (Improvement 10)
 
 ---
 
@@ -429,11 +610,16 @@ export function aggregateConfidenceScores(
 
 | Feature | Before | After |
 |---------|--------|-------|
-| Indian amounts (₹1,00,000.00) | Parse fails | Correctly parsed |
-| OCR dates (O1/O2/2025) | Invalid date | Corrected to 01/02/2025 |
-| Reference extraction | Buried in description | Separate searchable field |
-| JPY validation | False positives | 1.0 tolerance eliminates noise |
-| Transaction quality | Unknown | Per-row A-F grade |
+| Page-break descriptions | Truncated/orphaned | Properly stitched |
+| Corrupted text layer | Silent failure | Auto OCR fallback |
+| Ordinal dates (15th Jan) | Not parsed | Correctly parsed |
+| Confidence visibility | Hidden | Visible in Excel |
+| Multiple tables/page | Merged incorrectly | Separated correctly |
+| Overdraft accounts | False errors | Properly validated |
+| Bold headers | Missed sometimes | Higher detection rate |
+| Partial statements | Validation fails | Graceful handling |
+| Accounting import | Manual mapping | Auto code assignment |
+| Unrecognized patterns | Silent ignore | Logged for learning |
 
 ---
 
@@ -441,6 +627,7 @@ export function aggregateConfidenceScores(
 
 - **Low risk**: All changes are additive and backward-compatible
 - **Fallback preserved**: Existing parsing continues to work if new detection fails
-- **No breaking changes**: New fields are optional (`?`) in interfaces
-- **Performance impact**: Minimal - simple regex and arithmetic operations
+- **No breaking changes**: New fields are optional in all interfaces
+- **Performance impact**: Minimal - most changes are O(n) operations
+- **Testing required**: Each improvement should be tested with relevant edge case PDFs
 
