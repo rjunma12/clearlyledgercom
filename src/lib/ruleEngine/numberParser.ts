@@ -250,41 +250,39 @@ const MONTH_NAMES: Record<string, number> = {
   oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12,
   
   // Spanish
-  ene: 1, enero: 1, febr: 2, febrero: 2, marzo: 3, abr: 4, abril: 4,
-  mayo: 5, junio: 6, julio: 7, ago: 8, agosto: 8, septiembre: 9,
-  octubre: 10, noviembre: 11, dic: 12, diciembre: 12,
+  ene: 1, enero: 1, febr: 2, febrero: 2, abr: 4, abril: 4,
+  mayo: 5, junio: 6, julio: 7, ago: 8,
   
   // French
   janv: 1, janvier: 1, févr: 2, février: 2, mars: 3, avr: 4, avril: 4,
-  mai: 5, juin: 6, juil: 7, juillet: 7, août: 8, septembre: 9,
-  octobre: 10, novembre: 11, déc: 12, décembre: 12,
+  mai: 5, juin: 6, juil: 7, juillet: 7, août: 8,
+  déc: 12, décembre: 12,
   
   // German
-  januar: 1, februar: 2, märz: 3, marz: 3, april: 4, juni: 6, juli: 7,
-  august: 8, september: 9, oktober: 10, november: 11, dezember: 12,
+  januar: 1, februar: 2, märz: 3, marz: 3, juni: 6, juli: 7,
+  oktober: 10, dezember: 12,
   
   // Italian
-  gennaio: 1, febbraio: 2, marzo: 3, aprile: 4, maggio: 5, giugno: 6,
-  luglio: 7, agosto: 8, settembre: 9, ottobre: 10, novembre: 11, dicembre: 12,
+  gennaio: 1, febbraio: 2, aprile: 4, maggio: 5, giugno: 6,
+  luglio: 7, agosto: 8, settembre: 9, ottobre: 10, dicembre: 12,
   
   // Portuguese
-  janeiro: 1, fevereiro: 2, março: 3, maio: 5, junho: 6, julho: 7,
+  janeiro: 1, fevereiro: 2, março: 3, junho: 6, julho: 7,
   setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
   
   // Dutch
   januari: 1, februari: 2, maart: 3, mei: 5, augustus: 8,
   
-  // Malay
-  januari: 1, februari: 2, mac: 3, april: 4, mei: 5, jun: 6, julai: 7,
-  ogos: 8, september: 9, oktober: 10, november: 11, disember: 12,
+  // Malay (unique only)
+  mac: 3, julai: 7, ogos: 8, disember: 12,
   
   // Hindi (romanized)
   janavari: 1, faravari: 2, maarch: 3, aprail: 4, mae: 5, joon: 6,
-  julai: 7, agast: 8, sitambar: 9, aktoobar: 10, navambar: 11, disambar: 12,
+  agast: 8, sitambar: 9, aktoobar: 10, navambar: 11, disambar: 12,
   
   // Arabic (romanized)
-  yanayir: 1, fibrayir: 2, maris: 3, abril: 4, mayu: 5, yunyu: 6,
-  yulyu: 7, aghustus: 8, sibtambir: 9, uktubar: 10, nufimbir: 11, disambir: 12,
+  yanayir: 1, fibrayir: 2, maris: 3, mayu: 5, yunyu: 6,
+  yulyu: 7, aghustus: 8, sibtambir: 9, uktubar: 10, nufimbir: 11,
 };
 
 /**
