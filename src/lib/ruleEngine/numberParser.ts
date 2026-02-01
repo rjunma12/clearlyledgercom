@@ -222,21 +222,69 @@ const DATE_PATTERNS: Array<{ pattern: RegExp; format: string }> = [
   // Written month: 15 Jan 2025, January 15, 2025
   { pattern: /^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/, format: 'DD MMM YYYY' },
   { pattern: /^([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})$/, format: 'MMM DD YYYY' },
+  
+  // NEW: Ordinal dates (15th Jan 2025, 1st February 2024)
+  { pattern: /^(\d{1,2})(?:st|nd|rd|th)\s+([A-Za-z]{3,9})\s+(\d{4})$/, format: 'DD_ORD MMM YYYY' },
+  { pattern: /^([A-Za-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th),?\s+(\d{4})$/, format: 'MMM DD_ORD YYYY' },
+  
+  // NEW: Japanese format (2025年1月15日)
+  { pattern: /^(\d{4})年(\d{1,2})月(\d{1,2})日$/, format: 'YYYY年MM月DD日' },
+  
+  // NEW: German written (15. Januar 2025)
+  { pattern: /^(\d{1,2})\.\s*([A-Za-zäöüÄÖÜ]+)\s+(\d{4})$/, format: 'DD. MMMM YYYY' },
+  
+  // NEW: Short month formats (15-Jan-25, Jan-15-25)
+  { pattern: /^(\d{1,2})-([A-Za-z]{3})-(\d{2})$/, format: 'DD-MMM-YY' },
+  { pattern: /^([A-Za-z]{3})-(\d{1,2})-(\d{2})$/, format: 'MMM-DD-YY' },
+  
+  // NEW: Day without year (15 Jan, Jan 15) - will infer year
+  { pattern: /^(\d{1,2})\s+([A-Za-z]{3,9})$/, format: 'DD MMM' },
+  { pattern: /^([A-Za-z]{3,9})\s+(\d{1,2})$/, format: 'MMM DD' },
 ];
 
 const MONTH_NAMES: Record<string, number> = {
-  jan: 1, january: 1, ene: 1, enero: 1, janv: 1, janvier: 1,
-  feb: 2, february: 2, febr: 2, febrero: 2, févr: 2, février: 2,
-  mar: 3, march: 3, marzo: 3, mars: 3,
-  apr: 4, april: 4, abr: 4, abril: 4, avr: 4, avril: 4,
-  may: 5, mayo: 5, mai: 5,
-  jun: 6, june: 6, junio: 6, juin: 6,
-  jul: 7, july: 7, julio: 7, juil: 7, juillet: 7,
-  aug: 8, august: 8, ago: 8, agosto: 8, août: 8,
-  sep: 9, sept: 9, september: 9, septiembre: 9, septembre: 9,
-  oct: 10, october: 10, octubre: 10, octobre: 10,
-  nov: 11, november: 11, noviembre: 11, novembre: 11,
-  dec: 12, december: 12, dic: 12, diciembre: 12, déc: 12, décembre: 12,
+  // English
+  jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3,
+  apr: 4, april: 4, may: 5, jun: 6, june: 6, jul: 7, july: 7,
+  aug: 8, august: 8, sep: 9, sept: 9, september: 9,
+  oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12,
+  
+  // Spanish
+  ene: 1, enero: 1, febr: 2, febrero: 2, marzo: 3, abr: 4, abril: 4,
+  mayo: 5, junio: 6, julio: 7, ago: 8, agosto: 8, septiembre: 9,
+  octubre: 10, noviembre: 11, dic: 12, diciembre: 12,
+  
+  // French
+  janv: 1, janvier: 1, févr: 2, février: 2, mars: 3, avr: 4, avril: 4,
+  mai: 5, juin: 6, juil: 7, juillet: 7, août: 8, septembre: 9,
+  octobre: 10, novembre: 11, déc: 12, décembre: 12,
+  
+  // German
+  januar: 1, februar: 2, märz: 3, marz: 3, april: 4, juni: 6, juli: 7,
+  august: 8, september: 9, oktober: 10, november: 11, dezember: 12,
+  
+  // Italian
+  gennaio: 1, febbraio: 2, marzo: 3, aprile: 4, maggio: 5, giugno: 6,
+  luglio: 7, agosto: 8, settembre: 9, ottobre: 10, novembre: 11, dicembre: 12,
+  
+  // Portuguese
+  janeiro: 1, fevereiro: 2, março: 3, maio: 5, junho: 6, julho: 7,
+  setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
+  
+  // Dutch
+  januari: 1, februari: 2, maart: 3, mei: 5, augustus: 8,
+  
+  // Malay
+  januari: 1, februari: 2, mac: 3, april: 4, mei: 5, jun: 6, julai: 7,
+  ogos: 8, september: 9, oktober: 10, november: 11, disember: 12,
+  
+  // Hindi (romanized)
+  janavari: 1, faravari: 2, maarch: 3, aprail: 4, mae: 5, joon: 6,
+  julai: 7, agast: 8, sitambar: 9, aktoobar: 10, navambar: 11, disambar: 12,
+  
+  // Arabic (romanized)
+  yanayir: 1, fibrayir: 2, maris: 3, abril: 4, mayu: 5, yunyu: 6,
+  yulyu: 7, aghustus: 8, sibtambir: 9, uktubar: 10, nufimbir: 11, disambir: 12,
 };
 
 /**
