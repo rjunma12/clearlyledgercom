@@ -31,6 +31,8 @@ const TRANSACTION_COLUMNS = [
   { header: 'Balance', key: 'balance', width: 15 },
   { header: 'Currency', key: 'currency', width: 10 },
   { header: 'Reference', key: 'reference', width: 20 },
+  { header: 'Grade', key: 'grade', width: 8 },           // NEW: Confidence grade (A-F)
+  { header: 'Confidence', key: 'confidence', width: 12 }, // NEW: Confidence score (0-100)
 ];
 
 // =============================================================================
@@ -64,6 +66,11 @@ function generateTransactionsSheet(
 
   // Add transaction rows
   transactions.forEach((tx, index) => {
+    // Extract confidence data from extended transaction
+    const extTx = tx as any;
+    const grade = extTx.grade || '';
+    const confidenceScore = extTx.confidenceScore != null ? `${extTx.confidenceScore}%` : '';
+    
     const row = sheet.addRow({
       date: tx.date || '',
       description: tx.description || '',
@@ -72,6 +79,8 @@ function generateTransactionsSheet(
       balance: tx.balance || '',
       currency: tx.currency || '',
       reference: tx.reference || '',
+      grade: grade,
+      confidence: confidenceScore,
     });
 
     // Alternate row colors
@@ -87,6 +96,20 @@ function generateTransactionsSheet(
     row.getCell('debit').alignment = { horizontal: 'right' };
     row.getCell('credit').alignment = { horizontal: 'right' };
     row.getCell('balance').alignment = { horizontal: 'right' };
+    row.getCell('grade').alignment = { horizontal: 'center' };
+    row.getCell('confidence').alignment = { horizontal: 'right' };
+    
+    // Color-code grades
+    const gradeCell = row.getCell('grade');
+    if (grade === 'A') {
+      gradeCell.font = { color: { argb: '008000' }, bold: true }; // Green
+    } else if (grade === 'B') {
+      gradeCell.font = { color: { argb: '0066CC' } }; // Blue
+    } else if (grade === 'C') {
+      gradeCell.font = { color: { argb: 'CC6600' } }; // Orange
+    } else if (grade === 'D' || grade === 'F') {
+      gradeCell.font = { color: { argb: 'CC0000' }, bold: true }; // Red
+    }
 
     // Highlight validation errors
     if (tx.validationStatus === 'error') {
@@ -225,6 +248,10 @@ function generateValidationSheet(
     ['Rows_Extracted', String(validation.rowsExtracted)],
     ['Rows_Merged', String(validation.rowsMerged)],
     ['Auto_Repair_Applied', validation.autoRepairApplied ? 'Yes' : 'No'],
+    // NEW: Confidence scoring summary
+    ['Average_Confidence', validation.averageConfidence != null ? `${validation.averageConfidence}%` : 'N/A'],
+    ['Grade_Distribution', validation.gradeDistribution || 'N/A'],
+    ['Low_Confidence_Rows', validation.lowConfidenceCount != null ? String(validation.lowConfidenceCount) : '0'],
     ['Warnings', validation.warnings.length > 0 ? validation.warnings.join('; ') : 'None'],
   ];
 

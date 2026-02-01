@@ -138,8 +138,32 @@ function createLineFromWords(words: PdfWord[]): PdfLine {
 // TABLE REGION DETECTION
 // =============================================================================
 
+// Threshold for vertical gap that indicates a table break
+const VERTICAL_GAP_THRESHOLD = 50;
+
+/**
+ * Section header patterns that indicate a new table region
+ */
+const SECTION_HEADER_PATTERNS = [
+  /^(savings|current|fixed\s*deposit|credit\s*card|loan)\s+(account|statement)/i,
+  /^account\s+summary/i,
+  /^transaction\s+history/i,
+  /^transaction\s+details/i,
+  /^statement\s+of\s+account/i,
+  /^account\s+transactions/i,
+];
+
+/**
+ * Check if a line is a section header
+ */
+function isTableSectionHeader(line: PdfLine): boolean {
+  const text = line.words.map(w => w.text).join(' ');
+  return SECTION_HEADER_PATTERNS.some(p => p.test(text));
+}
+
 /**
  * Detect table regions by finding areas with consistent column structure
+ * NEW: Also splits on vertical gaps and section headers
  */
 export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
   if (lines.length < 3) return [];
@@ -148,10 +172,36 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
   let tableStartIndex = -1;
   let consistentColumnCount = 0;
   let prevWordCount = 0;
+  let prevLineBottom = 0;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const wordCount = line.words.length;
+    
+    // Check for section header - always creates a new table region
+    if (isTableSectionHeader(line)) {
+      if (consistentColumnCount >= 3) {
+        tables.push(createTableRegion(lines, tableStartIndex, i - 1));
+      }
+      tableStartIndex = -1;
+      consistentColumnCount = 0;
+      prevLineBottom = line.bottom;
+      continue;
+    }
+    
+    // Check for large vertical gap - indicates table break
+    if (tableStartIndex !== -1 && prevLineBottom > 0) {
+      const verticalGap = line.top - prevLineBottom;
+      if (verticalGap > VERTICAL_GAP_THRESHOLD) {
+        // This is a table break
+        if (consistentColumnCount >= 3) {
+          tables.push(createTableRegion(lines, tableStartIndex, i - 1));
+          console.log(`[TableDetector] Table break detected at line ${i} (gap: ${verticalGap.toFixed(0)}px)`);
+        }
+        tableStartIndex = -1;
+        consistentColumnCount = 0;
+      }
+    }
 
     // A table row typically has 3+ columns
     if (wordCount >= 3) {
@@ -180,12 +230,16 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
       tableStartIndex = -1;
       consistentColumnCount = 0;
     }
+    
+    prevLineBottom = line.bottom;
   }
 
   // Handle table at end of document
   if (consistentColumnCount >= 3) {
     tables.push(createTableRegion(lines, tableStartIndex, lines.length - 1));
   }
+  
+  console.log(`[TableDetector] Detected ${tables.length} table region(s)`);
 
   return tables;
 }

@@ -20,6 +20,17 @@ export interface TextElement {
   pageNumber: number;
   confidence?: number;
   source?: 'text-layer' | 'ocr';
+  fontInfo?: FontInfo;             // Font metadata for header detection (NEW)
+}
+
+/**
+ * Font metadata extracted from PDF for header detection
+ */
+export interface FontInfo {
+  fontName?: string;
+  fontSize?: number;
+  isBold?: boolean;
+  isItalic?: boolean;
 }
 
 export interface ColumnAnchor {
@@ -338,6 +349,21 @@ export interface ValidationSummary {
   rowsMerged: number;
   autoRepairApplied: boolean;
   warnings: string[];
+  
+  // Confidence scoring summary (NEW)
+  averageConfidence?: number;        // Average confidence across all transactions
+  gradeDistribution?: string;        // e.g., "A:15, B:8, C:2, D:0, F:1"
+  lowConfidenceCount?: number;       // Rows with confidence < 70
+}
+
+/**
+ * Extended StandardizedTransaction with accounting codes
+ */
+export interface StandardizedTransactionExtended extends StandardizedTransaction {
+  accountingCode?: string;           // QuickBooks/Xero compatible code
+  accountName?: string;              // Account name for mapping
+  grade?: string;                    // Confidence grade (A-F)
+  confidenceScore?: number;          // Confidence score (0-100)
 }
 
 /**
