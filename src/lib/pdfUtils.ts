@@ -123,7 +123,8 @@ export async function isScannedPage(page: PDFPageProxy, threshold: number = 10):
 }
 
 /**
- * Extract text elements with bounding boxes from a PDF page
+ * Extract text elements with bounding boxes and font info from a PDF page
+ * NEW: Includes font metadata for header detection
  */
 export async function extractTextFromPage(
   page: PDFPageProxy,
@@ -146,6 +147,19 @@ export async function extractTextFromPage(
     const width = textItem.width || 0;
     const height = textItem.height || Math.abs(transform[0]); // Use scaleX as fallback
     
+    // Extract font size from transform (scale factor)
+    const fontSize = Math.abs(transform[0]);
+    
+    // Detect bold from font name (common patterns: Bold, -Bold, _Bold, etc.)
+    const fontName = (textItem as any).fontName || '';
+    const isBold = /bold/i.test(fontName) || 
+                   /-B$/i.test(fontName) || 
+                   /_B$/i.test(fontName) ||
+                   /BT$/i.test(fontName);
+    const isItalic = /italic|oblique/i.test(fontName) || 
+                     /-I$/i.test(fontName) || 
+                     /_I$/i.test(fontName);
+    
     textElements.push({
       text: textItem.str,
       boundingBox: {
@@ -157,6 +171,12 @@ export async function extractTextFromPage(
       pageNumber,
       confidence: 1.0, // Text layer has 100% confidence
       source: 'text-layer',
+      fontInfo: {
+        fontName: fontName || undefined,
+        fontSize: fontSize > 0 ? fontSize : undefined,
+        isBold,
+        isItalic,
+      },
     });
   }
   

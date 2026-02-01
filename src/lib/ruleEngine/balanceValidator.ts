@@ -138,6 +138,24 @@ export function validateBalanceEquation(
 }
 
 // =============================================================================
+// OVERDRAFT ACCOUNT DETECTION
+// =============================================================================
+
+/**
+ * Detect if a statement contains negative balances (overdraft account)
+ */
+export function detectOverdraftAccount(transactions: ParsedTransaction[]): boolean {
+  return transactions.some(tx => tx.balance < 0);
+}
+
+/**
+ * Check if a balance represents an overdraft
+ */
+export function isOverdraftBalance(balance: number): boolean {
+  return balance < 0;
+}
+
+// =============================================================================
 // TRANSACTION CHAIN VALIDATION
 // =============================================================================
 
@@ -146,19 +164,37 @@ export function validateBalanceEquation(
  * @param transactions - Array of parsed transactions to validate
  * @param openingBalance - Starting balance for the chain
  * @param currency - Optional currency code for tolerance calculation
+ * @param isPartialStatement - If true, use first transaction as derived opening balance
  */
 export function validateTransactionChain(
   transactions: ParsedTransaction[],
   openingBalance: number,
-  currency?: string
+  currency?: string,
+  isPartialStatement: boolean = false
 ): ParsedTransaction[] {
   if (transactions.length === 0) return [];
   
   const validatedTransactions: ParsedTransaction[] = [];
-  let runningBalance = openingBalance;
   const tolerance = getToleranceForCurrency(currency);
   
-  console.log('[BalanceValidator] Starting chain validation with opening balance:', openingBalance, 'currency:', currency, 'tolerance:', tolerance);
+  // Detect overdraft account
+  const isOverdraftAccount = detectOverdraftAccount(transactions);
+  if (isOverdraftAccount) {
+    console.log('[BalanceValidator] Overdraft account detected - allowing negative balances');
+  }
+  
+  // Handle partial statement - derive opening balance from first transaction
+  let runningBalance = openingBalance;
+  if (isPartialStatement && transactions.length > 0) {
+    const firstTx = transactions[0];
+    const credit = firstTx.credit ?? 0;
+    const debit = firstTx.debit ?? 0;
+    runningBalance = firstTx.balance - credit + debit;
+    console.log('[BalanceValidator] Partial statement - derived opening balance:', runningBalance);
+  }
+  
+  console.log('[BalanceValidator] Starting chain validation with opening balance:', runningBalance, 
+    'currency:', currency, 'tolerance:', tolerance, 'isPartialStatement:', isPartialStatement);
   
   for (let i = 0; i < transactions.length; i++) {
     const transaction = transactions[i];
@@ -171,7 +207,19 @@ export function validateTransactionChain(
       currency
     );
     
-    if (validation.status === 'error') {
+    // For overdraft accounts, don't treat negative balances as errors
+    let adjustedStatus = validation.status;
+    if (validation.status === 'error' && isOverdraftAccount && transaction.balance < 0) {
+      // Check if it's just a negative balance vs actual calculation error
+      const expectedBalance = runningBalance + (transaction.credit ?? 0) - (transaction.debit ?? 0);
+      const discrepancy = Math.abs(transaction.balance - expectedBalance);
+      
+      if (discrepancy <= tolerance) {
+        adjustedStatus = 'valid';
+      }
+    }
+    
+    if (adjustedStatus === 'error') {
       console.log(`[BalanceValidator] Row ${i} validation failed:`, {
         rowIndex: transaction.rowIndex,
         date: transaction.date,
@@ -186,8 +234,10 @@ export function validateTransactionChain(
     
     validatedTransactions.push({
       ...transaction,
-      validationStatus: validation.status,
-      validationMessage: validation.message,
+      validationStatus: adjustedStatus,
+      validationMessage: adjustedStatus !== validation.status 
+        ? 'Overdraft balance validated' 
+        : validation.message,
     });
     
     // Update running balance for next iteration
