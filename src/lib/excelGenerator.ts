@@ -31,6 +31,8 @@ const TRANSACTION_COLUMNS = [
   { header: 'Balance', key: 'balance', width: 15 },
   { header: 'Currency', key: 'currency', width: 10 },
   { header: 'Reference', key: 'reference', width: 20 },
+  { header: 'Grade', key: 'grade', width: 8 },           // NEW: Confidence grade (A-F)
+  { header: 'Confidence', key: 'confidence', width: 12 }, // NEW: Confidence score (0-100)
 ];
 
 // =============================================================================
