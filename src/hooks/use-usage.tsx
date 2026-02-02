@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PlanType = 'anonymous' | 'registered_free' | 'starter' | 'pro' | 'business' | 'lifetime';
+export type PlanType = 
+  | 'anonymous' | 'registered_free' 
+  | 'starter' | 'starter_annual'
+  | 'pro' | 'pro_annual'
+  | 'business' | 'business_annual'
+  | 'lifetime';
 export type PiiMaskingLevel = 'none' | 'optional' | 'enforced';
 export type ExportFormat = 'csv' | 'xlsx';
 
