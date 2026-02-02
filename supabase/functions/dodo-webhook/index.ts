@@ -307,11 +307,13 @@ serve(async (req) => {
           .single();
 
         if (sub) {
+          // Extend by correct interval based on billing_interval
+          const billingInterval = (sub.billing_interval as BillingInterval) || 'monthly';
           await supabase
             .from('user_subscriptions')
             .update({
               status: 'active',
-              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              expires_at: calculateExpiryDate(billingInterval),
               updated_at: new Date().toISOString()
             })
             .eq('id', sub.id);

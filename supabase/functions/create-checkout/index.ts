@@ -133,6 +133,10 @@ serve(async (req) => {
     const isSubscription = plan.is_recurring;
     const dodoBaseUrl = 'https://api.dodopayments.com/v1';
     
+    // Determine billing interval and base plan
+    const billingInterval = getBillingInterval(planName);
+    const basePlanName = getBasePlanName(planName);
+
     const checkoutPayload = {
       billing: {
         city: '',
@@ -157,7 +161,9 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         plan_name: planName,
-        plan_id: plan.id
+        plan_id: plan.id,
+        billing_interval: billingInterval,
+        base_plan: basePlanName
       }
     };
 
