@@ -12,6 +12,20 @@ interface CheckoutRequest {
   cancelUrl?: string;
 }
 
+type BillingInterval = 'monthly' | 'annual' | 'lifetime';
+
+// Detect billing interval from plan name
+function getBillingInterval(planName: string): BillingInterval {
+  if (planName === 'lifetime') return 'lifetime';
+  if (planName.endsWith('_annual')) return 'annual';
+  return 'monthly';
+}
+
+// Get base plan name without interval suffix
+function getBasePlanName(planName: string): string {
+  return planName.replace('_annual', '');
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -119,6 +133,10 @@ serve(async (req) => {
     const isSubscription = plan.is_recurring;
     const dodoBaseUrl = 'https://api.dodopayments.com/v1';
     
+    // Determine billing interval and base plan
+    const billingInterval = getBillingInterval(planName);
+    const basePlanName = getBasePlanName(planName);
+
     const checkoutPayload = {
       billing: {
         city: '',
@@ -143,7 +161,9 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         plan_name: planName,
-        plan_id: plan.id
+        plan_id: plan.id,
+        billing_interval: billingInterval,
+        base_plan: basePlanName
       }
     };
 

@@ -4,7 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logError, ErrorTypes } from "@/lib/errorLogger";
 
-export type PlanName = 'starter' | 'pro' | 'business' | 'lifetime';
+export type PlanName = 
+  | 'starter' | 'starter_annual'
+  | 'pro' | 'pro_annual'
+  | 'business' | 'business_annual'
+  | 'lifetime';
 
 interface UseCheckoutReturn {
   isLoading: boolean;

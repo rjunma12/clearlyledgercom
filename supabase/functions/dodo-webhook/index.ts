@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, webhook-id, webhook-signature, webhook-timestamp',
 };
 
+type BillingInterval = 'monthly' | 'annual' | 'lifetime';
+
 interface DodoWebhookPayload {
   type: string;
   data: {
@@ -20,6 +22,8 @@ interface DodoWebhookPayload {
       user_id?: string;
       plan_name?: string;
       plan_id?: string;
+      billing_interval?: BillingInterval;
+      base_plan?: string;
     };
     product_cart?: Array<{
       product_id: string;
@@ -29,6 +33,15 @@ interface DodoWebhookPayload {
     currency?: string;
     recurring_pre_tax_amount?: number;
   };
+}
+
+// Calculate expiry date based on billing interval
+function calculateExpiryDate(billingInterval: BillingInterval): string | null {
+  if (billingInterval === 'lifetime') {
+    return null; // Lifetime has no expiry
+  }
+  const days = billingInterval === 'annual' ? 365 : 30;
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 // Constant-time string comparison to prevent timing attacks
@@ -216,6 +229,10 @@ serve(async (req) => {
             .eq('id', spots?.id);
         }
 
+        // Determine billing interval from metadata or plan type
+        const billingInterval: BillingInterval = metadata.billing_interval || 
+          (metadata.plan_name === 'lifetime' ? 'lifetime' : 'monthly');
+
         // Create user subscription
         await supabase.from('user_subscriptions').upsert({
           user_id: metadata.user_id,
@@ -224,10 +241,8 @@ serve(async (req) => {
           dodo_payment_id: payload.data.payment_id,
           dodo_customer_id: payload.data.customer?.customer_id,
           started_at: new Date().toISOString(),
-          // Lifetime has no expiry, subscriptions expire in 1 month
-          expires_at: plan.is_recurring 
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-            : null
+          billing_interval: billingInterval,
+          expires_at: calculateExpiryDate(billingInterval)
         }, {
           onConflict: 'user_id,plan_id'
         });
@@ -256,6 +271,9 @@ serve(async (req) => {
           break;
         }
 
+        // Determine billing interval from metadata
+        const billingInterval: BillingInterval = metadata.billing_interval || 'monthly';
+
         // Upsert subscription
         await supabase.from('user_subscriptions').upsert({
           user_id: metadata.user_id,
@@ -264,7 +282,8 @@ serve(async (req) => {
           dodo_subscription_id: payload.data.subscription_id,
           dodo_customer_id: payload.data.customer?.customer_id,
           started_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          billing_interval: billingInterval,
+          expires_at: calculateExpiryDate(billingInterval),
           cancel_at_period_end: false,
           cancelled_at: null
         }, {
@@ -288,11 +307,13 @@ serve(async (req) => {
           .single();
 
         if (sub) {
+          // Extend by correct interval based on billing_interval
+          const billingInterval = (sub.billing_interval as BillingInterval) || 'monthly';
           await supabase
             .from('user_subscriptions')
             .update({
               status: 'active',
-              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              expires_at: calculateExpiryDate(billingInterval),
               updated_at: new Date().toISOString()
             })
             .eq('id', sub.id);

@@ -20,8 +20,11 @@ const planIcons: Record<PlanType, typeof Zap> = {
   anonymous: Zap,
   registered_free: Zap,
   starter: Zap,
+  starter_annual: Zap,
   pro: Zap,
+  pro_annual: Zap,
   business: Crown,
+  business_annual: Crown,
   lifetime: Rocket,
 };
 
@@ -29,8 +32,11 @@ const planColors: Record<PlanType, string> = {
   anonymous: 'text-muted-foreground',
   registered_free: 'text-primary',
   starter: 'text-primary',
+  starter_annual: 'text-primary',
   pro: 'text-primary',
+  pro_annual: 'text-primary',
   business: 'text-primary',
+  business_annual: 'text-primary',
   lifetime: 'text-warning',
 };
 
@@ -44,9 +50,13 @@ export function PlanCard({
   pagesUsedThisMonth = 0,
   isUnlimited
 }: PlanCardProps) {
-  const Icon = planIcons[planName];
-  const iconColor = planColors[planName];
-  const isPaid = ['starter', 'pro', 'business', 'lifetime'].includes(planName);
+  const Icon = planIcons[planName] || planIcons.starter;
+  const iconColor = planColors[planName] || planColors.starter;
+  const isPaid = ['starter', 'starter_annual', 'pro', 'pro_annual', 'business', 'business_annual', 'lifetime'].includes(planName);
+  
+  // Determine billing interval from plan name
+  const isAnnualPlan = planName.includes('annual');
+  const isLifetime = planName === 'lifetime';
   
   // Determine if this plan uses monthly or daily limits
   const isMonthlyPlan = monthlyLimit !== null && dailyLimit === null;
@@ -59,8 +69,14 @@ export function PlanCard({
     ? Math.min(100, Math.round((currentUsage / currentLimit) * 100))
     : 0;
 
-  const usageLabel = isMonthlyPlan ? 'Monthly Usage' : 'Daily Usage';
-  const limitLabel = isMonthlyPlan ? 'pages/month' : 'pages/day';
+  // Labels based on billing interval
+  const usageLabel = isAnnualPlan ? 'Yearly Usage' : 'Monthly Usage';
+  const limitLabel = isAnnualPlan ? 'pages/year' : isMonthlyPlan ? 'pages/month' : 'pages/day';
+  const billingLabel = isLifetime 
+    ? 'Lifetime Access' 
+    : isAnnualPlan 
+      ? 'Annual Subscription' 
+      : 'Monthly Subscription';
 
   return (
     <div className={cn(
@@ -80,7 +96,7 @@ export function PlanCard({
             <h3 className="font-display font-semibold text-foreground">
               {displayName}
             </h3>
-            <p className="text-xs text-muted-foreground">Current Plan</p>
+            <p className="text-xs text-muted-foreground">{billingLabel}</p>
           </div>
         </div>
         
@@ -123,7 +139,11 @@ export function PlanCard({
         {/* Show when limit resets */}
         {!isUnlimited && (
           <p className="text-xs text-muted-foreground mt-1">
-            {isMonthlyPlan ? 'Resets on the 1st of each month' : 'Resets at midnight UTC'}
+            {isAnnualPlan 
+              ? 'Resets on subscription anniversary' 
+              : isMonthlyPlan 
+                ? 'Resets on the 1st of each month' 
+                : 'Resets at midnight UTC'}
           </p>
         )}
       </div>

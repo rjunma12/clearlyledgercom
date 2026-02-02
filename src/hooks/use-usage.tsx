@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PlanType = 'anonymous' | 'registered_free' | 'starter' | 'pro' | 'business' | 'lifetime';
+export type PlanType = 
+  | 'anonymous' | 'registered_free' 
+  | 'starter' | 'starter_annual'
+  | 'pro' | 'pro_annual'
+  | 'business' | 'business_annual'
+  | 'lifetime';
 export type PiiMaskingLevel = 'none' | 'optional' | 'enforced';
 export type ExportFormat = 'csv' | 'xlsx';
 
@@ -27,8 +32,11 @@ const BATCH_LIMITS: Record<PlanType, number> = {
   anonymous: 1,
   registered_free: 1,
   starter: 1,
+  starter_annual: 1,
   pro: 10,
+  pro_annual: 10,
   business: 20,
+  business_annual: 20,
   lifetime: 10,
 };
 
@@ -219,8 +227,8 @@ export function useUsage(): UseUsageReturn {
   const canUsePiiMasking = plan?.piiMasking === 'optional' || plan?.piiMasking === 'enforced';
   const isPiiMaskingEnforced = plan?.piiMasking === 'enforced';
   
-  // Batch upload is available for Pro, Business, and Lifetime plans
-  const canBatchUpload = ['pro', 'business', 'lifetime'].includes(plan?.planName ?? '');
+  // Batch upload is available for Pro, Business, and Lifetime plans (including annual variants)
+  const canBatchUpload = ['pro', 'pro_annual', 'business', 'business_annual', 'lifetime'].includes(plan?.planName ?? '');
   const maxBatchFiles = plan?.planName ? BATCH_LIMITS[plan.planName] : 1;
   
   // Allowed export formats based on plan
