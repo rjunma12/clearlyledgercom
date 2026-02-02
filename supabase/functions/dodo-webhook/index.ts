@@ -229,6 +229,10 @@ serve(async (req) => {
             .eq('id', spots?.id);
         }
 
+        // Determine billing interval from metadata or plan type
+        const billingInterval: BillingInterval = metadata.billing_interval || 
+          (metadata.plan_name === 'lifetime' ? 'lifetime' : 'monthly');
+
         // Create user subscription
         await supabase.from('user_subscriptions').upsert({
           user_id: metadata.user_id,
@@ -237,10 +241,8 @@ serve(async (req) => {
           dodo_payment_id: payload.data.payment_id,
           dodo_customer_id: payload.data.customer?.customer_id,
           started_at: new Date().toISOString(),
-          // Lifetime has no expiry, subscriptions expire in 1 month
-          expires_at: plan.is_recurring 
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-            : null
+          billing_interval: billingInterval,
+          expires_at: calculateExpiryDate(billingInterval)
         }, {
           onConflict: 'user_id,plan_id'
         });
