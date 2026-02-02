@@ -271,6 +271,9 @@ serve(async (req) => {
           break;
         }
 
+        // Determine billing interval from metadata
+        const billingInterval: BillingInterval = metadata.billing_interval || 'monthly';
+
         // Upsert subscription
         await supabase.from('user_subscriptions').upsert({
           user_id: metadata.user_id,
@@ -279,7 +282,8 @@ serve(async (req) => {
           dodo_subscription_id: payload.data.subscription_id,
           dodo_customer_id: payload.data.customer?.customer_id,
           started_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          billing_interval: billingInterval,
+          expires_at: calculateExpiryDate(billingInterval),
           cancel_at_period_end: false,
           cancelled_at: null
         }, {
