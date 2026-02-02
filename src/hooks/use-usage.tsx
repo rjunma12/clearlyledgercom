@@ -32,8 +32,11 @@ const BATCH_LIMITS: Record<PlanType, number> = {
   anonymous: 1,
   registered_free: 1,
   starter: 1,
+  starter_annual: 1,
   pro: 10,
+  pro_annual: 10,
   business: 20,
+  business_annual: 20,
   lifetime: 10,
 };
 
