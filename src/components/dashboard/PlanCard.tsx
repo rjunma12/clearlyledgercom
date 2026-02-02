@@ -90,7 +90,7 @@ export function PlanCard({
             <h3 className="font-display font-semibold text-foreground">
               {displayName}
             </h3>
-            <p className="text-xs text-muted-foreground">Current Plan</p>
+            <p className="text-xs text-muted-foreground">{billingLabel}</p>
           </div>
         </div>
         
