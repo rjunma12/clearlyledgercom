@@ -12,6 +12,20 @@ interface CheckoutRequest {
   cancelUrl?: string;
 }
 
+type BillingInterval = 'monthly' | 'annual' | 'lifetime';
+
+// Detect billing interval from plan name
+function getBillingInterval(planName: string): BillingInterval {
+  if (planName === 'lifetime') return 'lifetime';
+  if (planName.endsWith('_annual')) return 'annual';
+  return 'monthly';
+}
+
+// Get base plan name without interval suffix
+function getBasePlanName(planName: string): string {
+  return planName.replace('_annual', '');
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
