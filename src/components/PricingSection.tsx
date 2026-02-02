@@ -1,15 +1,49 @@
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useUsageContext } from "@/contexts/UsageContext";
 import { useCheckout, PlanName } from "@/hooks/use-checkout";
 import { Link, useNavigate } from "react-router-dom";
 
+type BillingInterval = 'monthly' | 'annual';
+
+interface PlanPricing {
+  monthly: number;
+  annual: number;
+  monthlyPages: number;
+  annualPages: number;
+}
+
+const PLAN_PRICING: Record<string, PlanPricing> = {
+  starter: { monthly: 15, annual: 150, monthlyPages: 400, annualPages: 4800 },
+  pro: { monthly: 30, annual: 300, monthlyPages: 1000, annualPages: 12000 },
+  business: { monthly: 50, annual: 500, monthlyPages: 4000, annualPages: 48000 },
+};
+
+function getPlanDetails(basePlan: string, billingInterval: BillingInterval) {
+  const pricing = PLAN_PRICING[basePlan];
+  if (!pricing) return null;
+  
+  const isAnnual = billingInterval === 'annual';
+  return {
+    price: isAnnual ? pricing.annual : pricing.monthly,
+    period: isAnnual ? '/year' : '/month',
+    pages: isAnnual 
+      ? `${pricing.annualPages.toLocaleString()} pages/year` 
+      : `${pricing.monthlyPages.toLocaleString()} pages/month`,
+    planName: (isAnnual ? `${basePlan}_annual` : basePlan) as PlanName,
+    monthlyEquivalent: isAnnual ? Math.round(pricing.annual / 12) : null,
+  };
+}
+
 const PricingSection = forwardRef<HTMLElement>((_, ref) => {
   const navigate = useNavigate();
   const { lifetimeSpotsRemaining } = useUsageContext();
   const { isLoading, loadingPlan, initiateCheckout } = useCheckout();
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
+  
   const spotsRemaining = lifetimeSpotsRemaining ?? 350;
   const isSoldOut = spotsRemaining <= 0;
   const isLowStock = spotsRemaining <= 50 && spotsRemaining > 0;
@@ -22,13 +56,17 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
     initiateCheckout(planName);
   };
 
+  const starterDetails = getPlanDetails('starter', billingInterval)!;
+  const proDetails = getPlanDetails('pro', billingInterval)!;
+  const businessDetails = getPlanDetails('business', billingInterval)!;
+
   return (
     <section ref={ref} id="pricing" className="py-24 relative">
       <div className="absolute inset-0 bg-grid-pattern opacity-20" />
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="max-w-3xl mx-auto text-center mb-16">
+        <div className="max-w-3xl mx-auto text-center mb-8">
           <span className="text-sm font-semibold text-primary uppercase tracking-wider">
             Pricing & Usage
           </span>
@@ -38,6 +76,29 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
           <p className="text-lg text-muted-foreground">
             Start free. Upgrade when you need more power. All prices in USD.
           </p>
+        </div>
+
+        {/* Billing Toggle */}
+        <div className="flex items-center justify-center gap-4 mb-12">
+          <span className={cn(
+            "text-sm font-medium transition-colors",
+            billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
+          )}>
+            Monthly
+          </span>
+          <Switch 
+            checked={billingInterval === 'annual'}
+            onCheckedChange={(checked) => setBillingInterval(checked ? 'annual' : 'monthly')}
+          />
+          <span className={cn(
+            "text-sm font-medium transition-colors flex items-center gap-1.5",
+            billingInterval === 'annual' ? 'text-foreground' : 'text-muted-foreground'
+          )}>
+            Annual
+            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+              Save 17%
+            </span>
+          </span>
         </div>
 
         {/* Free Tier Row */}
@@ -132,17 +193,23 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
               </h3>
             </div>
             
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="font-display text-3xl font-bold text-foreground">$15</span>
-              <span className="text-muted-foreground">/ month</span>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="font-display text-3xl font-bold text-foreground">${starterDetails.price}</span>
+              <span className="text-muted-foreground">{starterDetails.period}</span>
             </div>
+            
+            {starterDetails.monthlyEquivalent && (
+              <p className="text-xs text-primary mb-3">
+                ${starterDetails.monthlyEquivalent}/mo equivalent
+              </p>
+            )}
 
-            <p className="text-xs text-muted-foreground mb-3">400 pages per month</p>
+            <p className="text-xs text-muted-foreground mb-3">{starterDetails.pages}</p>
             
             <ul className="space-y-2 mb-6 text-sm">
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Check className="w-4 h-4 text-primary" />
-                Convert up to 400 pages/month
+                Convert up to {billingInterval === 'annual' ? '4,800' : '400'} pages{billingInterval === 'annual' ? '/year' : '/month'}
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="w-4 h-4 text-primary" />
@@ -165,10 +232,10 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
             <Button 
               variant="glass" 
               className="w-full"
-              onClick={() => handlePlanClick('starter')}
+              onClick={() => handlePlanClick(starterDetails.planName)}
               disabled={isLoading}
             >
-              {loadingPlan === 'starter' ? (
+              {loadingPlan === starterDetails.planName ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Loading...
@@ -188,12 +255,18 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
               </h3>
             </div>
             
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="font-display text-3xl font-bold text-foreground">$30</span>
-              <span className="text-muted-foreground">/ month</span>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="font-display text-3xl font-bold text-foreground">${proDetails.price}</span>
+              <span className="text-muted-foreground">{proDetails.period}</span>
             </div>
+            
+            {proDetails.monthlyEquivalent && (
+              <p className="text-xs text-primary mb-3">
+                ${proDetails.monthlyEquivalent}/mo equivalent
+              </p>
+            )}
 
-            <p className="text-xs text-muted-foreground mb-3">1,000 pages per month</p>
+            <p className="text-xs text-muted-foreground mb-3">{proDetails.pages}</p>
             
             <ul className="space-y-2 mb-6 text-sm">
               <li className="flex items-center gap-2 text-muted-foreground">
@@ -221,10 +294,10 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
             <Button 
               variant="glass" 
               className="w-full"
-              onClick={() => handlePlanClick('pro')}
+              onClick={() => handlePlanClick(proDetails.planName)}
               disabled={isLoading}
             >
-              {loadingPlan === 'pro' ? (
+              {loadingPlan === proDetails.planName ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Loading...
@@ -251,12 +324,18 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
               </h3>
             </div>
             
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="font-display text-3xl font-bold text-foreground">$50</span>
-              <span className="text-muted-foreground">/ month</span>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="font-display text-3xl font-bold text-foreground">${businessDetails.price}</span>
+              <span className="text-muted-foreground">{businessDetails.period}</span>
             </div>
+            
+            {businessDetails.monthlyEquivalent && (
+              <p className="text-xs text-primary mb-3">
+                ${businessDetails.monthlyEquivalent}/mo equivalent
+              </p>
+            )}
 
-            <p className="text-xs text-muted-foreground mb-3">4,000 pages per month</p>
+            <p className="text-xs text-muted-foreground mb-3">{businessDetails.pages}</p>
             
             <ul className="space-y-2 mb-6 text-sm">
               <li className="flex items-center gap-2 text-muted-foreground">
@@ -284,10 +363,10 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
             <Button 
               variant="hero" 
               className="w-full"
-              onClick={() => handlePlanClick('business')}
+              onClick={() => handlePlanClick(businessDetails.planName)}
               disabled={isLoading}
             >
-              {loadingPlan === 'business' ? (
+              {loadingPlan === businessDetails.planName ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Loading...

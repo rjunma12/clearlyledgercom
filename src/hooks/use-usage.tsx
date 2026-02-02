@@ -227,8 +227,8 @@ export function useUsage(): UseUsageReturn {
   const canUsePiiMasking = plan?.piiMasking === 'optional' || plan?.piiMasking === 'enforced';
   const isPiiMaskingEnforced = plan?.piiMasking === 'enforced';
   
-  // Batch upload is available for Pro, Business, and Lifetime plans
-  const canBatchUpload = ['pro', 'business', 'lifetime'].includes(plan?.planName ?? '');
+  // Batch upload is available for Pro, Business, and Lifetime plans (including annual variants)
+  const canBatchUpload = ['pro', 'pro_annual', 'business', 'business_annual', 'lifetime'].includes(plan?.planName ?? '');
   const maxBatchFiles = plan?.planName ? BATCH_LIMITS[plan.planName] : 1;
   
   // Allowed export formats based on plan

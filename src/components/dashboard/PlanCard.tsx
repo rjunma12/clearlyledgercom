@@ -133,7 +133,11 @@ export function PlanCard({
         {/* Show when limit resets */}
         {!isUnlimited && (
           <p className="text-xs text-muted-foreground mt-1">
-            {isMonthlyPlan ? 'Resets on the 1st of each month' : 'Resets at midnight UTC'}
+            {isAnnualPlan 
+              ? 'Resets on subscription anniversary' 
+              : isMonthlyPlan 
+                ? 'Resets on the 1st of each month' 
+                : 'Resets at midnight UTC'}
           </p>
         )}
       </div>
