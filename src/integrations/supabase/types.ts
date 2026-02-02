@@ -352,6 +352,7 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          billing_interval: string | null
           cancel_at_period_end: boolean | null
           cancelled_at: string | null
           created_at: string
@@ -367,6 +368,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          billing_interval?: string | null
           cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           created_at?: string
@@ -382,6 +384,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          billing_interval?: string | null
           cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           created_at?: string
@@ -510,6 +513,9 @@ export type Database = {
         | "pro"
         | "business"
         | "lifetime"
+        | "starter_annual"
+        | "pro_annual"
+        | "business_annual"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -645,6 +651,9 @@ export const Constants = {
         "pro",
         "business",
         "lifetime",
+        "starter_annual",
+        "pro_annual",
+        "business_annual",
       ],
     },
   },
