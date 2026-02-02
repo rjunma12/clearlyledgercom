@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, webhook-id, webhook-signature, webhook-timestamp',
 };
 
+type BillingInterval = 'monthly' | 'annual' | 'lifetime';
+
 interface DodoWebhookPayload {
   type: string;
   data: {
@@ -20,6 +22,8 @@ interface DodoWebhookPayload {
       user_id?: string;
       plan_name?: string;
       plan_id?: string;
+      billing_interval?: BillingInterval;
+      base_plan?: string;
     };
     product_cart?: Array<{
       product_id: string;
@@ -29,6 +33,15 @@ interface DodoWebhookPayload {
     currency?: string;
     recurring_pre_tax_amount?: number;
   };
+}
+
+// Calculate expiry date based on billing interval
+function calculateExpiryDate(billingInterval: BillingInterval): string | null {
+  if (billingInterval === 'lifetime') {
+    return null; // Lifetime has no expiry
+  }
+  const days = billingInterval === 'annual' ? 365 : 30;
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 // Constant-time string comparison to prevent timing attacks
