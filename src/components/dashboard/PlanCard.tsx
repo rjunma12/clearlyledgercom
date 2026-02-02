@@ -44,9 +44,13 @@ export function PlanCard({
   pagesUsedThisMonth = 0,
   isUnlimited
 }: PlanCardProps) {
-  const Icon = planIcons[planName];
-  const iconColor = planColors[planName];
-  const isPaid = ['starter', 'pro', 'business', 'lifetime'].includes(planName);
+  const Icon = planIcons[planName] || planIcons.starter;
+  const iconColor = planColors[planName] || planColors.starter;
+  const isPaid = ['starter', 'starter_annual', 'pro', 'pro_annual', 'business', 'business_annual', 'lifetime'].includes(planName);
+  
+  // Determine billing interval from plan name
+  const isAnnualPlan = planName.includes('annual');
+  const isLifetime = planName === 'lifetime';
   
   // Determine if this plan uses monthly or daily limits
   const isMonthlyPlan = monthlyLimit !== null && dailyLimit === null;
@@ -59,8 +63,14 @@ export function PlanCard({
     ? Math.min(100, Math.round((currentUsage / currentLimit) * 100))
     : 0;
 
-  const usageLabel = isMonthlyPlan ? 'Monthly Usage' : 'Daily Usage';
-  const limitLabel = isMonthlyPlan ? 'pages/month' : 'pages/day';
+  // Labels based on billing interval
+  const usageLabel = isAnnualPlan ? 'Yearly Usage' : 'Monthly Usage';
+  const limitLabel = isAnnualPlan ? 'pages/year' : isMonthlyPlan ? 'pages/month' : 'pages/day';
+  const billingLabel = isLifetime 
+    ? 'Lifetime Access' 
+    : isAnnualPlan 
+      ? 'Annual Subscription' 
+      : 'Monthly Subscription';
 
   return (
     <div className={cn(
