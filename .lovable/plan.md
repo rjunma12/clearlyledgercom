@@ -1,633 +1,429 @@
 
-# Plan: Comprehensive Conversion Pipeline Improvements (10 Enhancements)
+# Plan: Complete Subscription Billing with Monthly, Annual & Lifetime Tiers
 
 ## Overview
 
-This plan implements 10 major enhancements to the PDF-to-Excel conversion pipeline to maximize accuracy, handle edge cases, and improve user experience. The improvements are ordered by priority and impact.
+This plan implements comprehensive subscription billing via Dodo Payments with:
+- **Monthly subscriptions** for Starter ($15), Professional ($30), and Business ($50)
+- **Annual subscriptions** with 2 months free discount (17% savings)
+- **Lifetime tier** ($119 one-time) with limited spots
 
 ---
 
-## Improvement 1: Cross-Page Transaction Stitching
+## Current State
 
-### Problem
-Transactions with long descriptions may be split across PDF page boundaries. Currently, the pipeline treats each page independently, causing description fragments to be missed or orphaned.
+### What Exists
+- Plans table with monthly variants (starter, pro, business, lifetime)
+- Lifetime spots tracking (350 total, 0 sold)
+- `dodo-webhook` handles subscription and payment events
+- `create-checkout` creates checkout sessions
+- Basic PricingSection with monthly prices only
+- No billing interval toggle or annual plans
 
-### Solution
-Implement page-aware continuation detection in `pdfProcessor.ts` and `dynamicRowProcessor.ts`.
-
-### Technical Changes
-
-**File: `src/lib/ruleEngine/pageBreakHandler.ts`** (NEW FILE)
-
-```typescript
-// Detect if a transaction spans page boundary
-// Look for:
-// 1. Page ends with incomplete transaction (has date but no balance)
-// 2. Next page starts with continuation line (no date, no amounts)
-
-interface PageBoundaryContext {
-  previousPageLastRow: ExtractedRow | null;
-  currentPageFirstRow: ExtractedRow | null;
-  shouldStitch: boolean;
-}
-
-function detectPageBreakContinuation(
-  previousPageRows: ExtractedRow[],
-  currentPageRows: ExtractedRow[]
-): PageBoundaryContext
-```
-
-**File: `src/lib/ruleEngine/dynamicRowProcessor.ts`**
-
-Add cross-page stitching logic:
-```typescript
-// NEW: Check if first row of new page continues previous transaction
-function shouldMergeAcrossPageBreak(
-  lastRow: StitchedTransaction,
-  firstRow: ExtractedRow
-): boolean {
-  // First row has no date AND no amounts = likely continuation
-  return !hasValidDate(firstRow) && !hasMonetaryAmount(firstRow);
-}
-```
+### What's Missing
+- Annual plan variants in database
+- Billing interval column in user_subscriptions
+- Annual pricing toggle in UI
+- Updated webhook for annual expiry calculation
+- Annual quota reset logic
 
 ---
 
-## Improvement 2: Gibberish Detection & OCR Fallback
+## Database Changes
 
-### Problem
-Some PDFs have corrupted text layers where extraction returns garbage characters. Currently, the pipeline fails silently or produces unusable output.
+### 1. Add Annual Plan Variants
 
-### Solution
-Add text quality scoring with automatic OCR fallback trigger.
+Insert 3 new rows for annual subscriptions (17% discount = 10 months for price of 12):
 
-### Technical Changes
+| Plan | Price | Monthly Equiv | Pages | Billing |
+|------|-------|---------------|-------|---------|
+| starter_annual | $150/yr | $12.50/mo | 4,800/yr | annual |
+| pro_annual | $300/yr | $25/mo | 12,000/yr | annual |
+| business_annual | $500/yr | $41.67/mo | 48,000/yr | annual |
 
-**File: `src/lib/ruleEngine/textQualityAnalyzer.ts`** (NEW FILE)
-
-```typescript
-// Text quality heuristics
-const GIBBERISH_INDICATORS = {
-  tooManySpecialChars: (text: string) => {
-    const special = text.replace(/[a-zA-Z0-9\s.,\-\/]/g, '').length;
-    return special / text.length > 0.4;
-  },
-  noValidWords: (text: string) => {
-    const words = text.split(/\s+/);
-    const validWords = words.filter(w => /^[a-zA-Z]{2,}$/.test(w));
-    return validWords.length < words.length * 0.2;
-  },
-  noDatePatterns: (text: string) => {
-    return !DATE_PATTERNS.some(p => p.test(text));
-  },
-  noNumericPatterns: (text: string) => {
-    return !/\d+[.,]\d{2}/.test(text);
-  },
-};
-
-function calculateTextQualityScore(elements: TextElement[]): number {
-  // Returns 0-100 score
-  // Below 40 = trigger OCR fallback
-}
+```sql
+-- Insert annual plan variants
+INSERT INTO plans (name, display_name, daily_page_limit, monthly_page_limit, 
+                   pii_masking, price_cents, is_recurring, allowed_formats)
+VALUES 
+  ('starter_annual', 'Starter Annual', NULL, 4800, 'optional', 15000, true, ARRAY['csv', 'xlsx']),
+  ('pro_annual', 'Professional Annual', NULL, 12000, 'optional', 30000, true, ARRAY['csv', 'xlsx']),
+  ('business_annual', 'Business Annual', NULL, 48000, 'enforced', 50000, true, ARRAY['csv', 'xlsx']);
 ```
 
-**File: `src/lib/pdfProcessor.ts`**
+### 2. Add Billing Interval to Subscriptions
 
-Add quality check after text extraction:
-```typescript
-// After extractTextBasedPDF():
-const qualityScore = calculateTextQualityScore(allTextElements);
-console.log(`[PDF Processor] Text quality score: ${qualityScore}`);
+```sql
+-- Add billing_interval column to track monthly/annual/lifetime
+ALTER TABLE user_subscriptions 
+ADD COLUMN billing_interval TEXT DEFAULT 'monthly';
 
-if (qualityScore < 40 && pagesToProcess <= MAX_OCR_PAGES) {
-  console.log('[PDF Processor] Low text quality, triggering OCR fallback...');
-  // Fall through to OCR extraction
-}
+-- Add constraint for valid values
+ALTER TABLE user_subscriptions 
+ADD CONSTRAINT valid_billing_interval 
+CHECK (billing_interval IN ('monthly', 'annual', 'lifetime'));
 ```
 
----
+### 3. Extend plan_type Enum
 
-## Improvement 3: Enhanced Date Format Support
+```sql
+-- Add annual variants to plan_type enum
+ALTER TYPE plan_type ADD VALUE IF NOT EXISTS 'starter_annual';
+ALTER TYPE plan_type ADD VALUE IF NOT EXISTS 'pro_annual';
+ALTER TYPE plan_type ADD VALUE IF NOT EXISTS 'business_annual';
+```
 
-### Problem
-Current date parsing misses regional formats like `15th Jan 2025`, Japanese dates, and non-English month names.
+### 4. Update get_remaining_pages() Function
 
-### Solution
-Expand date patterns in `numberParser.ts` with ordinal handling and multilingual month names.
+Update to handle annual quota resets based on subscription anniversary:
 
-### Technical Changes
-
-**File: `src/lib/ruleEngine/numberParser.ts`**
-
-Add new date patterns:
-```typescript
-const DATE_PATTERNS = [
-  // Existing patterns...
+```sql
+CREATE OR REPLACE FUNCTION public.get_remaining_pages(
+  p_user_id uuid DEFAULT NULL,
+  p_session_fingerprint text DEFAULT NULL
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_daily_limit INTEGER;
+  v_monthly_limit INTEGER;
+  v_billing_interval TEXT;
+  v_started_at TIMESTAMPTZ;
+  v_pages_used INTEGER;
+BEGIN
+  -- Get limits and billing interval
+  SELECT p.daily_page_limit, p.monthly_page_limit, us.billing_interval, us.started_at
+  INTO v_daily_limit, v_monthly_limit, v_billing_interval, v_started_at
+  FROM get_user_plan(p_user_id) AS gup
+  JOIN plans p ON p.name = gup.plan_name
+  LEFT JOIN user_subscriptions us ON us.user_id = p_user_id AND us.status = 'active'
+  LIMIT 1;
   
-  // NEW: Ordinal dates (15th Jan 2025, 1st February 2024)
-  { pattern: /^(\d{1,2})(?:st|nd|rd|th)\s+([A-Za-z]{3,9})\s+(\d{4})$/, format: 'DD_ORD MMM YYYY' },
-  { pattern: /^([A-Za-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th),?\s+(\d{4})$/, format: 'MMM DD_ORD YYYY' },
+  -- Unlimited check
+  IF v_daily_limit IS NULL AND v_monthly_limit IS NULL THEN
+    RETURN -1;
+  END IF;
   
-  // NEW: Japanese format (2025年1月15日)
-  { pattern: /^(\d{4})年(\d{1,2})月(\d{1,2})日$/, format: 'YYYY年MM月DD日' },
+  -- Calculate usage period based on billing interval
+  IF v_billing_interval = 'annual' THEN
+    -- Reset on subscription anniversary
+    SELECT COALESCE(SUM(pages_processed), 0) INTO v_pages_used
+    FROM usage_tracking
+    WHERE user_id = p_user_id
+      AND usage_date >= v_started_at::DATE;
+  ELSIF v_daily_limit IS NOT NULL THEN
+    -- Daily reset
+    SELECT COALESCE(SUM(pages_processed), 0) INTO v_pages_used
+    FROM usage_tracking
+    WHERE usage_date = CURRENT_DATE
+      AND (user_id = p_user_id OR session_fingerprint = p_session_fingerprint);
+  ELSE
+    -- Monthly reset
+    SELECT COALESCE(SUM(pages_processed), 0) INTO v_pages_used
+    FROM usage_tracking
+    WHERE usage_date >= date_trunc('month', CURRENT_DATE)::DATE
+      AND user_id = p_user_id;
+  END IF;
   
-  // NEW: Arabic format (١٥/٠١/٢٠٢٥) - normalized
-  { pattern: /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/, format: 'DD/MM/YYYY' },
-  
-  // NEW: German written (15. Januar 2025)
-  { pattern: /^(\d{1,2})\.\s*([A-Za-zäöü]+)\s+(\d{4})$/, format: 'DD. MMMM YYYY' },
-];
-
-// Expanded month names
-const MONTH_NAMES: Record<string, number> = {
-  // English
-  jan: 1, january: 1, feb: 2, february: 2, ...
-  
-  // German
-  januar: 1, februar: 2, märz: 3, april: 4, mai: 5, juni: 6,
-  juli: 7, august: 8, september: 9, oktober: 10, november: 11, dezember: 12,
-  
-  // Japanese romanized
-  ichigatsu: 1, nigatsu: 2, sangatsu: 3, shigatsu: 4, gogatsu: 5,
-  rokugatsu: 6, shichigatsu: 7, hachigatsu: 8, kugatsu: 9, juugatsu: 10,
-  juuichigatsu: 11, juunigatsu: 12,
-  
-  // Arabic romanized
-  yanayir: 1, fibrayir: 2, maris: 3, abril: 4, mayu: 5, yunyu: 6,
-  yulyu: 7, aghustus: 8, sibtambir: 9, uktubar: 10, nufimbir: 11, disambir: 12,
-};
+  -- Return remaining pages
+  RETURN GREATEST(0, COALESCE(v_monthly_limit, v_daily_limit, 0) - v_pages_used);
+END;
+$$;
 ```
 
 ---
 
-## Improvement 4: Excel Export with Confidence Grades
+## Edge Function Updates
 
-### Problem
-The newly added per-transaction confidence scores aren't displayed in Excel exports, limiting their usefulness for auditors.
+### 1. `create-checkout/index.ts`
 
-### Solution
-Update `excelGenerator.ts` to add confidence columns and summary to the Validation sheet.
+Add billing interval detection and metadata:
 
-### Technical Changes
-
-**File: `src/lib/excelGenerator.ts`**
-
-Update transaction columns:
 ```typescript
-const TRANSACTION_COLUMNS = [
-  { header: 'Date', key: 'date', width: 12 },
-  { header: 'Description', key: 'description', width: 50 },
-  { header: 'Debit', key: 'debit', width: 15 },
-  { header: 'Credit', key: 'credit', width: 15 },
-  { header: 'Balance', key: 'balance', width: 15 },
-  { header: 'Currency', key: 'currency', width: 10 },
-  { header: 'Reference', key: 'reference', width: 20 },
-  { header: 'Grade', key: 'grade', width: 8 },           // NEW
-  { header: 'Confidence', key: 'confidence', width: 12 }, // NEW (0-100)
-];
-```
+// Detect billing interval from plan name
+const billingInterval = planName.endsWith('_annual') ? 'annual' : 
+                        planName === 'lifetime' ? 'lifetime' : 'monthly';
+const basePlanName = planName.replace('_annual', '');
 
-Add confidence summary to Validation sheet:
-```typescript
-// In generateValidationSheet():
-const validationRows: [string, string][] = [
-  // Existing rows...
-  ['Average_Confidence', `${validationSummary.averageConfidence}%`],     // NEW
-  ['Grade_Distribution', validationSummary.gradeDistribution],           // NEW
-  ['Low_Confidence_Rows', String(validationSummary.lowConfidenceCount)], // NEW
-];
-```
-
-Update `ValidationSummary` type:
-```typescript
-export interface ValidationSummary {
-  // Existing fields...
-  averageConfidence?: number;        // NEW
-  gradeDistribution?: string;        // NEW: "A:15, B:8, C:2, D:0, F:1"
-  lowConfidenceCount?: number;       // NEW: Rows with confidence < 70
+// Add to checkout metadata
+metadata: {
+  user_id: user.id,
+  plan_name: planName,
+  plan_id: plan.id,
+  billing_interval: billingInterval,
+  base_plan: basePlanName
 }
 ```
 
----
+### 2. `dodo-webhook/index.ts`
 
-## Improvement 5: Multi-Table Detection on Single Page
+Update expiry calculation based on billing interval:
 
-### Problem
-Some statements have multiple table sections (e.g., Savings + Fixed Deposits) on the same page. Current detection merges them incorrectly.
-
-### Solution
-Enhance `tableDetector.ts` to detect and separate distinct table regions by vertical gaps.
-
-### Technical Changes
-
-**File: `src/lib/ruleEngine/tableDetector.ts`**
-
-Update `detectTableRegions()`:
 ```typescript
-function detectTableRegions(lines: PdfLine[]): TableRegion[] {
-  // NEW: Also split on large vertical gaps (>50px)
-  const GAP_THRESHOLD = 50;
-  
-  for (let i = 1; i < lines.length; i++) {
-    const gap = lines[i].top - lines[i-1].bottom;
-    
-    if (gap > GAP_THRESHOLD) {
-      // This is a table break - create separate region
-      if (consistentColumnCount >= 3) {
-        tables.push(createTableRegion(lines, tableStartIndex, i - 1));
-      }
-      tableStartIndex = i;
-      consistentColumnCount = 1;
-    }
-    // Existing column count logic...
+// In subscription.active handler:
+const billingInterval = metadata?.billing_interval || 'monthly';
+
+// Calculate correct expiry
+let expiresAt: string | null = null;
+if (billingInterval === 'annual') {
+  expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+} else if (billingInterval === 'monthly') {
+  expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+}
+// Lifetime has no expiry (null)
+
+// Store with billing interval
+await supabase.from('user_subscriptions').upsert({
+  user_id: metadata.user_id,
+  plan_id: plan.id,
+  status: 'active',
+  billing_interval: billingInterval,
+  expires_at: expiresAt,
+  // ... other fields
+});
+```
+
+Update renewal handler:
+
+```typescript
+case 'subscription.renewed': {
+  const { data: sub } = await supabase
+    .from('user_subscriptions')
+    .select('*, plans(*)')
+    .eq('dodo_subscription_id', subscriptionId)
+    .single();
+
+  if (sub) {
+    // Extend by correct interval
+    const extensionDays = sub.billing_interval === 'annual' ? 365 : 30;
+    await supabase
+      .from('user_subscriptions')
+      .update({
+        status: 'active',
+        expires_at: new Date(Date.now() + extensionDays * 24 * 60 * 60 * 1000).toISOString()
+      })
+      .eq('id', sub.id);
   }
+  break;
 }
 ```
 
-Add section header detection:
+### 3. `track-usage/index.ts`
+
+Update to fetch billing interval for proper quota calculation:
+
 ```typescript
-const SECTION_HEADER_PATTERNS = [
-  /^(savings|current|fixed\s*deposit|credit\s*card|loan)\s+(account|statement)/i,
-  /^account\s+summary/i,
-  /^transaction\s+history/i,
-];
+// Get user's plan and subscription details
+const { data: planData } = await supabaseAdmin
+  .rpc('get_user_plan', { p_user_id: userId });
 
-function isTableSectionHeader(line: PdfLine): boolean {
-  const text = line.words.map(w => w.text).join(' ');
-  return SECTION_HEADER_PATTERNS.some(p => p.test(text));
-}
-```
-
----
-
-## Improvement 6: Overdraft/Negative Balance Handling
-
-### Problem
-Current balance validation assumes all balances are positive. Overdraft accounts with legitimate negative balances trigger false errors.
-
-### Solution
-Update `balanceValidator.ts` to detect and handle overdraft accounts.
-
-### Technical Changes
-
-**File: `src/lib/ruleEngine/balanceValidator.ts`**
-
-Add overdraft detection:
-```typescript
-// Detect if statement has overdraft (negative balances)
-function detectOverdraftAccount(transactions: ParsedTransaction[]): boolean {
-  return transactions.some(tx => tx.balance < 0);
-}
-
-// Update validateBalanceEquation to handle negative balances
-export function validateBalanceEquation(
-  previousBalance: number,
-  credit: number | null,
-  debit: number | null,
-  currentBalance: number,
-  currency?: string,
-  allowNegative: boolean = false  // NEW parameter
-): ValidationResult {
-  // Skip false-positive check for negative balances if overdraft detected
-  // ...
-}
-```
-
-Update chain validation:
-```typescript
-export function validateTransactionChain(
-  transactions: ParsedTransaction[],
-  openingBalance: number,
-  currency?: string
-): ParsedTransaction[] {
-  // NEW: Detect overdraft at start
-  const isOverdraftAccount = detectOverdraftAccount(transactions);
-  
-  if (isOverdraftAccount) {
-    console.log('[BalanceValidator] Overdraft account detected - allowing negative balances');
-  }
-  // ...
-}
+// For annual plans, the get_remaining_pages RPC already handles
+// anniversary-based reset (no changes needed in track-usage)
 ```
 
 ---
 
-## Improvement 7: Font Metadata for Header Detection
+## Frontend Updates
 
-### Problem
-Header detection relies solely on text patterns. PDFs with bold/larger headers could be detected more reliably using font metadata.
+### 1. Update `use-checkout.tsx`
 
-### Solution
-Extract font information from pdf.js and use it to boost header detection confidence.
+Extend PlanName type with annual variants:
 
-### Technical Changes
-
-**File: `src/lib/ruleEngine/types.ts`**
-
-Extend TextElement:
 ```typescript
-export interface TextElement {
-  text: string;
-  boundingBox: BoundingBox;
-  pageNumber: number;
-  confidence?: number;
-  source?: 'text-layer' | 'ocr';
-  fontInfo?: {             // NEW
-    fontName?: string;
-    fontSize?: number;
-    isBold?: boolean;
-    isItalic?: boolean;
+export type PlanName = 
+  | 'starter' | 'starter_annual'
+  | 'pro' | 'pro_annual'
+  | 'business' | 'business_annual'
+  | 'lifetime';
+```
+
+### 2. Update `use-usage.tsx`
+
+Add annual plan types:
+
+```typescript
+export type PlanType = 
+  | 'anonymous' | 'registered_free' 
+  | 'starter' | 'starter_annual'
+  | 'pro' | 'pro_annual'
+  | 'business' | 'business_annual'
+  | 'lifetime';
+
+// Update BATCH_LIMITS
+const BATCH_LIMITS: Record<PlanType, number> = {
+  anonymous: 1,
+  registered_free: 1,
+  starter: 1,
+  starter_annual: 1,
+  pro: 10,
+  pro_annual: 10,
+  business: 20,
+  business_annual: 20,
+  lifetime: 10,
+};
+```
+
+### 3. Update `PricingSection.tsx`
+
+Add billing toggle and dynamic pricing:
+
+```typescript
+// Add state
+const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
+
+// Add toggle UI
+<div className="flex items-center justify-center gap-4 mb-8">
+  <span className={cn(
+    "text-sm font-medium transition-colors",
+    billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
+  )}>
+    Monthly
+  </span>
+  <Switch 
+    checked={billingInterval === 'annual'}
+    onCheckedChange={(checked) => setBillingInterval(checked ? 'annual' : 'monthly')}
+  />
+  <span className={cn(
+    "text-sm font-medium transition-colors",
+    billingInterval === 'annual' ? 'text-foreground' : 'text-muted-foreground'
+  )}>
+    Annual
+    <span className="ml-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+      Save 17%
+    </span>
+  </span>
+</div>
+
+// Dynamic pricing display
+const getPlanDetails = (basePlan: string) => {
+  const plans = {
+    starter: { monthly: '$15', annual: '$150', monthlyPages: 400, annualPages: 4800 },
+    pro: { monthly: '$30', annual: '$300', monthlyPages: 1000, annualPages: 12000 },
+    business: { monthly: '$50', annual: '$500', monthlyPages: 4000, annualPages: 48000 },
   };
-}
-```
-
-**File: `src/lib/pdfUtils.ts`**
-
-Extract font info:
-```typescript
-export async function extractTextFromPage(
-  page: PDFPageProxy,
-  pageNumber: number
-): Promise<TextElement[]> {
-  // ...
-  for (const item of textContent.items) {
-    const textItem = item as TextItem;
-    
-    textElements.push({
-      text: textItem.str,
-      boundingBox: { ... },
-      pageNumber,
-      fontInfo: {
-        fontName: textItem.fontName,
-        fontSize: Math.abs(transform[0]),
-        isBold: textItem.fontName?.toLowerCase().includes('bold'),
-      },
-    });
-  }
-}
-```
-
-**File: `src/lib/ruleEngine/headerAnchors.ts`**
-
-Use font info for header detection:
-```typescript
-function isLikelyHeaderRow(line: PdfLine, elements: TextElement[]): boolean {
-  // Existing text-based detection...
-  
-  // NEW: Boost confidence if row has bold/larger text
-  const rowElements = elements.filter(e => 
-    e.boundingBox.y >= line.top - 5 && 
-    e.boundingBox.y <= line.bottom + 5
-  );
-  
-  const hasBoldText = rowElements.some(e => e.fontInfo?.isBold);
-  const hasLargerText = rowElements.some(e => 
-    e.fontInfo?.fontSize && e.fontInfo.fontSize > 10
-  );
-  
-  if (hasBoldText || hasLargerText) {
-    confidence += 0.2;
-  }
-  
-  return confidence > 0.6;
-}
-```
-
----
-
-## Improvement 8: Partial Statement Detection
-
-### Problem
-Users may upload mid-month statement snapshots that don't have opening/closing balance rows. Validation fails unnecessarily.
-
-### Solution
-Detect partial statements and adjust validation expectations.
-
-### Technical Changes
-
-**File: `src/lib/ruleEngine/partialStatementDetector.ts`** (NEW FILE)
-
-```typescript
-interface StatementCompleteness {
-  hasOpeningBalance: boolean;
-  hasClosingBalance: boolean;
-  isPartialStatement: boolean;
-  detectedPeriod?: { from: string; to: string };
-}
-
-function detectStatementCompleteness(
-  transactions: ParsedTransaction[],
-  extractedHeader: ExtractedStatementHeader
-): StatementCompleteness {
-  // Check for opening/closing balance keywords in descriptions
-  const hasOpening = transactions.some(tx => 
-    isOpeningBalanceRow(tx.description)
-  );
-  const hasClosing = transactions.some(tx => 
-    isClosingBalanceRow(tx.description)
-  );
-  
+  const p = plans[basePlan];
+  const isAnnual = billingInterval === 'annual';
   return {
-    hasOpeningBalance: hasOpening,
-    hasClosingBalance: hasClosing,
-    isPartialStatement: !hasOpening || !hasClosing,
-    detectedPeriod: extractedHeader?.statementPeriodFrom 
-      ? { from: extractedHeader.statementPeriodFrom, to: extractedHeader.statementPeriodTo || '' }
-      : undefined,
+    price: isAnnual ? p.annual : p.monthly,
+    period: isAnnual ? '/year' : '/month',
+    pages: isAnnual ? `${p.annualPages.toLocaleString()} pages/year` : `${p.monthlyPages} pages/month`,
+    planName: isAnnual ? `${basePlan}_annual` : basePlan
   };
-}
-```
-
-**File: `src/lib/ruleEngine/balanceValidator.ts`**
-
-Adjust validation for partial statements:
-```typescript
-export function validateTransactionChain(
-  transactions: ParsedTransaction[],
-  openingBalance: number,
-  currency?: string,
-  isPartialStatement: boolean = false  // NEW
-): ParsedTransaction[] {
-  if (isPartialStatement) {
-    // Use first transaction's calculated opening balance
-    // Don't fail if no explicit opening balance row found
-    console.log('[BalanceValidator] Partial statement - using derived opening balance');
-  }
-  // ...
-}
-```
-
----
-
-## Improvement 9: Accounting Code Mapping
-
-### Problem
-Exported transactions have categories but no standardized accounting codes for import into accounting software.
-
-### Solution
-Add optional accounting code mapping for QuickBooks/Xero/MYOB compatibility.
-
-### Technical Changes
-
-**File: `src/lib/ruleEngine/accountingCodeMapper.ts`** (NEW FILE)
-
-```typescript
-// Standard Chart of Accounts mapping
-const ACCOUNTING_CODES: Record<string, { code: string; name: string }> = {
-  // Income
-  'Salary': { code: '4000', name: 'Salary Income' },
-  'Interest': { code: '4100', name: 'Interest Income' },
-  'Dividends': { code: '4200', name: 'Dividend Income' },
-  
-  // Expenses
-  'Groceries': { code: '5100', name: 'Food & Groceries' },
-  'Utilities': { code: '5200', name: 'Utilities' },
-  'Transport': { code: '5300', name: 'Transportation' },
-  'Entertainment': { code: '5400', name: 'Entertainment' },
-  
-  // Transfers
-  'Transfer': { code: '6000', name: 'Inter-Account Transfer' },
-  'ATM': { code: '6100', name: 'Cash Withdrawal' },
 };
-
-function mapCategoryToAccountingCode(category: string): {
-  code: string;
-  accountName: string;
-} | null {
-  const mapping = ACCOUNTING_CODES[category];
-  return mapping ? { code: mapping.code, accountName: mapping.name } : null;
-}
 ```
 
-Update `StandardizedTransaction` type:
+### 4. Update `PlanCard.tsx` (Dashboard)
+
+Show billing interval in current plan display:
+
 ```typescript
-export interface StandardizedTransaction {
-  // Existing fields...
-  accountingCode?: string;    // NEW: QuickBooks/Xero compatible code
-  accountName?: string;       // NEW: Account name for mapping
-}
+// Add billing interval display
+const isAnnual = planName.includes('annual');
+const billingLabel = planName === 'lifetime' 
+  ? 'Lifetime Access' 
+  : isAnnual 
+    ? 'Annual Subscription' 
+    : 'Monthly Subscription';
+
+// Show correct usage label
+const usageLabel = isAnnual ? 'Yearly Usage' : 'Monthly Usage';
+const limitLabel = isAnnual ? 'pages/year' : 'pages/month';
 ```
 
 ---
 
-## Improvement 10: Bank Profile Auto-Learning Suggestions
+## Dodo Payments Configuration
 
-### Problem
-When parsing fails or produces poor results, users have no way to help improve future parsing.
+### Products to Create in Dodo Dashboard
 
-### Solution
-Implement pattern learning suggestions that log unmatched patterns for future profile updates.
+| Product Name | Type | Price | Product ID |
+|--------------|------|-------|------------|
+| Starter Monthly | Subscription | $15/mo | (existing) |
+| Starter Annual | Subscription | $150/yr | (to create) |
+| Pro Monthly | Subscription | $30/mo | (existing) |
+| Pro Annual | Subscription | $300/yr | (to create) |
+| Business Monthly | Subscription | $50/mo | (existing) |
+| Business Annual | Subscription | $500/yr | (to create) |
+| Lifetime | One-time | $119 | (existing) |
 
-### Technical Changes
+After creating products in Dodo, update database:
 
-**File: `src/lib/ruleEngine/patternLearner.ts`** (NEW FILE)
-
-```typescript
-interface UnmatchedPattern {
-  type: 'date' | 'amount' | 'header' | 'reference';
-  rawText: string;
-  context: string;  // Surrounding text
-  frequency: number;
-  suggestedPattern?: string;
-}
-
-class PatternLearner {
-  private unmatchedPatterns: Map<string, UnmatchedPattern> = new Map();
-  
-  recordUnmatchedDate(text: string, context: string): void {
-    // Log date-like strings that failed to parse
-  }
-  
-  recordUnmatchedAmount(text: string, context: string): void {
-    // Log numeric-like strings that failed to parse
-  }
-  
-  getSuggestions(): UnmatchedPattern[] {
-    // Return patterns that appear frequently (>3 times)
-    return Array.from(this.unmatchedPatterns.values())
-      .filter(p => p.frequency >= 3)
-      .sort((a, b) => b.frequency - a.frequency);
-  }
-}
-```
-
-**File: `src/lib/ruleEngine/index.ts`**
-
-Add learning hooks:
-```typescript
-// At end of processDocument():
-const patternSuggestions = patternLearner.getSuggestions();
-if (patternSuggestions.length > 0) {
-  console.log('[PatternLearner] Unmatched patterns found:', patternSuggestions);
-  warnings.push(`${patternSuggestions.length} unrecognized patterns detected - results may be incomplete`);
-}
+```sql
+UPDATE plans SET dodo_product_id = 'pdt_xxx' WHERE name = 'starter_annual';
+UPDATE plans SET dodo_product_id = 'pdt_xxx' WHERE name = 'pro_annual';
+UPDATE plans SET dodo_product_id = 'pdt_xxx' WHERE name = 'business_annual';
 ```
 
 ---
 
-## Files to Create/Modify Summary
+## Files to Create/Modify
 
 | File | Action | Changes |
 |------|--------|---------|
-| `src/lib/ruleEngine/pageBreakHandler.ts` | CREATE | Cross-page transaction stitching |
-| `src/lib/ruleEngine/textQualityAnalyzer.ts` | CREATE | Gibberish detection & OCR fallback trigger |
-| `src/lib/ruleEngine/partialStatementDetector.ts` | CREATE | Partial statement detection |
-| `src/lib/ruleEngine/accountingCodeMapper.ts` | CREATE | QuickBooks/Xero code mapping |
-| `src/lib/ruleEngine/patternLearner.ts` | CREATE | Auto-learning pattern suggestions |
-| `src/lib/ruleEngine/numberParser.ts` | MODIFY | Add 10+ new date patterns, multilingual months |
-| `src/lib/ruleEngine/tableDetector.ts` | MODIFY | Multi-table detection, vertical gap splitting |
-| `src/lib/ruleEngine/balanceValidator.ts` | MODIFY | Overdraft handling, partial statement support |
-| `src/lib/ruleEngine/dynamicRowProcessor.ts` | MODIFY | Cross-page stitching integration |
-| `src/lib/ruleEngine/headerAnchors.ts` | MODIFY | Font-based header detection |
-| `src/lib/ruleEngine/types.ts` | MODIFY | Add fontInfo, accountingCode fields |
-| `src/lib/pdfProcessor.ts` | MODIFY | Quality score check, OCR fallback trigger |
-| `src/lib/pdfUtils.ts` | MODIFY | Extract font metadata from pdf.js |
-| `src/lib/excelGenerator.ts` | MODIFY | Add confidence columns, grade distribution |
+| `supabase/migrations/xxx_annual_plans.sql` | CREATE | Add annual plans, billing_interval column |
+| `supabase/functions/create-checkout/index.ts` | MODIFY | Add billing interval detection |
+| `supabase/functions/dodo-webhook/index.ts` | MODIFY | Handle annual expiry, store billing_interval |
+| `supabase/functions/track-usage/index.ts` | MINOR | Already uses get_remaining_pages (no changes) |
+| `src/hooks/use-checkout.tsx` | MODIFY | Extend PlanName type |
+| `src/hooks/use-usage.tsx` | MODIFY | Add annual plan types, batch limits |
+| `src/contexts/UsageContext.tsx` | MODIFY | Export new types |
+| `src/components/PricingSection.tsx` | MODIFY | Add billing toggle, dynamic pricing |
+| `src/components/dashboard/PlanCard.tsx` | MODIFY | Show billing interval info |
 
 ---
 
-## Implementation Priority Order
+## Lifetime Tier Details
 
-1. **High Priority** (Core accuracy improvements):
-   - Gibberish Detection & OCR Fallback (Improvement 2)
-   - Enhanced Date Formats (Improvement 3)
-   - Cross-Page Transaction Stitching (Improvement 1)
+The lifetime tier is **already partially implemented**:
 
-2. **Medium Priority** (Edge case handling):
-   - Multi-Table Detection (Improvement 5)
-   - Overdraft/Negative Balance (Improvement 6)
-   - Partial Statement Detection (Improvement 8)
+| Component | Status |
+|-----------|--------|
+| Plan in database | ✅ Exists (500 pages/mo, $119) |
+| Lifetime spots tracking | ✅ Exists (350 total, 0 sold) |
+| Checkout flow | ✅ Works (checks spots availability) |
+| Webhook handling | ✅ Works (increments sold_count) |
+| Refund handling | ✅ Works (decrements sold_count) |
+| No expiry | ✅ Works (expires_at = null) |
 
-3. **Lower Priority** (User experience & exports):
-   - Excel Export with Confidence (Improvement 4)
-   - Font Metadata for Headers (Improvement 7)
-   - Accounting Code Mapping (Improvement 9)
-   - Pattern Auto-Learning (Improvement 10)
+### Enhancements for Lifetime
+1. Store `billing_interval = 'lifetime'` in user_subscriptions
+2. Ensure get_remaining_pages returns correct monthly limit (500/mo)
+3. Show "No monthly fees" badge in dashboard
 
 ---
 
-## Expected Improvements
+## Implementation Order
 
-| Feature | Before | After |
-|---------|--------|-------|
-| Page-break descriptions | Truncated/orphaned | Properly stitched |
-| Corrupted text layer | Silent failure | Auto OCR fallback |
-| Ordinal dates (15th Jan) | Not parsed | Correctly parsed |
-| Confidence visibility | Hidden | Visible in Excel |
-| Multiple tables/page | Merged incorrectly | Separated correctly |
-| Overdraft accounts | False errors | Properly validated |
-| Bold headers | Missed sometimes | Higher detection rate |
-| Partial statements | Validation fails | Graceful handling |
-| Accounting import | Manual mapping | Auto code assignment |
-| Unrecognized patterns | Silent ignore | Logged for learning |
+1. **Database Migration** - Add annual plans, billing_interval column
+2. **Update Types** - Extend PlanType and PlanName in hooks
+3. **Update Edge Functions** - Modify checkout and webhook
+4. **Frontend UI** - Add billing toggle to PricingSection
+5. **Dashboard Updates** - Show billing interval in PlanCard
+6. **Create Dodo Products** - Add annual subscriptions in Dodo dashboard
+7. **Update Product IDs** - Link Dodo product IDs to database
+8. **End-to-End Testing** - Test checkout, renewal, cancellation
+
+---
+
+## Expected Behavior Summary
+
+| Scenario | Monthly | Annual | Lifetime |
+|----------|---------|--------|----------|
+| Price | $15-50/mo | $150-500/yr | $119 once |
+| Billing | Recurring monthly | Recurring yearly | One-time |
+| Quota reset | 1st of month | Anniversary date | 1st of month |
+| Expiry | 30 days | 365 days | Never |
+| Renewal | Auto-renews monthly | Auto-renews yearly | N/A |
+| Cancel | Access until period end | Access until period end | Permanent access |
 
 ---
 
 ## Risk Assessment
 
-- **Low risk**: All changes are additive and backward-compatible
-- **Fallback preserved**: Existing parsing continues to work if new detection fails
-- **No breaking changes**: New fields are optional in all interfaces
-- **Performance impact**: Minimal - most changes are O(n) operations
-- **Testing required**: Each improvement should be tested with relevant edge case PDFs
-
+- **Low risk**: All changes are additive, existing monthly subscriptions unaffected
+- **Dodo dependency**: Annual products must be created before testing
+- **Database migration**: Uses safe `ADD VALUE IF NOT EXISTS` for enums
+- **Backward compatible**: Existing subscriptions default to 'monthly' interval
