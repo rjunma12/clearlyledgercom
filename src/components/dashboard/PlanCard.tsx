@@ -20,8 +20,11 @@ const planIcons: Record<PlanType, typeof Zap> = {
   anonymous: Zap,
   registered_free: Zap,
   starter: Zap,
+  starter_annual: Zap,
   pro: Zap,
+  pro_annual: Zap,
   business: Crown,
+  business_annual: Crown,
   lifetime: Rocket,
 };
 
@@ -29,8 +32,11 @@ const planColors: Record<PlanType, string> = {
   anonymous: 'text-muted-foreground',
   registered_free: 'text-primary',
   starter: 'text-primary',
+  starter_annual: 'text-primary',
   pro: 'text-primary',
+  pro_annual: 'text-primary',
   business: 'text-primary',
+  business_annual: 'text-primary',
   lifetime: 'text-warning',
 };
 
