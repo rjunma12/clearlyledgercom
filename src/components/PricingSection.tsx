@@ -96,7 +96,7 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
           )}>
             Annual
             <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-              Save 17%
+              Save 16%
             </span>
           </span>
         </div>
