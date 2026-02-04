@@ -129,34 +129,23 @@ serve(async (req) => {
     const cancelReturnUrl = cancelUrl || `${baseUrl}/pricing`;
 
     // Create Dodo checkout session
-    // Dodo API expects different endpoints for subscriptions vs one-time payments
-    const isSubscription = plan.is_recurring;
-    const dodoBaseUrl = 'https://api.dodopayments.com/v1';
+    const dodoBaseUrl = 'https://api.dodopayments.com';
     
     // Determine billing interval and base plan
     const billingInterval = getBillingInterval(planName);
     const basePlanName = getBasePlanName(planName);
 
     const checkoutPayload = {
-      billing: {
-        city: '',
-        country: 'US',
-        state: '',
-        street: '',
-        zipcode: ''
-      },
-      customer: {
-        email: user.email,
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
-        phone_number: null
-      },
       product_cart: [
         {
           product_id: plan.dodo_product_id,
           quantity: 1
         }
       ],
-      payment_link: true,
+      customer: {
+        email: user.email,
+        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
+      },
       return_url: returnUrl,
       metadata: {
         user_id: user.id,
@@ -167,8 +156,8 @@ serve(async (req) => {
       }
     };
 
-    // Create checkout via Dodo API
-    const endpoint = isSubscription ? `${dodoBaseUrl}/subscriptions` : `${dodoBaseUrl}/payments`;
+    // Create checkout via Dodo API - unified endpoint for all payment types
+    const endpoint = `${dodoBaseUrl}/checkouts`;
     
     const dodoResponse = await fetch(endpoint, {
       method: 'POST',
@@ -180,10 +169,24 @@ serve(async (req) => {
     });
 
     if (!dodoResponse.ok) {
-      const errorText = await dodoResponse.text();
-      console.error('Dodo API error:', errorText);
+      const contentType = dodoResponse.headers.get('content-type');
+      let errorMessage = 'Failed to create checkout session';
+      
+      if (contentType?.includes('application/json')) {
+        try {
+          const errorData = await dodoResponse.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          console.error('Dodo API error:', errorData);
+        } catch {
+          console.error('Failed to parse Dodo error response');
+        }
+      } else {
+        const textResponse = await dodoResponse.text();
+        console.error('Dodo API returned non-JSON:', textResponse.substring(0, 500));
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'Failed to create checkout session' }),
+        JSON.stringify({ error: errorMessage }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -194,7 +197,7 @@ serve(async (req) => {
     await supabaseAdmin.from('payment_events').insert({
       user_id: user.id,
       event_type: 'checkout_created',
-      dodo_payment_id: dodoData.payment_id || dodoData.subscription_id,
+      dodo_payment_id: dodoData.session_id,
       plan_name: planName,
       amount_cents: plan.price_cents,
       currency: 'USD',
@@ -204,8 +207,8 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        checkoutUrl: dodoData.payment_link,
-        sessionId: dodoData.payment_id || dodoData.subscription_id
+        checkoutUrl: dodoData.checkout_url,
+        sessionId: dodoData.session_id
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
