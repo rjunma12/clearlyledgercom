@@ -98,10 +98,16 @@ serve(async (req) => {
           );
         }
 
+        // Determine correct Dodo API URL
+        const dodoMode = Deno.env.get('DODO_MODE') || 'live';
+        const dodoBaseUrl = dodoMode === 'test' 
+          ? 'https://test.dodopayments.com'
+          : 'https://live.dodopayments.com';
+
         // If there's a Dodo subscription, cancel it via API
         if (subscription.dodo_subscription_id) {
           const dodoResponse = await fetch(
-            `https://api.dodopayments.com/v1/subscriptions/${subscription.dodo_subscription_id}`,
+            `${dodoBaseUrl}/v1/subscriptions/${subscription.dodo_subscription_id}`,
             {
               method: 'PATCH',
               headers: {
