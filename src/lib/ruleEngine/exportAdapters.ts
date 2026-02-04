@@ -447,6 +447,190 @@ export function exportTransactions(
   return { headers, rows, format };
 }
 
+// =============================================================================
+// EXPORT FALLBACK CHAIN
+// =============================================================================
+
+export type ExportLevel = 'full' | 'validated' | 'raw' | 'minimal';
+
+export interface FallbackExportResult {
+  data: ExportedData;
+  level: ExportLevel;
+  warnings: string[];
+}
+
+/**
+ * Export with fallback chain - ensures users always get something
+ * Tries progressively simpler export levels until one succeeds
+ * Order: Full → Validated → Raw → Minimal
+ */
+export function exportWithFallback(
+  document: ParsedDocument,
+  formatType: ExportFormatType = 'standard'
+): FallbackExportResult {
+  const levels: ExportLevel[] = ['full', 'validated', 'raw', 'minimal'];
+  const warnings: string[] = [];
+  
+  for (const level of levels) {
+    try {
+      const data = exportAtLevel(document, formatType, level);
+      
+      if (level !== 'full') {
+        warnings.push(`Export degraded to '${level}' level due to data quality issues`);
+        console.log(`[ExportFallback] Using '${level}' export level`);
+      }
+      
+      return { data, level, warnings };
+    } catch (error) {
+      console.log(`[ExportFallback] Level '${level}' failed:`, error);
+      continue;
+    }
+  }
+  
+  // This should never happen, but provide a safety net
+  throw new Error('All export levels failed - no data could be exported');
+}
+
+/**
+ * Export at a specific quality level
+ */
+function exportAtLevel(
+  document: ParsedDocument,
+  formatType: ExportFormatType,
+  level: ExportLevel
+): ExportedData {
+  switch (level) {
+    case 'full':
+      // Full export with all validation checks
+      return fullExport(document, formatType);
+      
+    case 'validated':
+      // Only transactions with valid/warning status (exclude errors)
+      return validatedExport(document, formatType);
+      
+    case 'raw':
+      // Use rawTransactions fallback if available
+      return rawExport(document, formatType);
+      
+    case 'minimal':
+      // Date, description, amount only - no balance
+      return minimalExport(document, formatType);
+      
+    default:
+      throw new Error(`Unknown export level: ${level}`);
+  }
+}
+
+/**
+ * Full export - includes all columns and validations
+ */
+function fullExport(document: ParsedDocument, formatType: ExportFormatType): ExportedData {
+  const allTransactions = document.segments.flatMap(s => s.transactions);
+  
+  // Check if we have valid data
+  if (allTransactions.length === 0) {
+    throw new Error('No transactions to export');
+  }
+  
+  return exportTransactions(allTransactions, formatType);
+}
+
+/**
+ * Validated export - only transactions without errors
+ */
+function validatedExport(document: ParsedDocument, formatType: ExportFormatType): ExportedData {
+  const allTransactions = document.segments.flatMap(s => s.transactions);
+  
+  // Filter to only valid/warning transactions
+  const validTransactions = allTransactions.filter(
+    tx => tx.validationStatus !== 'error'
+  );
+  
+  if (validTransactions.length === 0) {
+    throw new Error('No validated transactions to export');
+  }
+  
+  console.log(`[ExportFallback] Validated export: ${validTransactions.length}/${allTransactions.length} transactions`);
+  
+  return exportTransactions(validTransactions, formatType);
+}
+
+/**
+ * Raw export - uses rawTransactions property as fallback
+ */
+function rawExport(document: ParsedDocument, formatType: ExportFormatType): ExportedData {
+  // Try rawTransactions first
+  if (document.rawTransactions && document.rawTransactions.length > 0) {
+    console.log(`[ExportFallback] Using rawTransactions fallback: ${document.rawTransactions.length} transactions`);
+    return exportTransactions(document.rawTransactions, formatType);
+  }
+  
+  // Fall back to all transactions regardless of validation
+  const allTransactions = document.segments.flatMap(s => s.transactions);
+  if (allTransactions.length === 0) {
+    throw new Error('No raw transactions to export');
+  }
+  
+  return exportTransactions(allTransactions, formatType);
+}
+
+/**
+ * Minimal export - date, description, and single amount column only
+ * Uses a simplified format that's more likely to succeed
+ */
+function minimalExport(document: ParsedDocument, formatType: ExportFormatType): ExportedData {
+  const allTransactions = document.segments.flatMap(s => s.transactions);
+  
+  // Also try rawTransactions
+  const transactions = allTransactions.length > 0 
+    ? allTransactions 
+    : (document.rawTransactions || []);
+  
+  if (transactions.length === 0) {
+    throw new Error('No transactions available for minimal export');
+  }
+  
+  // Create minimal format with just date, description, amount
+  const minimalFormat: ExportFormat = {
+    id: 'standard',
+    name: 'Minimal Export',
+    description: 'Simplified format with basic fields only',
+    fileExtension: 'csv',
+    dateFormat: 'YYYY-MM-DD',
+    columns: [
+      { header: 'Date', source: 'date', width: 12 },
+      { header: 'Description', source: 'description', width: 50 },
+      { 
+        header: 'Amount', 
+        source: 'computed',
+        transform: (_, t) => {
+          if (t.debit !== null) return -t.debit;
+          if (t.credit !== null) return t.credit;
+          return 0;
+        },
+        width: 15,
+      },
+    ],
+  };
+  
+  const headers = minimalFormat.columns.map(col => col.header);
+  
+  const rows = transactions.map(transaction => {
+    return minimalFormat.columns.map(col => {
+      if (col.source === 'computed' && col.transform) {
+        return col.transform(null, transaction);
+      }
+      
+      const value = transaction[col.source as keyof ParsedTransaction];
+      return value === null || value === undefined ? '' : String(value);
+    });
+  });
+  
+  console.log(`[ExportFallback] Minimal export: ${transactions.length} transactions`);
+  
+  return { headers, rows, format: minimalFormat };
+}
+
 /**
  * Export a parsed document to the specified format
  */

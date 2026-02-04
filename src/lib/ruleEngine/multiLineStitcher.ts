@@ -63,12 +63,65 @@ export function hasDescription(row: TextRow): boolean {
          descElements.some(e => e.text.trim().length > 0);
 }
 
+// =============================================================================
+// CONTINUATION DETECTION PATTERNS
+// =============================================================================
+
+/** Patterns that indicate a line is likely a continuation */
+const CONTINUATION_INDICATORS = [
+  /^[a-z]/,                         // Starts with lowercase = likely continuation
+  /^[,;:\-\/]/,                     // Starts with punctuation
+  /^\d{10,}/,                       // Long number (reference continuing)
+  /^at\s|^for\s|^to\s|^from\s|^by\s|^via\s/i, // Common prepositions
+  /^and\s|^or\s|^with\s/i,          // Conjunctions
+  /^ref\s*[:.]?\s*\d/i,             // Reference number continuation
+];
+
+/** Patterns that definitively indicate NOT a continuation */
+const NON_CONTINUATION_INDICATORS = [
+  /^\d{1,2}[\/\-\.]\d{1,2}/,        // Starts with date-like pattern
+  /^opening|^closing|^balance/i,    // Balance keywords
+  /^total|^subtotal/i,              // Summary keywords
+  /^page\s*\d/i,                    // Page number
+  /^statement/i,                    // Statement header
+];
+
 /**
  * Determine if a row is a continuation line (orphan description)
  * A continuation line has description text but NO date and NO amounts
+ * Enhanced with pattern-based detection
  */
 export function isContinuationRow(row: TextRow): boolean {
-  return hasDescription(row) && !hasValidDate(row) && !hasMonetaryAmount(row);
+  if (!hasDescription(row)) return false;
+  if (hasValidDate(row) || hasMonetaryAmount(row)) return false;
+  
+  const desc = extractDescription(row);
+  
+  // Definite non-continuation patterns
+  if (NON_CONTINUATION_INDICATORS.some(p => p.test(desc))) {
+    return false;
+  }
+  
+  // Check for positive continuation indicators (optional, boosts confidence)
+  const hasContinuationIndicator = CONTINUATION_INDICATORS.some(p => p.test(desc));
+  
+  // Base case: no date + no amount + has description = likely continuation
+  // The continuation indicators just provide additional confidence
+  return true;
+}
+
+/**
+ * Extract description text from a row
+ */
+function extractDescription(row: TextRow): string {
+  const descElements = row.elements.get('description');
+  if (!descElements) return '';
+  
+  return descElements
+    .map(e => e.text)
+    .join(' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 /**
@@ -131,20 +184,6 @@ export function applyLookBackStitching(rows: TextRow[]): StitchedRow[] {
   }
   
   return stitchedRows;
-}
-
-/**
- * Extract description text from a row
- */
-function extractDescription(row: TextRow): string {
-  const descElements = row.elements.get('description');
-  if (!descElements) return '';
-  
-  return descElements
-    .map(e => e.text)
-    .join(' ')
-    .trim()
-    .replace(/\s+/g, ' ');  // Normalize whitespace
 }
 
 /**

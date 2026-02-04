@@ -263,11 +263,44 @@ function createEmptyAnchors(): LockedColumnAnchors {
 }
 
 // =============================================================================
-// ANCHOR USAGE
+// ANCHOR USAGE WITH ADAPTIVE DRIFT TOLERANCE
 // =============================================================================
 
 // Default page drift tolerance in pixels
 const DEFAULT_PAGE_DRIFT_TOLERANCE = 15;
+const MAX_PAGE_DRIFT_TOLERANCE = 30;
+
+/**
+ * Calculate adaptive drift tolerance based on observed column drift between pages
+ * Returns a tolerance value between DEFAULT and MAX based on actual page variation
+ */
+export function calculateAdaptiveDriftTolerance(
+  page1Boundaries: ColumnBoundary[],
+  pageNBoundaries: ColumnBoundary[]
+): number {
+  if (page1Boundaries.length === 0 || pageNBoundaries.length === 0) {
+    return DEFAULT_PAGE_DRIFT_TOLERANCE;
+  }
+  
+  const drifts: number[] = [];
+  
+  // Compare column positions between pages
+  for (let i = 0; i < Math.min(page1Boundaries.length, pageNBoundaries.length); i++) {
+    const drift = Math.abs(page1Boundaries[i].centerX - pageNBoundaries[i].centerX);
+    drifts.push(drift);
+  }
+  
+  if (drifts.length === 0) return DEFAULT_PAGE_DRIFT_TOLERANCE;
+  
+  const avgDrift = drifts.reduce((a, b) => a + b, 0) / drifts.length;
+  
+  // Use 2x average drift as tolerance, clamped between DEFAULT and MAX
+  const adaptiveTolerance = Math.min(MAX_PAGE_DRIFT_TOLERANCE, Math.max(DEFAULT_PAGE_DRIFT_TOLERANCE, avgDrift * 2));
+  
+  console.log(`[HeaderAnchors] Adaptive drift tolerance: ${adaptiveTolerance.toFixed(1)}px (avg drift: ${avgDrift.toFixed(1)}px)`);
+  
+  return adaptiveTolerance;
+}
 
 /**
  * Assign a word to a column based on locked anchors

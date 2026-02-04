@@ -386,17 +386,17 @@ export function parseDate(
         year = parseInt(match[3]) + 2000;
         break;
         
-      // NEW: Day without year - infer current year
+      // NEW: Day without year - infer year from context
       case 'DD MMM':
         day = parseInt(match[1]);
         month = MONTH_NAMES[match[2].toLowerCase()] ?? 1;
-        year = new Date().getFullYear();
+        year = inferYearFromContext(month, day);
         break;
         
       case 'MMM DD':
         month = MONTH_NAMES[match[1].toLowerCase()] ?? 1;
         day = parseInt(match[2]);
-        year = new Date().getFullYear();
+        year = inferYearFromContext(month, day);
         break;
         
       default:
@@ -413,6 +413,68 @@ export function parseDate(
   }
   
   return null;
+}
+
+// =============================================================================
+// YEAR INFERENCE
+// =============================================================================
+
+/** Context for year inference - can be set from statement period */
+let statementPeriodContext: { from?: string; to?: string } | null = null;
+
+/**
+ * Set the statement period context for year inference
+ * Call this when parsing a new statement to help infer years for short dates
+ */
+export function setStatementPeriodContext(period: { from?: string; to?: string } | null): void {
+  statementPeriodContext = period;
+}
+
+/**
+ * Infer the year for dates that lack a year component
+ * Uses statement period context if available, otherwise uses current year
+ * with logic to handle year boundaries
+ */
+export function inferYearFromContext(
+  month: number,
+  day: number,
+  period?: { from?: string; to?: string }
+): number {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  
+  // Use provided period or global context
+  const activePeriod = period || statementPeriodContext;
+  
+  // Try to extract year from statement period
+  if (activePeriod?.from) {
+    const fromParts = activePeriod.from.split('-');
+    if (fromParts.length >= 1) {
+      const periodYear = parseInt(fromParts[0]);
+      if (!isNaN(periodYear) && periodYear >= 1900 && periodYear <= 2100) {
+        return periodYear;
+      }
+    }
+  }
+  
+  if (activePeriod?.to) {
+    const toParts = activePeriod.to.split('-');
+    if (toParts.length >= 1) {
+      const periodYear = parseInt(toParts[0]);
+      if (!isNaN(periodYear) && periodYear >= 1900 && periodYear <= 2100) {
+        return periodYear;
+      }
+    }
+  }
+  
+  // Heuristic: if month is significantly ahead of current month,
+  // it's likely from the previous year
+  // (e.g., if current is February and we see October, assume last year)
+  if (month > currentMonth + 2) {
+    return currentYear - 1;
+  }
+  
+  return currentYear;
 }
 
 /**

@@ -194,9 +194,140 @@ function hasGibberishPattern(text: string): boolean {
   
   // High ratio of special characters
   const specialCount = (text.match(/[^a-zA-Z0-9\s]/g) || []).length;
-  if (specialCount / text.length > 0.3) return true;
+  if (text.length > 5 && specialCount / text.length > 0.3) return true;
+  
+  // Repeated characters
+  if (/(.)\1{4,}/.test(text)) return true;
   
   return false;
+}
+
+// =============================================================================
+// ROW-LEVEL CONFIDENCE WITH FALLBACK
+// =============================================================================
+
+export interface RowConfidenceResult {
+  rowIndex: number;
+  overallScore: number;
+  breakdown: {
+    dateClarity: number;
+    amountPresence: number;
+    balanceIntegrity: number;
+    descriptionQuality: number;
+  };
+  flags: string[];
+  needsReview: boolean;
+}
+
+/**
+ * Score a transaction row for confidence with detailed breakdown
+ * Used for row-level fallback decisions
+ */
+export function scoreTransactionRow(
+  tx: ParsedTransaction,
+  prevBalance: number | null
+): RowConfidenceResult {
+  const flags: string[] = [];
+  
+  // Date clarity (0-100)
+  let dateClarity = 0;
+  if (tx.date && tx.date.length > 0) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(tx.date)) {
+      dateClarity = 100;
+    } else {
+      dateClarity = 50;
+      flags.push('Non-standard date');
+    }
+  } else {
+    flags.push('Missing date');
+  }
+  
+  // Amount presence (0-100)
+  let amountPresence = 0;
+  if (tx.debit !== null || tx.credit !== null) {
+    amountPresence = 100;
+    if (tx.debit !== null && tx.credit !== null) {
+      amountPresence = 70; // Unusual to have both
+      flags.push('Both debit and credit');
+    }
+  } else {
+    flags.push('No amount');
+  }
+  
+  // Balance integrity (0-100)
+  let balanceIntegrity = 100;
+  if (prevBalance !== null && tx.balance !== undefined) {
+    const expected = prevBalance + (tx.credit ?? 0) - (tx.debit ?? 0);
+    const diff = Math.abs(expected - tx.balance);
+    
+    if (diff > 1.00) {
+      balanceIntegrity = 0;
+      flags.push('Balance mismatch');
+    } else if (diff > 0.10) {
+      balanceIntegrity = 50;
+      flags.push('Balance rounding');
+    } else if (diff > 0.01) {
+      balanceIntegrity = 80;
+    }
+  } else if (tx.validationStatus === 'error') {
+    balanceIntegrity = 20;
+    flags.push('Validation error');
+  } else if (tx.validationStatus === 'warning') {
+    balanceIntegrity = 60;
+    flags.push('Validation warning');
+  }
+  
+  // Description quality (0-100)
+  let descriptionQuality = 100;
+  if (!tx.description || tx.description.trim().length === 0) {
+    descriptionQuality = 30;
+    flags.push('Missing description');
+  } else if (tx.description.length < 3) {
+    descriptionQuality = 50;
+    flags.push('Short description');
+  } else if (hasGibberishPattern(tx.description)) {
+    descriptionQuality = 40;
+    flags.push('Possible OCR error');
+  }
+  
+  // Calculate weighted overall
+  const overallScore = Math.round(
+    dateClarity * 0.20 +
+    amountPresence * 0.30 +
+    balanceIntegrity * 0.30 +
+    descriptionQuality * 0.20
+  );
+  
+  return {
+    rowIndex: tx.rowIndex,
+    overallScore,
+    breakdown: {
+      dateClarity,
+      amountPresence,
+      balanceIntegrity,
+      descriptionQuality,
+    },
+    flags,
+    needsReview: overallScore < 70,
+  };
+}
+
+/**
+ * Score all transactions and identify those needing review
+ */
+export function scoreAllTransactions(
+  transactions: ParsedTransaction[]
+): RowConfidenceResult[] {
+  const results: RowConfidenceResult[] = [];
+  let prevBalance: number | null = null;
+  
+  for (const tx of transactions) {
+    const result = scoreTransactionRow(tx, prevBalance);
+    results.push(result);
+    prevBalance = tx.balance;
+  }
+  
+  return results;
 }
 
 // =============================================================================
