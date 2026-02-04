@@ -134,7 +134,7 @@ async function extractScannedPDF(
   // Sequential OCR processing (Tesseract.js is not parallel-safe)
   for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
     const page = await document.getPage(pageNum);
-    const canvas = await renderPageToCanvas(page, 1.5); // Lower DPI for speed
+    const canvas = await renderPageToCanvas(page, 4.0); // Higher DPI (~288) for better OCR accuracy
     
     const ocrResult = await processImage(canvas, pageNum, {
       languages,

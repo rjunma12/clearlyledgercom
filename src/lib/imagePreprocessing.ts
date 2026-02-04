@@ -225,13 +225,181 @@ export function hasDarkBackground(imageData: ImageData): boolean {
 }
 
 /**
+ * Detect skew angle using horizontal projection profile
+ * Returns angle in degrees (-10 to +10)
+ */
+export function detectSkewAngle(imageData: ImageData): number {
+  const width = imageData.width;
+  const height = imageData.height;
+  const data = imageData.data;
+  
+  let bestAngle = 0;
+  let maxVariance = 0;
+  
+  // Test angles from -10 to +10 degrees in 0.5 degree steps
+  for (let angle = -10; angle <= 10; angle += 0.5) {
+    const radians = (angle * Math.PI) / 180;
+    const projection = new Array(height).fill(0);
+    
+    // Sample every 4th pixel for performance on high-DPI images
+    const sampleStep = Math.max(1, Math.floor(width / 500));
+    
+    // Calculate horizontal projection at this angle
+    for (let y = 0; y < height; y += sampleStep) {
+      for (let x = 0; x < width; x += sampleStep) {
+        // Rotate point
+        const rotatedY = Math.round(
+          y * Math.cos(radians) - x * Math.sin(radians) + height / 2
+        );
+        
+        if (rotatedY >= 0 && rotatedY < height) {
+          const idx = (y * width + x) * 4;
+          // Count dark pixels (text)
+          if (data[idx] < 128) {
+            projection[rotatedY]++;
+          }
+        }
+      }
+    }
+    
+    // Calculate variance of projection
+    const mean = projection.reduce((a, b) => a + b, 0) / height;
+    const variance = projection.reduce((sum, val) => sum + (val - mean) ** 2, 0) / height;
+    
+    if (variance > maxVariance) {
+      maxVariance = variance;
+      bestAngle = angle;
+    }
+  }
+  
+  return bestAngle;
+}
+
+/**
+ * Deskew an image by rotating to correct detected skew
+ */
+export function deskew(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const angle = detectSkewAngle(imageData);
+  
+  // Only deskew if angle is significant (> 0.5 degrees)
+  if (Math.abs(angle) < 0.5) {
+    console.log('[Deskew] Skew angle negligible, skipping rotation');
+    return canvas;
+  }
+  
+  console.log(`[Deskew] Detected skew angle: ${angle.toFixed(2)}°, applying correction`);
+  
+  // Create new canvas for rotated image
+  const rotatedCanvas = document.createElement('canvas');
+  const rotatedCtx = rotatedCanvas.getContext('2d');
+  if (!rotatedCtx) return canvas;
+  
+  rotatedCanvas.width = canvas.width;
+  rotatedCanvas.height = canvas.height;
+  
+  // Rotate around center
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radians = (-angle * Math.PI) / 180;
+  
+  rotatedCtx.fillStyle = 'white';
+  rotatedCtx.fillRect(0, 0, canvas.width, canvas.height);
+  rotatedCtx.translate(centerX, centerY);
+  rotatedCtx.rotate(radians);
+  rotatedCtx.drawImage(canvas, -centerX, -centerY);
+  
+  return rotatedCanvas;
+}
+
+/**
+ * Calculate contrast score for quality analysis
+ */
+function calculateContrastScore(imageData: ImageData): number {
+  const data = imageData.data;
+  let min = 255, max = 0;
+  
+  // Sample pixels for performance
+  const step = Math.max(1, Math.floor(data.length / 40000));
+  for (let i = 0; i < data.length; i += step * 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    min = Math.min(min, gray);
+    max = Math.max(max, gray);
+  }
+  
+  return ((max - min) / 255) * 100;
+}
+
+export interface ScanQualityReport {
+  estimatedDPI: number;
+  skewAngle: number;
+  contrastScore: number;
+  isAcceptable: boolean;
+  issues: string[];
+}
+
+/**
+ * Analyze scan quality before OCR
+ */
+export function analyzeScanQuality(canvas: HTMLCanvasElement): ScanQualityReport {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return {
+      estimatedDPI: 0,
+      skewAngle: 0,
+      contrastScore: 0,
+      isAcceptable: false,
+      issues: ['Cannot analyze canvas'],
+    };
+  }
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const issues: string[] = [];
+  
+  // Estimate DPI from canvas size (assuming A4 paper)
+  // A4 = 8.27" x 11.69", so if width represents ~8" at 300 DPI, width should be ~2400px
+  const estimatedDPI = Math.round((canvas.width / 8.27));
+  if (estimatedDPI < 150) {
+    issues.push(`Low resolution: ~${estimatedDPI} DPI (recommended: 300+)`);
+  }
+  
+  // Detect skew
+  const skewAngle = detectSkewAngle(imageData);
+  if (Math.abs(skewAngle) > 7) {
+    issues.push(`Significant skew: ${skewAngle.toFixed(1)}° (will be auto-corrected)`);
+  }
+  
+  // Calculate contrast score
+  const contrastScore = calculateContrastScore(imageData);
+  if (contrastScore < 30) {
+    issues.push(`Low contrast: ${contrastScore.toFixed(0)}% (may affect accuracy)`);
+  }
+  
+  console.log(`[ScanQuality] DPI: ~${estimatedDPI}, Skew: ${skewAngle.toFixed(1)}°, Contrast: ${contrastScore.toFixed(0)}%`);
+  
+  return {
+    estimatedDPI,
+    skewAngle,
+    contrastScore,
+    isAcceptable: estimatedDPI >= 150 && contrastScore >= 20,
+    issues,
+  };
+}
+
+/**
  * Complete preprocessing pipeline for OCR
  */
 export function preprocessForOCR(canvas: HTMLCanvasElement): HTMLCanvasElement {
-  const ctx = canvas.getContext('2d');
+  // STEP 0: Deskew first (before other processing)
+  let processedCanvas = deskew(canvas);
+  
+  const ctx = processedCanvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get canvas context');
   
-  let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  let imageData = ctx.getImageData(0, 0, processedCanvas.width, processedCanvas.height);
   
   // Check for dark background and invert if needed
   if (hasDarkBackground(imageData)) {
@@ -242,6 +410,9 @@ export function preprocessForOCR(canvas: HTMLCanvasElement): HTMLCanvasElement {
   imageData = convertToGrayscale(imageData);
   imageData = adjustContrast(imageData, 1.4);
   
+  // ADD: Sharpen to enhance edge definition for OCR
+  imageData = sharpen(imageData, 0.3);
+  
   // Remove light noise
   imageData = removeNoise(imageData, 1);
   
@@ -250,7 +421,7 @@ export function preprocessForOCR(canvas: HTMLCanvasElement): HTMLCanvasElement {
   imageData = applyThreshold(imageData, threshold);
   
   ctx.putImageData(imageData, 0, 0);
-  return canvas;
+  return processedCanvas;
 }
 
 /**
