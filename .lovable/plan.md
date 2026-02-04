@@ -1,190 +1,385 @@
 
-# Plan: Fix Dodo Payments Checkout Integration
 
-## Issue Identified
+# Plan: Improve Scanned PDF OCR Conversion Quality
 
-When users sign in and press a pay button, the checkout gets stuck in a loading state. The root cause is a **DNS resolution error** when calling the Dodo Payments API:
+## Overview
 
-```
-error sending request for url (https://api.dodopayments.com/v1/subscriptions): 
-dns error: failed to lookup address information
-```
+This plan implements high-impact improvements to the OCR pipeline for scanned bank statements, focusing on resolution, preprocessing, Tesseract configuration, and deskewing. These changes target the most common quality issues: blurry text, tilted scans, and poor character recognition.
 
-## Root Cause Analysis
+---
 
-The `create-checkout` edge function has three critical issues:
+## Current Pipeline Analysis
 
-| Issue | Current Code | Correct API |
-|-------|--------------|-------------|
-| Wrong API URL | `https://api.dodopayments.com/v1` | `https://api.dodopayments.com` (live) or `https://test.dodopayments.com` (test) |
-| Wrong endpoint | `/subscriptions` and `/payments` | `/checkouts` (unified for both) |
-| Wrong response field | `dodoData.payment_link` | `dodoData.checkout_url` |
-
-According to the Dodo Payments documentation, the unified checkout API:
-- Uses `POST /checkouts` for both subscriptions and one-time payments
-- Returns `checkout_url` (not `payment_link`)
-- Returns `session_id` (not `payment_id` or `subscription_id`)
+| Stage | Current Implementation | Issue |
+|-------|------------------------|-------|
+| **Render DPI** | Scale 1.5 (~108 DPI) | Far below Tesseract's optimal 300 DPI |
+| **Preprocessing** | Grayscale → Contrast 1.4 → Noise removal → Otsu threshold | Missing sharpening step |
+| **Tesseract Config** | Default PSM (auto) | Not optimized for tabular bank data |
+| **Deskewing** | Not implemented | Tilted scans reduce accuracy |
 
 ---
 
 ## Changes Required
 
-### File: `supabase/functions/create-checkout/index.ts`
+### 1. Increase Render Resolution to 300 DPI
 
-**1. Update the API base URL (lines 133-134)**
+**File: `src/lib/pdfProcessor.ts`**
 
-Current:
+Update the `renderPageToCanvas` scale from 1.5 to 4.0:
+
 ```typescript
-const dodoBaseUrl = 'https://api.dodopayments.com/v1';
+// Line 137: Change scale from 1.5 to 4.0
+const canvas = await renderPageToCanvas(page, 4.0); // 4.0 scale ≈ 288 DPI
 ```
 
-Change to:
+**Why:** Tesseract.js performs best at 300 DPI. Current 1.5 scale (~108 DPI) causes blurry character recognition. Scale 4.0 on a 72 DPI PDF base = ~288 DPI.
+
+---
+
+### 2. Add Sharpening to Preprocessing Pipeline
+
+**File: `src/lib/imagePreprocessing.ts`**
+
+Update the `preprocessForOCR` function to include sharpening before thresholding:
+
 ```typescript
-// Use test mode for development, live mode for production
-const dodoBaseUrl = 'https://api.dodopayments.com';
+export function preprocessForOCR(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  // ... existing code ...
+  
+  // Apply preprocessing pipeline
+  imageData = convertToGrayscale(imageData);
+  imageData = adjustContrast(imageData, 1.4);
+  
+  // ADD: Sharpen to enhance edge definition
+  imageData = sharpen(imageData, 0.3);
+  
+  // Remove light noise
+  imageData = removeNoise(imageData, 1);
+  
+  // Apply adaptive threshold
+  const threshold = calculateOtsuThreshold(imageData);
+  imageData = applyThreshold(imageData, threshold);
+  
+  // ... rest of function
+}
 ```
 
-**2. Update the endpoint to use unified /checkouts (lines 170-171)**
+**Why:** The `sharpen()` function already exists but isn't used. Adding it improves edge definition for character recognition.
 
-Current:
+---
+
+### 3. Configure Tesseract PSM for Tabular Data
+
+**File: `src/lib/ocrService.ts`**
+
+Update worker initialization to use PSM 6 (assume uniform text block):
+
 ```typescript
-const endpoint = isSubscription ? `${dodoBaseUrl}/subscriptions` : `${dodoBaseUrl}/payments`;
+export async function getWorker(languages: string[] = ['eng']): Promise<Worker> {
+  // ... existing worker setup ...
+  
+  workerInstance = await tesseract.createWorker(languages.join('+'), 1, {
+    logger: (m) => {
+      if (m.status === 'recognizing text') {
+        // Progress tracking
+      }
+    },
+  });
+  
+  // ADD: Configure for tabular bank statement layout
+  await workerInstance.setParameters({
+    tessedit_pageseg_mode: '6', // PSM 6: Assume uniform block of text
+    preserve_interword_spaces: '1', // Keep column spacing
+  });
+  
+  currentLanguages = [...languages];
+  return workerInstance;
+}
 ```
 
-Change to:
-```typescript
-const endpoint = `${dodoBaseUrl}/checkouts`;
-```
+**Why:** Bank statements have consistent tabular layouts. PSM 6 tells Tesseract to expect uniform text blocks rather than auto-detecting mixed content.
 
-**3. Update the checkout payload format (lines 140-168)**
+---
 
-Current payload has unnecessary `billing` object. Update to match Dodo API:
+### 4. Implement Deskewing for Tilted Scans
+
+**File: `src/lib/imagePreprocessing.ts`**
+
+Add a new deskew function using projection profile analysis:
+
 ```typescript
-const checkoutPayload = {
-  product_cart: [
-    {
-      product_id: plan.dodo_product_id,
-      quantity: 1
+/**
+ * Detect skew angle using horizontal projection profile
+ * Returns angle in degrees (-45 to +45)
+ */
+export function detectSkewAngle(imageData: ImageData): number {
+  const width = imageData.width;
+  const height = imageData.height;
+  const data = imageData.data;
+  
+  let bestAngle = 0;
+  let maxVariance = 0;
+  
+  // Test angles from -10 to +10 degrees in 0.5 degree steps
+  for (let angle = -10; angle <= 10; angle += 0.5) {
+    const radians = (angle * Math.PI) / 180;
+    const projection = new Array(height).fill(0);
+    
+    // Calculate horizontal projection at this angle
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // Rotate point
+        const rotatedY = Math.round(
+          y * Math.cos(radians) - x * Math.sin(radians) + height / 2
+        );
+        
+        if (rotatedY >= 0 && rotatedY < height) {
+          const idx = (y * width + x) * 4;
+          // Count dark pixels (text)
+          if (data[idx] < 128) {
+            projection[rotatedY]++;
+          }
+        }
+      }
     }
-  ],
-  customer: {
-    email: user.email,
-    name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
-  },
-  return_url: returnUrl,
-  metadata: {
-    user_id: user.id,
-    plan_name: planName,
-    plan_id: plan.id,
-    billing_interval: billingInterval,
-    base_plan: basePlanName
-  }
-};
-```
-
-**4. Update the response handling (lines 191-210)**
-
-Current:
-```typescript
-const dodoData = await dodoResponse.json();
-// ...
-await supabaseAdmin.from('payment_events').insert({
-  dodo_payment_id: dodoData.payment_id || dodoData.subscription_id,
-  // ...
-});
-
-return new Response(
-  JSON.stringify({
-    checkoutUrl: dodoData.payment_link,
-    sessionId: dodoData.payment_id || dodoData.subscription_id
-  }),
-  // ...
-);
-```
-
-Change to:
-```typescript
-const dodoData = await dodoResponse.json();
-// ...
-await supabaseAdmin.from('payment_events').insert({
-  dodo_payment_id: dodoData.session_id,
-  // ...
-});
-
-return new Response(
-  JSON.stringify({
-    checkoutUrl: dodoData.checkout_url,
-    sessionId: dodoData.session_id
-  }),
-  // ...
-);
-```
-
-**5. Add better error handling with response parsing (lines 182-189)**
-
-Add defensive parsing for non-JSON error responses:
-```typescript
-if (!dodoResponse.ok) {
-  const contentType = dodoResponse.headers.get('content-type');
-  let errorMessage = 'Failed to create checkout session';
-  
-  if (contentType?.includes('application/json')) {
-    try {
-      const errorData = await dodoResponse.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch {}
-  } else {
-    const textResponse = await dodoResponse.text();
-    console.error('Dodo API returned non-JSON:', textResponse.substring(0, 500));
+    
+    // Calculate variance of projection
+    const mean = projection.reduce((a, b) => a + b, 0) / height;
+    const variance = projection.reduce((sum, val) => sum + (val - mean) ** 2, 0) / height;
+    
+    if (variance > maxVariance) {
+      maxVariance = variance;
+      bestAngle = angle;
+    }
   }
   
-  console.error('Dodo API error:', errorMessage);
-  return new Response(
-    JSON.stringify({ error: errorMessage }),
-    { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
+  return bestAngle;
+}
+
+/**
+ * Deskew an image by rotating to correct detected skew
+ */
+export function deskew(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const angle = detectSkewAngle(imageData);
+  
+  // Only deskew if angle is significant (> 0.5 degrees)
+  if (Math.abs(angle) < 0.5) {
+    console.log('[Deskew] Skew angle negligible, skipping rotation');
+    return canvas;
+  }
+  
+  console.log(`[Deskew] Detected skew angle: ${angle.toFixed(2)}°, applying correction`);
+  
+  // Create new canvas for rotated image
+  const rotatedCanvas = document.createElement('canvas');
+  const rotatedCtx = rotatedCanvas.getContext('2d');
+  if (!rotatedCtx) return canvas;
+  
+  rotatedCanvas.width = canvas.width;
+  rotatedCanvas.height = canvas.height;
+  
+  // Rotate around center
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radians = (-angle * Math.PI) / 180;
+  
+  rotatedCtx.fillStyle = 'white';
+  rotatedCtx.fillRect(0, 0, canvas.width, canvas.height);
+  rotatedCtx.translate(centerX, centerY);
+  rotatedCtx.rotate(radians);
+  rotatedCtx.drawImage(canvas, -centerX, -centerY);
+  
+  return rotatedCanvas;
+}
+```
+
+**Update `preprocessForOCR` to include deskewing:**
+
+```typescript
+export function preprocessForOCR(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  // STEP 0: Deskew first (before other processing)
+  let processedCanvas = deskew(canvas);
+  
+  const ctx = processedCanvas.getContext('2d');
+  if (!ctx) throw new Error('Failed to get canvas context');
+  
+  let imageData = ctx.getImageData(0, 0, processedCanvas.width, processedCanvas.height);
+  
+  // ... rest of preprocessing pipeline ...
 }
 ```
 
 ---
 
-## Complete Updated Edge Function
+### 5. Add Scan Quality Validation
 
-The key changes summarized:
+**File: `src/lib/imagePreprocessing.ts`**
 
-```text
-┌────────────────────────────────────────────────────────────────┐
-│                    BEFORE (Broken)                              │
-├────────────────────────────────────────────────────────────────┤
-│  URL: https://api.dodopayments.com/v1/subscriptions             │
-│  Response field: dodoData.payment_link                          │
-│  Session ID: dodoData.payment_id || dodoData.subscription_id    │
-└────────────────────────────────────────────────────────────────┘
+Add quality checks before OCR processing:
 
-┌────────────────────────────────────────────────────────────────┐
-│                    AFTER (Fixed)                                │
-├────────────────────────────────────────────────────────────────┤
-│  URL: https://api.dodopayments.com/checkouts                    │
-│  Response field: dodoData.checkout_url                          │
-│  Session ID: dodoData.session_id                                │
-└────────────────────────────────────────────────────────────────┘
+```typescript
+export interface ScanQualityReport {
+  estimatedDPI: number;
+  skewAngle: number;
+  contrastScore: number;
+  isAcceptable: boolean;
+  issues: string[];
+}
+
+/**
+ * Analyze scan quality before OCR
+ */
+export function analyzeScanQuality(canvas: HTMLCanvasElement): ScanQualityReport {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return {
+      estimatedDPI: 0,
+      skewAngle: 0,
+      contrastScore: 0,
+      isAcceptable: false,
+      issues: ['Cannot analyze canvas'],
+    };
+  }
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const issues: string[] = [];
+  
+  // Estimate DPI from canvas size (assuming A4 paper)
+  // A4 = 8.27" x 11.69", so if width represents ~8" at 300 DPI, width should be ~2400px
+  const estimatedDPI = Math.round((canvas.width / 8.27));
+  if (estimatedDPI < 150) {
+    issues.push(`Low resolution: ~${estimatedDPI} DPI (recommended: 300+)`);
+  }
+  
+  // Detect skew
+  const skewAngle = detectSkewAngle(imageData);
+  if (Math.abs(skewAngle) > 7) {
+    issues.push(`Significant skew: ${skewAngle.toFixed(1)}° (will be auto-corrected)`);
+  }
+  
+  // Calculate contrast score
+  const contrastScore = calculateContrastScore(imageData);
+  if (contrastScore < 30) {
+    issues.push(`Low contrast: ${contrastScore.toFixed(0)}% (may affect accuracy)`);
+  }
+  
+  return {
+    estimatedDPI,
+    skewAngle,
+    contrastScore,
+    isAcceptable: estimatedDPI >= 150 && contrastScore >= 20,
+    issues,
+  };
+}
+
+function calculateContrastScore(imageData: ImageData): number {
+  const data = imageData.data;
+  let min = 255, max = 0;
+  
+  // Sample pixels for performance
+  const step = Math.max(1, Math.floor(data.length / 40000));
+  for (let i = 0; i < data.length; i += step * 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    min = Math.min(min, gray);
+    max = Math.max(max, gray);
+  }
+  
+  return ((max - min) / 255) * 100;
+}
 ```
 
 ---
 
-## Files to Modify
+## Summary of Changes
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/create-checkout/index.ts` | Fix API URL, endpoint, payload format, and response handling |
+| `src/lib/pdfProcessor.ts` | Increase render scale from 1.5 to 4.0 |
+| `src/lib/imagePreprocessing.ts` | Add sharpening, implement deskewing, add quality analysis |
+| `src/lib/ocrService.ts` | Configure Tesseract PSM 6 for tabular data |
+
+---
+
+## Expected Quality Improvements
+
+| Issue | Before | After |
+|-------|--------|-------|
+| Blurry characters | ~108 DPI | ~288 DPI |
+| Soft edges | No sharpening | Sharpened edges |
+| Tilted scans | Not corrected | Auto-deskewed |
+| Layout detection | Auto PSM | PSM 6 (tabular) |
+| Quality feedback | None | Pre-scan quality report |
+
+---
+
+## Processing Flow After Changes
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                     IMPROVED OCR PIPELINE                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────┐                                           │
+│  │  1. Render PDF   │  Scale 4.0 (≈288 DPI)                     │
+│  │     to Canvas    │  vs previous 1.5 (≈108 DPI)               │
+│  └────────┬─────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  2. Quality      │  Check: DPI, Skew, Contrast               │
+│  │     Analysis     │  Warn user if issues detected             │
+│  └────────┬─────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  3. Deskew       │  Detect skew angle (-10° to +10°)         │
+│  │                  │  Rotate to correct if > 0.5°              │
+│  └────────┬─────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  4. Preprocess   │  Invert (if dark bg) → Grayscale →        │
+│  │                  │  Contrast 1.4 → Sharpen 0.3 →             │
+│  │                  │  Denoise → Otsu Threshold                 │
+│  └────────┬─────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  5. Tesseract    │  PSM 6 (uniform text block)               │
+│  │     OCR          │  Preserve interword spaces                │
+│  └────────┬─────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  6. OCR          │  Date corrections, numeric fixes,         │
+│  │     Corrections  │  currency symbols, financial terms        │
+│  └──────────────────┘                                           │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Trade-offs
+
+| Improvement | Benefit | Cost |
+|-------------|---------|------|
+| Higher DPI (4.0 scale) | Much better character recognition | ~3x memory per page, ~2x processing time |
+| Deskewing | Corrects tilted scans | ~100ms additional per page |
+| Sharpening | Clearer character edges | Minimal overhead |
+| PSM 6 | Better table column alignment | May reduce accuracy on non-tabular docs |
 
 ---
 
 ## Verification After Implementation
 
-1. Sign in to the application
-2. Navigate to the Pricing page
-3. Click any paid plan button (Starter, Pro, Business, or Lifetime)
-4. Confirm the button shows loading briefly then redirects to Dodo checkout page
-5. Complete a test payment (if in test mode)
-6. Confirm redirect back to success page works
+1. Upload a low-quality scanned bank statement
+2. Check console for quality analysis output
+3. Verify OCR text accuracy vs previous results
+4. Test with a tilted scan to verify deskewing works
+5. Compare transaction extraction accuracy before/after
+
