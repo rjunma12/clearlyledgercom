@@ -18,8 +18,23 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Strip console.error and console.warn in production to prevent info leakage
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor chunks for better caching
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-pdf': ['pdfjs-dist'],
+          'vendor-charts': ['recharts'],
+        },
+      },
+    },
+    // Increase chunk size warning limit (intentional chunking)
+    chunkSizeWarningLimit: 800,
+  },
+  // Strip console in production to prevent info leakage
   esbuild: mode === "production" ? {
-    drop: ['console'],
+    drop: ['console', 'debugger'],
+    legalComments: 'none',
   } : undefined,
 }));

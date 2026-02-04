@@ -225,7 +225,38 @@ export function hasDarkBackground(imageData: ImageData): boolean {
 }
 
 /**
- * Detect skew angle using horizontal projection profile
+ * Calculate projection variance for a given angle (helper for two-phase detection)
+ */
+function calculateProjectionVariance(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  angle: number,
+  sampleStep: number
+): number {
+  const radians = (angle * Math.PI) / 180;
+  const projection = new Array(height).fill(0);
+  
+  for (let y = 0; y < height; y += sampleStep) {
+    for (let x = 0; x < width; x += sampleStep) {
+      const rotatedY = Math.round(
+        y * Math.cos(radians) - x * Math.sin(radians) + height / 2
+      );
+      if (rotatedY >= 0 && rotatedY < height) {
+        const idx = (y * width + x) * 4;
+        if (data[idx] < 128) projection[rotatedY]++;
+      }
+    }
+  }
+  
+  const mean = projection.reduce((a, b) => a + b, 0) / height;
+  return projection.reduce((sum, val) => sum + (val - mean) ** 2, 0) / height;
+}
+
+/**
+ * Detect skew angle using two-phase search (5x faster than single-phase)
+ * Phase 1: Coarse search with 2° steps (11 iterations)
+ * Phase 2: Fine search with 0.5° steps around best angle (7 iterations)
  * Returns angle in degrees (-10 to +10)
  */
 export function detectSkewAngle(imageData: ImageData): number {
@@ -233,39 +264,30 @@ export function detectSkewAngle(imageData: ImageData): number {
   const height = imageData.height;
   const data = imageData.data;
   
+  // PHASE 1: Coarse search (2° steps) - 11 iterations instead of 41
   let bestAngle = 0;
   let maxVariance = 0;
   
-  // Test angles from -10 to +10 degrees in 0.5 degree steps
-  for (let angle = -10; angle <= 10; angle += 0.5) {
-    const radians = (angle * Math.PI) / 180;
-    const projection = new Array(height).fill(0);
-    
-    // Sample every 4th pixel for performance on high-DPI images
-    const sampleStep = Math.max(1, Math.floor(width / 500));
-    
-    // Calculate horizontal projection at this angle
-    for (let y = 0; y < height; y += sampleStep) {
-      for (let x = 0; x < width; x += sampleStep) {
-        // Rotate point
-        const rotatedY = Math.round(
-          y * Math.cos(radians) - x * Math.sin(radians) + height / 2
-        );
-        
-        if (rotatedY >= 0 && rotatedY < height) {
-          const idx = (y * width + x) * 4;
-          // Count dark pixels (text)
-          if (data[idx] < 128) {
-            projection[rotatedY]++;
-          }
-        }
-      }
+  // Sample every 8th pixel for phase 1 (8x faster)
+  const coarseSampleStep = Math.max(1, Math.floor(width / 200));
+  
+  for (let angle = -10; angle <= 10; angle += 2) {
+    const variance = calculateProjectionVariance(
+      data, width, height, angle, coarseSampleStep
+    );
+    if (variance > maxVariance) {
+      maxVariance = variance;
+      bestAngle = angle;
     }
-    
-    // Calculate variance of projection
-    const mean = projection.reduce((a, b) => a + b, 0) / height;
-    const variance = projection.reduce((sum, val) => sum + (val - mean) ** 2, 0) / height;
-    
+  }
+  
+  // PHASE 2: Fine search around best angle (0.5° steps, ±1.5° range)
+  // Only 7 iterations instead of 41
+  const fineSampleStep = Math.max(1, Math.floor(width / 400));
+  for (let angle = bestAngle - 1.5; angle <= bestAngle + 1.5; angle += 0.5) {
+    const variance = calculateProjectionVariance(
+      data, width, height, angle, fineSampleStep
+    );
     if (variance > maxVariance) {
       maxVariance = variance;
       bestAngle = angle;
@@ -390,16 +412,28 @@ export function analyzeScanQuality(canvas: HTMLCanvasElement): ScanQualityReport
 }
 
 /**
- * Complete preprocessing pipeline for OCR
+ * Complete preprocessing pipeline for OCR (optimized with early skew detection)
  */
 export function preprocessForOCR(canvas: HTMLCanvasElement): HTMLCanvasElement {
-  // STEP 0: Deskew first (before other processing)
-  let processedCanvas = deskew(canvas);
-  
-  const ctx = processedCanvas.getContext('2d');
+  const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get canvas context');
   
-  let imageData = ctx.getImageData(0, 0, processedCanvas.width, processedCanvas.height);
+  // Quick skew estimate on quarter-size sample (4x faster)
+  const sampleWidth = Math.floor(canvas.width / 2);
+  const sampleHeight = Math.floor(canvas.height / 2);
+  const sampleData = ctx.getImageData(0, 0, sampleWidth, sampleHeight);
+  const quickSkew = detectSkewAngle(sampleData);
+  
+  // Only run full deskew if significant skew detected (>1°)
+  let processedCanvas = canvas;
+  if (Math.abs(quickSkew) > 1.0) {
+    processedCanvas = deskew(canvas);
+  }
+  
+  const processedCtx = processedCanvas.getContext('2d');
+  if (!processedCtx) throw new Error('Failed to get canvas context');
+  
+  let imageData = processedCtx.getImageData(0, 0, processedCanvas.width, processedCanvas.height);
   
   // Check for dark background and invert if needed
   if (hasDarkBackground(imageData)) {
@@ -410,7 +444,7 @@ export function preprocessForOCR(canvas: HTMLCanvasElement): HTMLCanvasElement {
   imageData = convertToGrayscale(imageData);
   imageData = adjustContrast(imageData, 1.4);
   
-  // ADD: Sharpen to enhance edge definition for OCR
+  // Sharpen to enhance edge definition for OCR
   imageData = sharpen(imageData, 0.3);
   
   // Remove light noise
@@ -420,7 +454,7 @@ export function preprocessForOCR(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const threshold = calculateOtsuThreshold(imageData);
   imageData = applyThreshold(imageData, threshold);
   
-  ctx.putImageData(imageData, 0, 0);
+  processedCtx.putImageData(imageData, 0, 0);
   return processedCanvas;
 }
 

@@ -1,6 +1,5 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 
 // Only import English translations statically - others are lazy-loaded
 import enCommon from '@/locales/en/common.json';
@@ -24,6 +23,22 @@ const normalizeLanguage = (lng: string): string => {
   const baseCode = lng.split('-')[0].toLowerCase();
   const isSupported = supportedLanguages.some(l => l.code === baseCode);
   return isSupported ? baseCode : 'en';
+};
+
+// Inline minimal language detection (removes ~15KB i18next-browser-languagedetector)
+const getInitialLanguage = (): string => {
+  try {
+    const stored = localStorage.getItem('i18nextLng');
+    if (stored) {
+      const normalized = normalizeLanguage(stored);
+      if (supportedLanguages.some(l => l.code === normalized)) return normalized;
+    }
+  } catch {
+    // localStorage not available
+  }
+  
+  const nav = navigator.language?.split('-')[0] || 'en';
+  return supportedLanguages.some(l => l.code === nav) ? nav : 'en';
 };
 
 // Cache for loaded languages to prevent duplicate loads
@@ -55,19 +70,15 @@ const resources = {
   },
 };
 
-// Initialize i18n synchronously with English only
+// Initialize i18n synchronously with English only (inline detection for speed)
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
+    lng: getInitialLanguage(),
     fallbackLng: 'en',
     defaultNS: 'common',
     ns: ['common', 'home'],
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-    },
     interpolation: {
       escapeValue: false,
     },
@@ -76,15 +87,10 @@ i18n
     },
   });
 
-// Load detected language if not English
-const detectedLng = i18n.language;
-const normalizedDetectedLng = normalizeLanguage(detectedLng);
-if (normalizedDetectedLng !== 'en') {
-  loadLanguage(normalizedDetectedLng);
-}
-// Ensure i18n uses the normalized language code
-if (detectedLng !== normalizedDetectedLng) {
-  i18n.changeLanguage(normalizedDetectedLng);
+// Load non-English language if detected
+const initialLng = getInitialLanguage();
+if (initialLng !== 'en') {
+  loadLanguage(initialLng);
 }
 
 // Helper function to update document direction (call this from a React effect)

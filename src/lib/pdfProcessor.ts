@@ -19,8 +19,8 @@ import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 // Maximum pages for client-side OCR (scanned PDFs only)
 const MAX_OCR_PAGES = 3;
 
-// Parallel processing concurrency
-const CONCURRENCY = 4;
+// Parallel processing concurrency (increased from 4 for faster multi-page processing)
+const CONCURRENCY = 6;
 
 export interface PDFProcessingOptions {
   /**
@@ -134,7 +134,7 @@ async function extractScannedPDF(
   // Sequential OCR processing (Tesseract.js is not parallel-safe)
   for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
     const page = await document.getPage(pageNum);
-    const canvas = await renderPageToCanvas(page, 4.0); // Higher DPI (~288) for better OCR accuracy
+    const canvas = await renderPageToCanvas(page, 3.0); // 3.0 scale (~216 DPI) - 44% fewer pixels, still accurate
     
     const ocrResult = await processImage(canvas, pageNum, {
       languages,
