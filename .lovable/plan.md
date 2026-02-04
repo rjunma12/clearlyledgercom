@@ -1,231 +1,190 @@
 
+# Plan: Fix Dodo Payments Checkout Integration
 
-# Plan: Simplify Landing Page Pricing to 3 Tiers
+## Issue Identified
 
-## Overview
+When users sign in and press a pay button, the checkout gets stuck in a loading state. The root cause is a **DNS resolution error** when calling the Dodo Payments API:
 
-This plan adds a `variant` prop to `PricingSection` to control which tiers are displayed:
-- **Landing page (/)**: Shows only Anonymous, Registered, and Enterprise
-- **Pricing page (/pricing)**: Shows all tiers (full view with billing toggle)
+```
+error sending request for url (https://api.dodopayments.com/v1/subscriptions): 
+dns error: failed to lookup address information
+```
 
-The annual discount will be updated from 16% to 50% on the full pricing page.
+## Root Cause Analysis
 
----
+The `create-checkout` edge function has three critical issues:
 
-## Current State
+| Issue | Current Code | Correct API |
+|-------|--------------|-------------|
+| Wrong API URL | `https://api.dodopayments.com/v1` | `https://api.dodopayments.com` (live) or `https://test.dodopayments.com` (test) |
+| Wrong endpoint | `/subscriptions` and `/payments` | `/checkouts` (unified for both) |
+| Wrong response field | `dodoData.payment_link` | `dodoData.checkout_url` |
 
-| Location | Current Display |
-|----------|-----------------|
-| Landing page (`/`) | All 8 tiers + billing toggle |
-| Pricing page (`/pricing`) | All 8 tiers + billing toggle |
-
-## Target State
-
-| Location | Target Display |
-|----------|----------------|
-| Landing page (`/`) | Anonymous, Registered, Enterprise only (no billing toggle) |
-| Pricing page (`/pricing`) | All 8 tiers + billing toggle with "Save 50%" |
+According to the Dodo Payments documentation, the unified checkout API:
+- Uses `POST /checkouts` for both subscriptions and one-time payments
+- Returns `checkout_url` (not `payment_link`)
+- Returns `session_id` (not `payment_id` or `subscription_id`)
 
 ---
 
 ## Changes Required
 
-### 1. Add Variant Prop to PricingSection
+### File: `supabase/functions/create-checkout/index.ts`
 
-**File: `src/components/PricingSection.tsx`**
+**1. Update the API base URL (lines 133-134)**
 
-Add a new prop to control display mode:
-
+Current:
 ```typescript
-interface PricingSectionProps {
-  variant?: 'full' | 'simplified';
+const dodoBaseUrl = 'https://api.dodopayments.com/v1';
+```
+
+Change to:
+```typescript
+// Use test mode for development, live mode for production
+const dodoBaseUrl = 'https://api.dodopayments.com';
+```
+
+**2. Update the endpoint to use unified /checkouts (lines 170-171)**
+
+Current:
+```typescript
+const endpoint = isSubscription ? `${dodoBaseUrl}/subscriptions` : `${dodoBaseUrl}/payments`;
+```
+
+Change to:
+```typescript
+const endpoint = `${dodoBaseUrl}/checkouts`;
+```
+
+**3. Update the checkout payload format (lines 140-168)**
+
+Current payload has unnecessary `billing` object. Update to match Dodo API:
+```typescript
+const checkoutPayload = {
+  product_cart: [
+    {
+      product_id: plan.dodo_product_id,
+      quantity: 1
+    }
+  ],
+  customer: {
+    email: user.email,
+    name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Customer',
+  },
+  return_url: returnUrl,
+  metadata: {
+    user_id: user.id,
+    plan_name: planName,
+    plan_id: plan.id,
+    billing_interval: billingInterval,
+    base_plan: basePlanName
+  }
+};
+```
+
+**4. Update the response handling (lines 191-210)**
+
+Current:
+```typescript
+const dodoData = await dodoResponse.json();
+// ...
+await supabaseAdmin.from('payment_events').insert({
+  dodo_payment_id: dodoData.payment_id || dodoData.subscription_id,
+  // ...
+});
+
+return new Response(
+  JSON.stringify({
+    checkoutUrl: dodoData.payment_link,
+    sessionId: dodoData.payment_id || dodoData.subscription_id
+  }),
+  // ...
+);
+```
+
+Change to:
+```typescript
+const dodoData = await dodoResponse.json();
+// ...
+await supabaseAdmin.from('payment_events').insert({
+  dodo_payment_id: dodoData.session_id,
+  // ...
+});
+
+return new Response(
+  JSON.stringify({
+    checkoutUrl: dodoData.checkout_url,
+    sessionId: dodoData.session_id
+  }),
+  // ...
+);
+```
+
+**5. Add better error handling with response parsing (lines 182-189)**
+
+Add defensive parsing for non-JSON error responses:
+```typescript
+if (!dodoResponse.ok) {
+  const contentType = dodoResponse.headers.get('content-type');
+  let errorMessage = 'Failed to create checkout session';
+  
+  if (contentType?.includes('application/json')) {
+    try {
+      const errorData = await dodoResponse.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch {}
+  } else {
+    const textResponse = await dodoResponse.text();
+    console.error('Dodo API returned non-JSON:', textResponse.substring(0, 500));
+  }
+  
+  console.error('Dodo API error:', errorMessage);
+  return new Response(
+    JSON.stringify({ error: errorMessage }),
+    { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
-```
-
-- `full` (default): Shows all tiers including paid plans and billing toggle
-- `simplified`: Shows only Anonymous, Registered, and Enterprise
-
-**Conditional rendering logic:**
-- When `variant="simplified"`:
-  - Hide billing toggle (lines 81-102)
-  - Hide paid plans row (Starter, Pro, Business, Lifetime) (lines 184-465)
-  - Keep Anonymous + Registered cards (lines 104-182)
-  - Keep Enterprise section (lines 467-493)
-  - Keep trust footer (lines 495-501)
-
-### 2. Update Landing Page to Use Simplified Variant
-
-**File: `src/pages/Index.tsx`**
-
-Change line 155 from:
-```tsx
-<PricingSection />
-```
-To:
-```tsx
-<PricingSection variant="simplified" />
-```
-
-### 3. Keep Pricing Page Using Full Variant
-
-**File: `src/pages/Pricing.tsx`**
-
-No change needed - default `variant="full"` shows all tiers.
-
-### 4. Update Annual Discount to 50%
-
-**File: `src/components/PricingSection.tsx`**
-
-Change line 98-99 from:
-```tsx
-Save 16%
-```
-To:
-```tsx
-Save 50%
 ```
 
 ---
 
-## Visual Comparison
+## Complete Updated Edge Function
 
-### Landing Page (Simplified)
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    PRICING SECTION                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              "Choose Your Plan"                      │    │
-│  │   Start free. Upgrade when you need more power.      │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                              │
-│         ❌ NO BILLING TOGGLE (hidden)                        │
-│                                                              │
-│  ┌───────────────────┐    ┌───────────────────┐             │
-│  │    Anonymous      │    │    Registered     │             │
-│  │   (No Signup)     │    │      (Free)       │             │
-│  │   1 page/day      │    │   5 pages/day     │             │
-│  │  [Try Once Free]  │    │ [Create Account]  │             │
-│  └───────────────────┘    └───────────────────┘             │
-│                                                              │
-│         ❌ NO PAID PLANS (hidden)                            │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │  Enterprise - For teams, high-volume, custom needs   │    │
-│  │                   [Contact Us]                       │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                              │
-│       Secure payment via Dodo • Cancel anytime              │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Pricing Page (Full - Unchanged Layout)
+The key changes summarized:
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    PRICING SECTION                           │
-├─────────────────────────────────────────────────────────────┤
-│              "Choose Your Plan"                              │
-│                                                              │
-│        Monthly ○───────● Annual [Save 50%]                   │
-│                                                              │
-│  ┌─────────────┐  ┌─────────────┐                           │
-│  │  Anonymous  │  │ Registered  │                           │
-│  └─────────────┘  └─────────────┘                           │
-│                                                              │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐               │
-│  │Starter │ │  Pro   │ │Business│ │Lifetime│               │
-│  │  $15   │ │  $30   │ │  $50   │ │  $119  │               │
-│  └────────┘ └────────┘ └────────┘ └────────┘               │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                    Enterprise                        │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                    BEFORE (Broken)                              │
+├────────────────────────────────────────────────────────────────┤
+│  URL: https://api.dodopayments.com/v1/subscriptions             │
+│  Response field: dodoData.payment_link                          │
+│  Session ID: dodoData.payment_id || dodoData.subscription_id    │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│                    AFTER (Fixed)                                │
+├────────────────────────────────────────────────────────────────┤
+│  URL: https://api.dodopayments.com/checkouts                    │
+│  Response field: dodoData.checkout_url                          │
+│  Session ID: dodoData.session_id                                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Action | Changes |
-|------|--------|---------|
-| `src/components/PricingSection.tsx` | MODIFY | Add `variant` prop, conditional rendering, update "Save 50%" |
-| `src/pages/Index.tsx` | MODIFY | Pass `variant="simplified"` to PricingSection |
+| File | Changes |
+|------|---------|
+| `supabase/functions/create-checkout/index.ts` | Fix API URL, endpoint, payload format, and response handling |
 
 ---
 
-## Implementation Details
+## Verification After Implementation
 
-### PricingSection.tsx Changes
-
-1. **Update component signature** (line 41):
-```tsx
-interface PricingSectionProps {
-  variant?: 'full' | 'simplified';
-}
-
-const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(
-  ({ variant = 'full' }, ref) => {
-```
-
-2. **Conditional billing toggle** (wrap lines 81-102):
-```tsx
-{variant === 'full' && (
-  <div className="flex items-center justify-center gap-4 mb-12">
-    {/* ... billing toggle content ... */}
-  </div>
-)}
-```
-
-3. **Conditional paid plans row** (wrap lines 184-465):
-```tsx
-{variant === 'full' && (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-6">
-    {/* Starter, Professional, Business, Lifetime cards */}
-  </div>
-)}
-```
-
-4. **Update discount percentage** (line 99):
-```tsx
-Save 50%
-```
-
-5. **Adjust margins** for simplified view:
-   - When `variant="simplified"`, the Free tier row should have `mb-6` to connect nicely to Enterprise
-
-### Index.tsx Change
-
-Update line 155:
-```tsx
-<PricingSection variant="simplified" />
-```
-
----
-
-## Database Verification
-
-The database connection was verified working. All plans remain in the database for:
-- Existing subscribers
-- Dashboard subscription management
-- Full pricing page display
-- Payment processing via Dodo
-
-No database changes required.
-
----
-
-## Verification Checklist
-
-After implementation:
-1. Navigate to landing page (`/`) - confirm only Anonymous, Registered, Enterprise visible
-2. Confirm no billing toggle on landing page
-3. Navigate to pricing page (`/pricing`) - confirm all tiers visible
-4. Confirm billing toggle shows "Save 50%" on pricing page
-5. Test "Create Free Account" button navigates to signup
-6. Test "Contact Us" button navigates to contact page
-
+1. Sign in to the application
+2. Navigate to the Pricing page
+3. Click any paid plan button (Starter, Pro, Business, or Lifetime)
+4. Confirm the button shows loading briefly then redirects to Dodo checkout page
+5. Complete a test payment (if in test mode)
+6. Confirm redirect back to success page works
