@@ -88,10 +88,25 @@ export {
   type StitchedRow,
 } from './multiLineStitcher';
 
+// Skip Patterns (Enhanced with bank-specific patterns)
+export {
+  shouldSkipText,
+  shouldSkipTextForBank,
+  getSupportedBankIds,
+  isPageHeader,
+  isPageFooter,
+  isSummaryRow,
+  isSectionHeader,
+  classifyText,
+  type TextCategory,
+} from './skipPatterns';
+
 // Balance Validation
 export {
   validateBalanceEquation,
   validateTransactionChain,
+  validateWithTieredTolerance,
+  TOLERANCE_TIERS,
   detectSegmentBoundaries,
   splitIntoSegments,
   validateDocument,
@@ -99,6 +114,7 @@ export {
   isDocumentValid,
   getValidationSummary,
   type AuditFlag,
+  type ToleranceTierName,
 } from './balanceValidator';
 
 // Export Validation Agent
@@ -154,10 +170,21 @@ export {
   detectAndLockHeaders,
   assignWordToColumn,
   anchorsToColumnBoundaries,
+  calculateAdaptiveDriftTolerance,
   type LockedColumnAnchors,
   type ColumnAnchor,
   type HeaderDetectionResult,
 } from './headerAnchors';
+
+// Multi-Strategy Table Detection (NEW - Best-result selection)
+export {
+  runMultiStrategyDetection,
+  shouldUseMultiStrategy,
+  type DetectionStrategy,
+  type StrategyResult,
+  type MultiStrategyResult,
+  type StrategyMetrics,
+} from './multiStrategyDetector';
 
 // Provenance Tracking (NEW - No fabricated data)
 export {
@@ -187,7 +214,40 @@ export {
   isValidDate,
   normalizeAmount,
   determineAmountType,
+  inferYearFromContext,
+  setStatementPeriodContext,
 } from './numberParser';
+
+// Transaction Confidence Scoring
+export {
+  calculateTransactionConfidence,
+  aggregateConfidenceScores,
+  enrichTransactionsWithConfidence,
+  getTransactionsNeedingReview,
+  scoreTransactionRow,
+  scoreAllTransactions,
+  type TransactionConfidence,
+  type AggregateConfidenceResult,
+  type RowConfidenceResult,
+} from './transactionConfidence';
+
+// Export Adapters with Fallback Chain
+export {
+  getAvailableFormats,
+  getExportFormat,
+  exportTransactions,
+  exportDocument,
+  exportWithFallback,
+  toCSVString,
+  getColumnWidths,
+  generatePreview,
+  getFormatNotes,
+  type ExportFormatType,
+  type ExportFormat,
+  type ExportedData,
+  type ExportLevel,
+  type FallbackExportResult,
+} from './exportAdapters';
 
 // Chronological Order Handling
 export {

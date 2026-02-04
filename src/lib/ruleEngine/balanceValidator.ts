@@ -51,12 +51,58 @@ const CURRENCY_TOLERANCES: Record<string, number> = {
 };
 
 /**
+ * Tiered tolerance levels for balance validation
+ * Tries progressively looser tolerances until validation passes
+ */
+export const TOLERANCE_TIERS = [
+  { name: 'exact', tolerance: 0.001 },
+  { name: 'penny', tolerance: 0.01 },
+  { name: 'rounding', tolerance: 0.10 },
+  { name: 'loose', tolerance: 1.00 },
+] as const;
+
+export type ToleranceTierName = typeof TOLERANCE_TIERS[number]['name'];
+
+/**
  * Get the appropriate tolerance for a given currency
  */
 export function getToleranceForCurrency(currency?: string): number {
   if (!currency) return CURRENCY_TOLERANCES.DEFAULT;
   const upperCurrency = currency.toUpperCase();
   return CURRENCY_TOLERANCES[upperCurrency] ?? CURRENCY_TOLERANCES.DEFAULT;
+}
+
+/**
+ * Validate transactions with tiered tolerance levels
+ * Returns the first tolerance tier that passes validation
+ */
+export function validateWithTieredTolerance(
+  transactions: ParsedTransaction[],
+  openingBalance: number,
+  currency?: string
+): { valid: boolean; usedTolerance: ToleranceTierName; errors: number; tier: typeof TOLERANCE_TIERS[number] } {
+  for (const tier of TOLERANCE_TIERS) {
+    let runningBalance = openingBalance;
+    let errors = 0;
+    
+    for (const tx of transactions) {
+      runningBalance += (tx.credit ?? 0) - (tx.debit ?? 0);
+      
+      if (tx.balance !== undefined) {
+        if (Math.abs(runningBalance - tx.balance) > tier.tolerance) {
+          errors++;
+        }
+      }
+    }
+    
+    if (errors === 0) {
+      console.log(`[BalanceValidator] Tiered validation passed at '${tier.name}' tolerance (${tier.tolerance})`);
+      return { valid: true, usedTolerance: tier.name, errors: 0, tier };
+    }
+  }
+  
+  console.log(`[BalanceValidator] Tiered validation failed at all tolerance levels`);
+  return { valid: false, usedTolerance: 'loose', errors: transactions.length, tier: TOLERANCE_TIERS[3] };
 }
 
 // =============================================================================

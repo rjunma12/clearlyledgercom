@@ -143,6 +143,65 @@ export const ALL_SKIP_PATTERNS: RegExp[] = [
 ];
 
 // =============================================================================
+// BANK-SPECIFIC SKIP PATTERNS
+// =============================================================================
+
+/** Bank-specific noise patterns by bank profile ID */
+const BANK_SKIP_PATTERNS: Record<string, RegExp[]> = {
+  'chase-us': [
+    /^ending balance on/i,
+    /^beginning balance on/i,
+    /^daily ending balance/i,
+  ],
+  'bofa-us': [
+    /^ending daily balance/i,
+    /^beginning daily balance/i,
+  ],
+  'wells-fargo-us': [
+    /^ending daily collected balance/i,
+    /^minimum daily balance/i,
+  ],
+  'hdfc-india': [
+    /^narration$/i,
+    /^chq.*no\.?$/i,
+    /^value\s*dt$/i,
+  ],
+  'sbi-india': [
+    /^txn\s*branch$/i,
+    /^value\s*date$/i,
+  ],
+  'icici-india': [
+    /^tran\s*id$/i,
+    /^particulars$/i,
+  ],
+  'cba-australia': [
+    /^interest\s+free\s+days/i,
+    /^available\s+funds/i,
+  ],
+  'westpac-australia': [
+    /^credit\s+limit/i,
+  ],
+  'nab-australia': [
+    /^available\s+balance/i,
+  ],
+  'hsbc-uk': [
+    /^branch\s+sort\s+code/i,
+  ],
+  'barclays-uk': [
+    /^your\s+reference/i,
+  ],
+  'lloyds-uk': [
+    /^account\s+type/i,
+  ],
+  'dbs-singapore': [
+    /^reference\s+\d+/i,
+  ],
+  'standard-chartered': [
+    /^advice\s+no/i,
+  ],
+};
+
+// =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
 
@@ -154,6 +213,30 @@ export function shouldSkipText(text: string): boolean {
   if (trimmed.length === 0) return true;
   
   return ALL_SKIP_PATTERNS.some(pattern => pattern.test(trimmed));
+}
+
+/**
+ * Check if text should be skipped for a specific bank
+ * Checks both universal patterns and bank-specific patterns
+ */
+export function shouldSkipTextForBank(text: string, bankId: string | null): boolean {
+  // First check universal patterns
+  if (shouldSkipText(text)) return true;
+  
+  // Then check bank-specific patterns
+  if (bankId && BANK_SKIP_PATTERNS[bankId]) {
+    const trimmed = text.trim().toLowerCase();
+    return BANK_SKIP_PATTERNS[bankId].some(pattern => pattern.test(trimmed));
+  }
+  
+  return false;
+}
+
+/**
+ * Get list of supported bank IDs for skip patterns
+ */
+export function getSupportedBankIds(): string[] {
+  return Object.keys(BANK_SKIP_PATTERNS);
 }
 
 /**
