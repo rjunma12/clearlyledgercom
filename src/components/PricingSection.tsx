@@ -38,7 +38,11 @@ function getPlanDetails(basePlan: string, billingInterval: BillingInterval) {
   };
 }
 
-const PricingSection = forwardRef<HTMLElement>((_, ref) => {
+interface PricingSectionProps {
+  variant?: 'full' | 'simplified';
+}
+
+const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant = 'full' }, ref) => {
   const navigate = useNavigate();
   const { lifetimeSpotsRemaining } = useUsageContext();
   const { isLoading, loadingPlan, initiateCheckout } = useCheckout();
@@ -78,31 +82,36 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
           </p>
         </div>
 
-        {/* Billing Toggle */}
-        <div className="flex items-center justify-center gap-4 mb-12">
-          <span className={cn(
-            "text-sm font-medium transition-colors",
-            billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
-          )}>
-            Monthly
-          </span>
-          <Switch 
-            checked={billingInterval === 'annual'}
-            onCheckedChange={(checked) => setBillingInterval(checked ? 'annual' : 'monthly')}
-          />
-          <span className={cn(
-            "text-sm font-medium transition-colors flex items-center gap-1.5",
-            billingInterval === 'annual' ? 'text-foreground' : 'text-muted-foreground'
-          )}>
-            Annual
-            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-              Save 16%
+        {/* Billing Toggle - Only show in full variant */}
+        {variant === 'full' && (
+          <div className="flex items-center justify-center gap-4 mb-12">
+            <span className={cn(
+              "text-sm font-medium transition-colors",
+              billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
+            )}>
+              Monthly
             </span>
-          </span>
-        </div>
+            <Switch 
+              checked={billingInterval === 'annual'}
+              onCheckedChange={(checked) => setBillingInterval(checked ? 'annual' : 'monthly')}
+            />
+            <span className={cn(
+              "text-sm font-medium transition-colors flex items-center gap-1.5",
+              billingInterval === 'annual' ? 'text-foreground' : 'text-muted-foreground'
+            )}>
+              Annual
+              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                Save 50%
+              </span>
+            </span>
+          </div>
+        )}
 
         {/* Free Tier Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+        <div className={cn(
+          "grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto",
+          variant === 'simplified' ? 'mb-6' : 'mb-6'
+        )}>
           
           {/* Anonymous (No Signup) */}
           <div className="glass-card p-6 opacity-80">
@@ -181,288 +190,290 @@ const PricingSection = forwardRef<HTMLElement>((_, ref) => {
           </div>
         </div>
 
-        {/* Paid Plans Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-6">
+        {/* Paid Plans Row - Only show in full variant */}
+        {variant === 'full' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-6">
 
-          {/* Starter (Paid) */}
-          <div className="glass-card p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-5 h-5 text-primary" />
-              <h3 className="font-display text-xl font-bold text-foreground">
-                Starter
-              </h3>
-            </div>
-            
-            <div className="flex items-baseline gap-1 mb-1">
-              <span className="font-display text-3xl font-bold text-foreground">${starterDetails.price}</span>
-              <span className="text-muted-foreground">{starterDetails.period}</span>
-            </div>
-            
-            {starterDetails.monthlyEquivalent && (
-              <p className="text-xs text-primary mb-3">
-                ${starterDetails.monthlyEquivalent}/mo equivalent
-              </p>
-            )}
-
-            <p className="text-xs text-muted-foreground mb-3">{starterDetails.pages}</p>
-            
-            <ul className="space-y-2 mb-6 text-sm">
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-primary" />
-                Convert up to {billingInterval === 'annual' ? '4,800' : '400'} pages{billingInterval === 'annual' ? '/year' : '/month'}
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary" />
-                Excel & CSV output
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary" />
-                Automatic balance validation
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-primary" />
-                Accounting software compatible
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Shield className="w-4 h-4 text-primary" />
-                PII masking toggle
-              </li>
-            </ul>
-
-            <Button 
-              variant="glass" 
-              className="w-full"
-              onClick={() => handlePlanClick(starterDetails.planName)}
-              disabled={isLoading}
-            >
-              {loadingPlan === starterDetails.planName ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'Get Starter'
-              )}
-            </Button>
-          </div>
-
-          {/* Professional */}
-          <div className="glass-card p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Briefcase className="w-5 h-5 text-primary" />
-              <h3 className="font-display text-xl font-bold text-foreground">
-                Professional
-              </h3>
-            </div>
-            
-            <div className="flex items-baseline gap-1 mb-1">
-              <span className="font-display text-3xl font-bold text-foreground">${proDetails.price}</span>
-              <span className="text-muted-foreground">{proDetails.period}</span>
-            </div>
-            
-            {proDetails.monthlyEquivalent && (
-              <p className="text-xs text-primary mb-3">
-                ${proDetails.monthlyEquivalent}/mo equivalent
-              </p>
-            )}
-
-            <p className="text-xs text-muted-foreground mb-3">{proDetails.pages}</p>
-            
-            <ul className="space-y-2 mb-6 text-sm">
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-primary" />
-                Everything in Starter
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary" />
-                Batch upload (up to 10 files)
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary" />
-                Merged output file
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-primary" />
-                Priority rule updates
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Shield className="w-4 h-4 text-primary" />
-                PII masking toggle
-              </li>
-            </ul>
-
-            <Button 
-              variant="glass" 
-              className="w-full"
-              onClick={() => handlePlanClick(proDetails.planName)}
-              disabled={isLoading}
-            >
-              {loadingPlan === proDetails.planName ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'Get Professional'
-              )}
-            </Button>
-          </div>
-
-          {/* Business (Most Popular) */}
-          <div className="glass-card p-6 border-2 border-primary/50 glow-primary relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
-                <Sparkles className="w-3 h-3" />
-                Most Popular
+            {/* Starter (Paid) */}
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-5 h-5 text-primary" />
+                <h3 className="font-display text-xl font-bold text-foreground">
+                  Starter
+                </h3>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2 mb-2 mt-2">
-              <Crown className="w-5 h-5 text-primary" />
-              <h3 className="font-display text-xl font-bold text-foreground">
-                Business
-              </h3>
-            </div>
-            
-            <div className="flex items-baseline gap-1 mb-1">
-              <span className="font-display text-3xl font-bold text-foreground">${businessDetails.price}</span>
-              <span className="text-muted-foreground">{businessDetails.period}</span>
-            </div>
-            
-            {businessDetails.monthlyEquivalent && (
-              <p className="text-xs text-primary mb-3">
-                ${businessDetails.monthlyEquivalent}/mo equivalent
-              </p>
-            )}
-
-            <p className="text-xs text-muted-foreground mb-3">{businessDetails.pages}</p>
-            
-            <ul className="space-y-2 mb-6 text-sm">
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-primary" />
-                Everything in Professional
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary" />
-                Batch upload (up to 20 files)
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary" />
-                Multi-bank merged output
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary" />
-                Priority email support
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Shield className="w-4 h-4 text-primary" />
-                PII masking toggle
-              </li>
-            </ul>
-
-            <Button 
-              variant="hero" 
-              className="w-full"
-              onClick={() => handlePlanClick(businessDetails.planName)}
-              disabled={isLoading}
-            >
-              {loadingPlan === businessDetails.planName ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'Get Business'
-              )}
-            </Button>
-          </div>
-
-          {/* Lifetime (Best Value) */}
-          <div className="glass-card p-6 border border-warning/30 bg-warning/5 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold border border-warning/30">
-                <Rocket className="w-3 h-3" />
-                Best Value • Limited
+              
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="font-display text-3xl font-bold text-foreground">${starterDetails.price}</span>
+                <span className="text-muted-foreground">{starterDetails.period}</span>
               </div>
+              
+              {starterDetails.monthlyEquivalent && (
+                <p className="text-xs text-primary mb-3">
+                  ${starterDetails.monthlyEquivalent}/mo equivalent
+                </p>
+              )}
+
+              <p className="text-xs text-muted-foreground mb-3">{starterDetails.pages}</p>
+              
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="w-4 h-4 text-primary" />
+                  Convert up to {billingInterval === 'annual' ? '4,800' : '400'} pages{billingInterval === 'annual' ? '/year' : '/month'}
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-primary" />
+                  Excel & CSV output
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-primary" />
+                  Automatic balance validation
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="w-4 h-4 text-primary" />
+                  Accounting software compatible
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Shield className="w-4 h-4 text-primary" />
+                  PII masking toggle
+                </li>
+              </ul>
+
+              <Button 
+                variant="glass" 
+                className="w-full"
+                onClick={() => handlePlanClick(starterDetails.planName)}
+                disabled={isLoading}
+              >
+                {loadingPlan === starterDetails.planName ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Get Starter'
+                )}
+              </Button>
             </div>
 
-            <div className="flex items-center gap-2 mb-2 mt-2">
-              <Rocket className="w-5 h-5 text-warning" />
-              <h3 className="font-display text-xl font-bold text-foreground">
-                Lifetime
-              </h3>
-            </div>
-            
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="font-display text-3xl font-bold text-foreground">$119</span>
-              <span className="text-muted-foreground">one-time</span>
+            {/* Professional */}
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Briefcase className="w-5 h-5 text-primary" />
+                <h3 className="font-display text-xl font-bold text-foreground">
+                  Professional
+                </h3>
+              </div>
+              
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="font-display text-3xl font-bold text-foreground">${proDetails.price}</span>
+                <span className="text-muted-foreground">{proDetails.period}</span>
+              </div>
+              
+              {proDetails.monthlyEquivalent && (
+                <p className="text-xs text-primary mb-3">
+                  ${proDetails.monthlyEquivalent}/mo equivalent
+                </p>
+              )}
+
+              <p className="text-xs text-muted-foreground mb-3">{proDetails.pages}</p>
+              
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="w-4 h-4 text-primary" />
+                  Everything in Starter
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-primary" />
+                  Batch upload (up to 10 files)
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-primary" />
+                  Merged output file
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="w-4 h-4 text-primary" />
+                  Priority rule updates
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Shield className="w-4 h-4 text-primary" />
+                  PII masking toggle
+                </li>
+              </ul>
+
+              <Button 
+                variant="glass" 
+                className="w-full"
+                onClick={() => handlePlanClick(proDetails.planName)}
+                disabled={isLoading}
+              >
+                {loadingPlan === proDetails.planName ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Get Professional'
+                )}
+              </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground mb-3">500 pages per month, forever</p>
-            
-            <ul className="space-y-2 mb-4 text-sm">
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-warning" />
-                Lifetime access
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-warning" />
-                500 pages/month
-              </li>
-              <li className="flex items-center gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-warning" />
-                All Business features
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Shield className="w-4 h-4 text-warning" />
-                PII masking toggle
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Check className="w-4 h-4 text-warning" />
-                No monthly fees ever
-              </li>
-            </ul>
-
-            {/* Scarcity indicator */}
-            {!isSoldOut && (
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                  <span>Limited to 350 users</span>
-                  <span className={cn(isLowStock && "text-warning font-medium")}>
-                    {spotsRemaining} left
-                  </span>
-                </div>
-                <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-warning to-warning/80 rounded-full transition-all duration-500"
-                    style={{ width: `${((350 - spotsRemaining) / 350) * 100}%` }}
-                  />
+            {/* Business (Most Popular) */}
+            <div className="glass-card p-6 border-2 border-primary/50 glow-primary relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
+                  <Sparkles className="w-3 h-3" />
+                  Most Popular
                 </div>
               </div>
-            )}
 
-            <Button 
-              variant="glass" 
-              className={cn(
-                "w-full",
-                !isSoldOut && "bg-warning/10 border-warning/30 hover:border-warning/50 hover:bg-warning/20"
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <Crown className="w-5 h-5 text-primary" />
+                <h3 className="font-display text-xl font-bold text-foreground">
+                  Business
+                </h3>
+              </div>
+              
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="font-display text-3xl font-bold text-foreground">${businessDetails.price}</span>
+                <span className="text-muted-foreground">{businessDetails.period}</span>
+              </div>
+              
+              {businessDetails.monthlyEquivalent && (
+                <p className="text-xs text-primary mb-3">
+                  ${businessDetails.monthlyEquivalent}/mo equivalent
+                </p>
               )}
-              disabled={isSoldOut || isLoading}
-              onClick={() => handlePlanClick('lifetime')}
-            >
-              {loadingPlan === 'lifetime' ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : isSoldOut ? (
-                'Sold Out'
-              ) : (
-                'Get Lifetime Access'
+
+              <p className="text-xs text-muted-foreground mb-3">{businessDetails.pages}</p>
+              
+              <ul className="space-y-2 mb-6 text-sm">
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="w-4 h-4 text-primary" />
+                  Everything in Professional
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-primary" />
+                  Batch upload (up to 20 files)
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-primary" />
+                  Multi-bank merged output
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-primary" />
+                  Priority email support
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Shield className="w-4 h-4 text-primary" />
+                  PII masking toggle
+                </li>
+              </ul>
+
+              <Button 
+                variant="hero" 
+                className="w-full"
+                onClick={() => handlePlanClick(businessDetails.planName)}
+                disabled={isLoading}
+              >
+                {loadingPlan === businessDetails.planName ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Get Business'
+                )}
+              </Button>
+            </div>
+
+            {/* Lifetime (Best Value) */}
+            <div className="glass-card p-6 border border-warning/30 bg-warning/5 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold border border-warning/30">
+                  <Rocket className="w-3 h-3" />
+                  Best Value • Limited
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <Rocket className="w-5 h-5 text-warning" />
+                <h3 className="font-display text-xl font-bold text-foreground">
+                  Lifetime
+                </h3>
+              </div>
+              
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="font-display text-3xl font-bold text-foreground">$119</span>
+                <span className="text-muted-foreground">one-time</span>
+              </div>
+
+              <p className="text-xs text-muted-foreground mb-3">500 pages per month, forever</p>
+              
+              <ul className="space-y-2 mb-4 text-sm">
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-warning" />
+                  Lifetime access
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-warning" />
+                  500 pages/month
+                </li>
+                <li className="flex items-center gap-2 text-foreground font-medium">
+                  <Check className="w-4 h-4 text-warning" />
+                  All Business features
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Shield className="w-4 h-4 text-warning" />
+                  PII masking toggle
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="w-4 h-4 text-warning" />
+                  No monthly fees ever
+                </li>
+              </ul>
+
+              {/* Scarcity indicator */}
+              {!isSoldOut && (
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Limited to 350 users</span>
+                    <span className={cn(isLowStock && "text-warning font-medium")}>
+                      {spotsRemaining} left
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-warning to-warning/80 rounded-full transition-all duration-500"
+                      style={{ width: `${((350 - spotsRemaining) / 350) * 100}%` }}
+                    />
+                  </div>
+                </div>
               )}
-            </Button>
+
+              <Button 
+                variant="glass" 
+                className={cn(
+                  "w-full",
+                  !isSoldOut && "bg-warning/10 border-warning/30 hover:border-warning/50 hover:bg-warning/20"
+                )}
+                disabled={isSoldOut || isLoading}
+                onClick={() => handlePlanClick('lifetime')}
+              >
+                {loadingPlan === 'lifetime' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : isSoldOut ? (
+                  'Sold Out'
+                ) : (
+                  'Get Lifetime Access'
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Enterprise - Full Width */}
         <div className="max-w-6xl mx-auto">

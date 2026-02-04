@@ -152,7 +152,7 @@ const Index = () => {
       <main>
         <HeroSection />
         <AdvantagesSection />
-        <PricingSection />
+        <PricingSection variant="simplified" />
         <Suspense fallback={<DemoSkeleton />}>
           <InteractiveDemo />
         </Suspense>
