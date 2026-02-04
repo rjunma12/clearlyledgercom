@@ -4,7 +4,7 @@
  * Dynamically loaded to reduce initial bundle size
  */
 
-import type { Worker, RecognizeResult } from 'tesseract.js';
+import type { Worker, RecognizeResult, PSM } from 'tesseract.js';
 import type { TextElement, Locale } from './ruleEngine/types';
 import { preprocessForOCR } from './imagePreprocessing';
 
@@ -84,6 +84,12 @@ export async function getWorker(languages: string[] = ['eng']): Promise<Worker> 
         // Progress can be tracked here if needed
       }
     },
+  });
+  
+  // Configure for tabular bank statement layout
+  await workerInstance.setParameters({
+    tessedit_pageseg_mode: '6' as unknown as PSM, // PSM 6: Assume uniform block of text
+    preserve_interword_spaces: '1', // Keep column spacing for tables
   });
   
   currentLanguages = [...languages];
