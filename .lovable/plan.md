@@ -1,571 +1,252 @@
 
 
-# Plan: Additional Methods to Improve Bank Statement Conversion Success (No AI)
+# Plan: Create SEO Blog Post - Rule-Based vs AI-Based Bank Statement Conversion
 
 ## Overview
 
-This plan implements multiple deterministic improvements to increase conversion success rates for both scanned PDFs and digital bank statements. All methods use rule-based logic, pattern matching, and mathematical validation—no AI required.
+Create a new long-form SEO-optimized blog post (~1,800 words) comparing rule-based and AI-based bank statement conversion. This will be positioned as a thought leadership piece targeting fintech founders, accountants, CFOs, auditors, and compliance teams.
 
 ---
 
-## Current Pipeline Gaps Identified
+## Files to Create/Modify
 
-| Gap | Impact | Solution Category |
-|-----|--------|-------------------|
-| Single-pass table detection | Misses tables with complex layouts | Multi-strategy detection |
-| No font metadata usage | Misses header signals | PDF font analysis |
-| Limited retry logic | Fails on marginal cases | Fallback chains |
-| No row validation scoring | Can't rank parsing results | Per-row confidence |
-| Fixed skip patterns | Misses bank-specific noise | Extensible pattern registry |
-| No boundary tolerance | Column drift across pages | Adaptive column boundaries |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/pages/blog/BlogPostRuleBasedVsAI.tsx` | **Create** | New blog post component |
+| `src/pages/Blog.tsx` | **Modify** | Add post to blogPosts array |
+| `src/App.tsx` | **Modify** | Add lazy import and route |
 
 ---
 
-## Improvement Areas
+## Blog Post Structure
 
-### 1. **Multi-Strategy Table Detection with Best-Result Selection**
+### Metadata & SEO Configuration
 
-Add a parallel detection approach that runs multiple strategies and picks the best result.
+- **Slug:** `rule-based-vs-ai-bank-statement-conversion`
+- **Title:** "Rule-Based vs AI Bank Statement Conversion: Which Is Right for Your Business?"
+- **Category:** Thought Leadership
+- **Read Time:** 15 min read
+- **Date:** February 4, 2026
+- **Featured:** true
 
-**File: `src/lib/ruleEngine/multiStrategyDetector.ts`** (new file)
+### JSON-LD Schemas
+1. **Article Schema** - headline, description, author, publisher, dates, about, mentions
+2. **Breadcrumb Schema** - Home → Blog → Article
+3. **FAQ Schema** - 5 structured Q&A pairs for rich snippets
 
-```typescript
-// Run multiple detection strategies in parallel and select best result
-interface DetectionStrategy {
-  name: string;
-  detect: (elements: TextElement[]) => TableDetectionResult;
-  priority: number;
-}
-
-// Strategies:
-// 1. Header-anchored (current) - uses keyword matching
-// 2. Geometry-based gutter detection (current)
-// 3. Column-count heuristic - finds most consistent column count
-// 4. Font-weight detection - uses bold text as anchors
-
-function selectBestResult(results: Array<{strategy: string; result: TableDetectionResult}>): TableDetectionResult {
-  // Score each result based on:
-  // - Number of transactions found
-  // - Presence of balance column
-  // - Date pattern matches
-  // - Balance validation success rate (dry run)
-  return bestResult;
-}
-```
-
-**Why:** Different banks have different layouts. Running multiple strategies and picking the winner dramatically improves success on edge cases.
+### Target Keywords
+- **Primary:** Rule-based bank statement conversion
+- **Secondary:** AI bank statement conversion, PDF to Excel bank statement, deterministic parsing, financial data accuracy, compliance-friendly fintech, GST VAT accounting, audit-ready financial data
 
 ---
 
-### 2. **PDF Font Metadata Extraction for Header Detection**
+## Article Content Structure
 
-Use PDF font properties (bold, size) to improve header row detection confidence.
+### 1. Introduction (~200 words)
+- Hook: The critical role of bank statement conversion in accounting, lending, and compliance
+- Context: Rise of AI tools and renewed interest in rule-based systems
+- Thesis: Both approaches have merits, but regulatory and accuracy requirements often favor deterministic methods
 
-**File: `src/lib/pdfUtils.ts`** (update)
+### 2. What Is Rule-Based Bank Statement Conversion? (~250 words)
+- Definition of deterministic parsing
+- How predefined rules, templates, and validation logic work
+- Examples: transaction row detection, balance equation checks, debit/credit consistency
+- Key benefit: Same input always produces same output
 
-Add font metadata extraction:
+### 3. What Is AI-Based Bank Statement Conversion? (~200 words)
+- OCR + ML + LLM workflows explained
+- How probabilistic extraction works
+- Common claims: "works with any format," "no templates needed"
+- Reality check: Probability distributions, not guarantees
 
-```typescript
-interface TextElementWithFont extends TextElement {
-  fontName?: string;
-  fontSize?: number;
-  isBold?: boolean;
-  isItalic?: boolean;
-}
+### 4. Accuracy Comparison: Rule-Based vs AI (~300 words)
+- **Comparison table** (key differentiator)
+- Determinism vs probability
+- Repeatability and version control
+- Why "same input = same output" matters in finance
+- Real-world example: Audit reconciliation failing due to non-deterministic outputs
 
-// In extractTextFromPage, access font info:
-const fontData = item.fontName;
-const isBold = fontData?.includes('Bold') || fontData?.includes('Heavy');
-const fontSize = item.transform?.[0] || 12; // Font size from transform matrix
-```
+### 5. Compliance, Auditability & Regulation (~250 words)
+- Why banks, CA firms, and enterprises prefer explainable systems
+- Audit trails, rule IDs, and traceability
+- Regulatory frameworks: GST, VAT, SOX, AML
+- Example: Explaining a parsing decision to an auditor
 
-**File: `src/lib/ruleEngine/headerAnchors.ts`** (update)
+### 6. Cost & Scalability Analysis (~200 words)
+- **Comparison table** (cost factors)
+- AI API costs, token usage, inference costs
+- Rule-based: Predictable per-document pricing
+- Hidden costs: Manual corrections for AI hallucinations
+- Scalability: Linear vs exponential cost curves
 
-Boost header detection confidence when text is bold or larger:
+### 7. Handling Edge Cases & New Bank Formats (~200 words)
+- How rule engines evolve using versioned rules
+- When AI helps (exploration, categorization) vs when it breaks (extraction)
+- Hybrid approaches: AI for classification, rules for extraction
 
-```typescript
-function scoreHeaderLine(line: PdfLine): number {
-  let score = 0;
-  
-  // Keyword matches
-  score += countHeaderKeywords(line) * 20;
-  
-  // NEW: Font-based boosting
-  const boldCount = line.words.filter(w => w.isBold).length;
-  score += boldCount * 15;
-  
-  const avgFontSize = calculateAvgFontSize(line);
-  if (avgFontSize > bodyFontSize * 1.2) {
-    score += 10; // Larger than body = likely header
-  }
-  
-  return score;
-}
-```
+### 8. Data Privacy & Security (~150 words)
+- Why enterprises avoid sending financial PDFs to third-party AI models
+- On-premise and browser-based processing benefits
+- GDPR, Privacy Act, PDPA considerations
 
-**Why:** Headers in bank statements are almost always bold or larger. This provides a strong signal independent of keyword matching.
+### 9. Who Should Use Rule-Based Conversion? (~150 words)
+- Accounting firms
+- Lending & underwriting platforms
+- SaaS products serving SMEs
+- Enterprises processing high-volume statements
 
----
+### 10. When AI Makes Sense (~100 words)
+- Low-stakes use cases
+- Exploration, categorization, and enrichment (not core extraction)
+- Internal analytics where 95% accuracy is acceptable
 
-### 3. **Row-Level Confidence Scoring with Fallback**
-
-Score each extracted row and implement row-level fallback for low-confidence rows.
-
-**File: `src/lib/ruleEngine/transactionConfidence.ts`** (update or new)
-
-```typescript
-interface RowConfidence {
-  rowIndex: number;
-  overallScore: number;  // 0-100
-  breakdown: {
-    dateClarity: number;      // 0-100: Date parsed successfully?
-    amountPresence: number;   // 0-100: Has debit/credit/balance?
-    balanceIntegrity: number; // 0-100: Math checks out?
-    descriptionQuality: number; // 0-100: Non-empty, no gibberish?
-  };
-  flags: string[];
-}
-
-function scoreTransactionRow(tx: ParsedTransaction, prevBalance: number | null): RowConfidence {
-  let dateClarity = tx.date ? 100 : 0;
-  let amountPresence = (tx.debit || tx.credit) ? 100 : 0;
-  
-  // Balance integrity check
-  let balanceIntegrity = 100;
-  if (prevBalance !== null && tx.balance !== undefined) {
-    const expected = prevBalance + (tx.credit ?? 0) - (tx.debit ?? 0);
-    if (Math.abs(expected - tx.balance) > 0.01) {
-      balanceIntegrity = 0;
-    }
-  }
-  
-  // Description quality
-  const descQuality = scoreDescriptionQuality(tx.description);
-  
-  return {
-    rowIndex: tx.rowIndex,
-    overallScore: (dateClarity * 0.2 + amountPresence * 0.3 + balanceIntegrity * 0.3 + descQuality * 0.2),
-    breakdown: { dateClarity, amountPresence, balanceIntegrity, descriptionQuality: descQuality },
-    flags: [],
-  };
-}
-```
-
-**Why:** Per-row scoring enables flagging problematic rows for user review while still exporting the rest, rather than failing the entire document.
+### 11. Final Verdict (~150 words)
+- **Recommendation matrix table**
+- Clear guidance based on use case
+- Position rule-based as gold standard for financial data extraction in 2026
+- Strong CTA: Choose accuracy, compliance, and predictability over hype
 
 ---
 
-### 4. **Adaptive Column Boundary Drift Tolerance**
+## Comparison Tables to Include
 
-Currently 15px drift tolerance. Make this adaptive based on page analysis.
+### Table 1: Accuracy & Reliability Comparison
+| Attribute | Rule-Based | AI-Based |
+|-----------|-----------|----------|
+| Output Determinism | 100% repeatable | Variable per run |
+| Balance Verification | Built-in equation checks | Often missing |
+| Error Traceability | Rule ID + line number | Black box |
+| Audit Compliance | Full provenance trail | Limited explainability |
+| Edge Case Handling | Explicit rule additions | Retraining required |
 
-**File: `src/lib/ruleEngine/headerAnchors.ts`** (update)
+### Table 2: Cost Comparison (1,000 statements/month)
+| Factor | Rule-Based | AI-Based |
+|--------|-----------|----------|
+| Processing Cost | Flat per-document | Token-based (variable) |
+| Correction Labor | Minimal | 5-15% manual review |
+| Infrastructure | Browser/on-prem | Cloud API required |
+| Scaling Behavior | Linear | Exponential with volume |
 
-```typescript
-function calculatePageDriftTolerance(page1Boundaries: ColumnBoundary[], pageNBoundaries: ColumnBoundary[]): number {
-  // Compare column positions between pages
-  const drifts: number[] = [];
-  
-  for (let i = 0; i < Math.min(page1Boundaries.length, pageNBoundaries.length); i++) {
-    const drift = Math.abs(page1Boundaries[i].centerX - pageNBoundaries[i].centerX);
-    drifts.push(drift);
-  }
-  
-  if (drifts.length === 0) return 15; // Default
-  
-  const maxDrift = Math.max(...drifts);
-  const avgDrift = drifts.reduce((a, b) => a + b, 0) / drifts.length;
-  
-  // Use 2x average drift as tolerance, capped at 30px
-  return Math.min(30, Math.max(15, avgDrift * 2));
-}
-```
-
-**Why:** Some banks have more page-to-page layout variation. Adaptive tolerance prevents column misassignment.
+### Table 3: Recommendation Matrix
+| Use Case | Recommended Approach |
+|----------|---------------------|
+| Financial auditing | Rule-Based |
+| Loan underwriting | Rule-Based |
+| Tax preparation | Rule-Based |
+| Enterprise accounting | Rule-Based |
+| Personal budgeting | Either (AI acceptable) |
+| Transaction categorization | Hybrid or AI |
 
 ---
 
-### 5. **Bank-Specific Skip Pattern Registry**
-
-Make skip patterns extensible per bank profile.
-
-**File: `src/lib/ruleEngine/skipPatterns.ts`** (update)
+## Component Structure
 
 ```typescript
-// Add bank-specific patterns
-const BANK_SKIP_PATTERNS: Record<string, RegExp[]> = {
-  'chase-us': [
-    /^ending balance on/i,
-    /^beginning balance on/i,
-  ],
-  'hdfc-india': [
-    /^narration$/i,
-    /^chq.*no\.?$/i,
-  ],
-  'cba-australia': [
-    /^interest\s+free\s+days/i,
-  ],
-  // ... more banks
+const BlogPostRuleBasedVsAI = () => {
+  // JSON-LD schemas: articleSchema, breadcrumbSchema, faqSchema
+  // Helmet with meta tags, canonical URL, OG tags
+  // ReadingProgress component
+  // Navbar
+  // Article content with:
+  //   - Breadcrumbs
+  //   - Header (category badge, title, date, read time)
+  //   - ShareButtons
+  //   - TableOfContents
+  //   - TL;DR box
+  //   - Prose content with h2/h3 sections, tables, lists
+  //   - AuthorSection
+  //   - CTA section
+  //   - Related posts
+  //   - Back to blog link
+  // Footer
 };
-
-export function shouldSkipTextForBank(text: string, bankId: string | null): boolean {
-  if (shouldSkipText(text)) return true;
-  
-  if (bankId && BANK_SKIP_PATTERNS[bankId]) {
-    const trimmed = text.trim().toLowerCase();
-    return BANK_SKIP_PATTERNS[bankId].some(pattern => pattern.test(trimmed));
-  }
-  
-  return false;
-}
 ```
-
-**Why:** Banks have unique noise patterns (promotional text, legal disclaimers) that should be filtered.
 
 ---
 
-### 6. **Balance Equation Retry with Sign-Flip Exploration**
+## FAQ Schema Questions
 
-When balance validation fails, systematically try sign flips to find a valid configuration.
+1. "What is the difference between rule-based and AI bank statement conversion?"
+2. "Is AI-based bank statement conversion accurate enough for auditing?"
+3. "Which approach is better for compliance with GST, VAT, and SOX?"
+4. "Do rule-based converters work with new bank formats?"
+5. "Is rule-based conversion more cost-effective than AI?"
 
-**File: `src/lib/ruleEngine/autoRepair.ts`** (update)
+---
 
-Add multi-flip exploration:
+## Internal Links to Include
+
+- `/features` - Features page
+- `/pricing` - Pricing page
+- `/blog/why-banks-dont-provide-csv-excel-statements` - Pillar content link
+- `/blog/privacy-secure-bank-statement-conversion` - Security article
+- `/blog/accurate-bank-statement-conversion-workflows` - Accuracy workflows
+
+---
+
+## Blog Index Update
+
+Add to `blogPosts` array in `src/pages/Blog.tsx`:
 
 ```typescript
-interface FlipCandidate {
-  indices: number[];
-  imbalance: number;
-}
-
-function exploreSignFlips(
-  transactions: ParsedTransaction[],
-  openingBalance: number,
-  closingBalance: number,
-  maxFlips: number = 3
-): RepairResult {
-  const originalImbalance = calculateImbalance(transactions, openingBalance, closingBalance);
-  
-  if (originalImbalance < 0.01) {
-    return { repaired: false, ...defaultResult };
-  }
-  
-  // Try single flips first (existing logic)
-  const singleFlip = tryDebitCreditFlip(transactions, openingBalance, closingBalance);
-  if (singleFlip.improved && calculateImbalance(singleFlip.transactions, openingBalance, closingBalance) < 0.01) {
-    return singleFlip;
-  }
-  
-  // NEW: Try double flips
-  const candidates: FlipCandidate[] = [];
-  
-  for (let i = 0; i < transactions.length; i++) {
-    for (let j = i + 1; j < transactions.length; j++) {
-      const testTx = flipTransactions(transactions, [i, j]);
-      const imbalance = calculateImbalance(testTx, openingBalance, closingBalance);
-      
-      if (imbalance < originalImbalance * 0.5) {
-        candidates.push({ indices: [i, j], imbalance });
-      }
-    }
-  }
-  
-  // Return best candidate if it reduces imbalance significantly
-  if (candidates.length > 0) {
-    candidates.sort((a, b) => a.imbalance - b.imbalance);
-    if (candidates[0].imbalance < 0.01) {
-      return buildRepairResult(transactions, candidates[0].indices);
-    }
-  }
-  
-  return { repaired: false, ...defaultResult };
+{
+  slug: "rule-based-vs-ai-bank-statement-conversion",
+  title: "Rule-Based vs AI Bank Statement Conversion: Which Is Right for Your Business?",
+  excerpt: "Comprehensive comparison of rule-based and AI-based bank statement conversion. Learn which approach delivers better accuracy, compliance, and cost-effectiveness for fintech, accounting, and enterprise use cases.",
+  date: "February 4, 2026",
+  category: "Thought Leadership",
+  readTime: "15 min read",
+  featured: true
 }
 ```
 
-**Why:** Sometimes two or more transactions are misclassified. Exploring multi-flip combinations catches these cases.
-
 ---
 
-### 7. **Enhanced Multi-Line Description Stitching**
-
-Improve description stitching with smarter continuation detection.
-
-**File: `src/lib/ruleEngine/multiLineStitcher.ts`** (update)
+## App.tsx Route Addition
 
 ```typescript
-// Add more continuation indicators
-const CONTINUATION_INDICATORS = [
-  /^[a-z]/, // Starts with lowercase = likely continuation
-  /^[,;:\-\/]/, // Starts with punctuation
-  /^\d{10,}/, // Long number (reference continuing)
-  /^at\s|^for\s|^to\s|^from\s|^by\s|^via\s/i, // Common prepositions
-];
+// Add lazy import
+const BlogPostRuleBasedVsAI = lazy(() => import("./pages/blog/BlogPostRuleBasedVsAI"));
 
-const NON_CONTINUATION_INDICATORS = [
-  /^\d{1,2}[\/\-\.]\d{1,2}/, // Starts with date-like pattern
-  /^opening|^closing|^balance/i, // Balance keywords
-  /^total|^subtotal/i, // Summary keywords
-];
-
-function isContinuationRow(row: TextRow): boolean {
-  const desc = extractDescription(row);
-  
-  // Definite non-continuation
-  if (NON_CONTINUATION_INDICATORS.some(p => p.test(desc))) return false;
-  
-  // Standard check: no date, no amounts
-  if (!hasDescription(row) || hasValidDate(row) || hasMonetaryAmount(row)) return false;
-  
-  // Boost confidence if matches continuation pattern
-  const hasContinuationIndicator = CONTINUATION_INDICATORS.some(p => p.test(desc));
-  
-  return true; // Base case passes if no date/amount
-}
+// Add route
+<Route path="/blog/rule-based-vs-ai-bank-statement-conversion" element={<BlogPostRuleBasedVsAI />} />
 ```
 
-**Why:** More accurate continuation detection prevents false merges and catches legitimate continuations.
+---
+
+## Content Principles
+
+1. **Professional tone** - Authoritative without being salesy
+2. **Balanced perspective** - Acknowledge AI strengths honestly
+3. **Compliance-focused** - Emphasize audit trails and explainability
+4. **Evidence-based** - Use concrete examples and comparisons
+5. **Actionable** - Clear recommendations for different use cases
+6. **SEO-optimized** - Natural keyword integration, proper heading hierarchy
 
 ---
 
-### 8. **Parallel Balance Validation with Tolerance Tiers**
+## Word Count Distribution
 
-Try multiple tolerance levels and accept the most permissive that passes.
-
-**File: `src/lib/ruleEngine/balanceValidator.ts`** (update)
-
-```typescript
-const TOLERANCE_TIERS = [
-  { name: 'exact', tolerance: 0.001 },
-  { name: 'penny', tolerance: 0.01 },
-  { name: 'rounding', tolerance: 0.10 },
-  { name: 'loose', tolerance: 1.00 },
-];
-
-function validateWithTolerance(
-  transactions: ParsedTransaction[],
-  openingBalance: number
-): { valid: boolean; usedTolerance: string; errors: number } {
-  for (const tier of TOLERANCE_TIERS) {
-    let runningBalance = openingBalance;
-    let errors = 0;
-    
-    for (const tx of transactions) {
-      runningBalance += (tx.credit ?? 0) - (tx.debit ?? 0);
-      
-      if (tx.balance !== undefined) {
-        if (Math.abs(runningBalance - tx.balance) > tier.tolerance) {
-          errors++;
-        }
-      }
-    }
-    
-    if (errors === 0) {
-      return { valid: true, usedTolerance: tier.name, errors: 0 };
-    }
-  }
-  
-  return { valid: false, usedTolerance: 'none', errors: transactions.length };
-}
-```
-
-**Why:** Different banks/currencies have different rounding behavior. Tiered tolerance prevents false negatives.
+| Section | Target Words |
+|---------|-------------|
+| Introduction | 200 |
+| What Is Rule-Based | 250 |
+| What Is AI-Based | 200 |
+| Accuracy Comparison | 300 |
+| Compliance & Regulation | 250 |
+| Cost & Scalability | 200 |
+| Edge Cases | 200 |
+| Privacy & Security | 150 |
+| Who Should Use Rule-Based | 150 |
+| When AI Makes Sense | 100 |
+| Final Verdict | 150 |
+| **Total** | **~2,150 words** |
 
 ---
 
-### 9. **Intelligent Year Inference for Short Dates**
+## Implementation Order
 
-When dates lack a year, infer it from statement context.
-
-**File: `src/lib/ruleEngine/numberParser.ts`** (update)
-
-```typescript
-function inferYearFromContext(
-  month: number,
-  day: number,
-  statementPeriod?: { from: string; to: string }
-): number {
-  const currentYear = new Date().getFullYear();
-  
-  if (statementPeriod?.from) {
-    const periodYear = parseInt(statementPeriod.from.split('-')[0]);
-    if (!isNaN(periodYear)) {
-      return periodYear;
-    }
-  }
-  
-  // If month > current month, likely previous year
-  const currentMonth = new Date().getMonth() + 1;
-  if (month > currentMonth + 1) {
-    return currentYear - 1;
-  }
-  
-  return currentYear;
-}
-
-// Update 'DD MMM' and 'MMM DD' format handlers to use this
-```
-
-**Why:** Many bank statements show short dates. Context-aware year inference prevents parsing failures.
-
----
-
-### 10. **Export Fallback Chain**
-
-When primary export fails, try progressively simpler exports.
-
-**File: `src/lib/ruleEngine/exportAdapters.ts`** (update)
-
-```typescript
-type ExportLevel = 'full' | 'validated' | 'raw' | 'minimal';
-
-function exportWithFallback(
-  document: ParsedDocument,
-  targetFormat: ExportFormat
-): { data: any; level: ExportLevel; warnings: string[] } {
-  const levels: ExportLevel[] = ['full', 'validated', 'raw', 'minimal'];
-  
-  for (const level of levels) {
-    try {
-      const data = exportAtLevel(document, targetFormat, level);
-      const warnings = level !== 'full' 
-        ? [`Export degraded to '${level}' level due to data quality issues`]
-        : [];
-      return { data, level, warnings };
-    } catch (e) {
-      console.log(`[Export] Level '${level}' failed, trying next...`);
-    }
-  }
-  
-  throw new Error('All export levels failed');
-}
-
-function exportAtLevel(doc: ParsedDocument, format: ExportFormat, level: ExportLevel) {
-  switch (level) {
-    case 'full':
-      // Include all columns, validations, categories
-      return fullExport(doc, format);
-    case 'validated':
-      // Only transactions with valid status
-      return validatedExport(doc, format);
-    case 'raw':
-      // Use rawTransactions fallback
-      return rawExport(doc.rawTransactions, format);
-    case 'minimal':
-      // Date, description, amount only
-      return minimalExport(doc, format);
-  }
-}
-```
-
-**Why:** Ensures users always get *something* rather than a complete failure.
-
----
-
-## Summary of Changes
-
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/lib/ruleEngine/multiStrategyDetector.ts` | New | Multi-strategy table detection |
-| `src/lib/pdfUtils.ts` | Update | Font metadata extraction |
-| `src/lib/ruleEngine/headerAnchors.ts` | Update | Font-based header boosting, adaptive drift |
-| `src/lib/ruleEngine/transactionConfidence.ts` | New/Update | Row-level confidence scoring |
-| `src/lib/ruleEngine/skipPatterns.ts` | Update | Bank-specific skip patterns |
-| `src/lib/ruleEngine/autoRepair.ts` | Update | Multi-flip exploration |
-| `src/lib/ruleEngine/multiLineStitcher.ts` | Update | Enhanced continuation detection |
-| `src/lib/ruleEngine/balanceValidator.ts` | Update | Tiered tolerance validation |
-| `src/lib/ruleEngine/numberParser.ts` | Update | Context-aware year inference |
-| `src/lib/ruleEngine/exportAdapters.ts` | Update | Fallback export chain |
-
----
-
-## Expected Impact
-
-| Improvement | Current Gap | Expected Improvement |
-|-------------|-------------|---------------------|
-| Multi-strategy detection | ~75% success | +10-15% success rate |
-| Font metadata | Missed headers | +5% header detection |
-| Row confidence | All-or-nothing | Partial exports possible |
-| Multi-flip repair | Single-flip only | +3-5% balance validation |
-| Tiered tolerance | Fixed tolerance | Fewer false negatives |
-| Export fallback | Complete failures | Always produces output |
-
----
-
-## Implementation Priority
-
-1. **High Priority** (most impact):
-   - Multi-strategy table detection
-   - Export fallback chain
-   - Tiered balance validation
-
-2. **Medium Priority**:
-   - Font metadata header detection
-   - Multi-flip auto-repair
-   - Adaptive column drift
-
-3. **Lower Priority** (refinements):
-   - Bank-specific skip patterns
-   - Enhanced continuation detection
-   - Year inference
-
----
-
-## Processing Flow After Changes
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    ENHANCED CONVERSION PIPELINE                          │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  1. MULTI-STRATEGY TABLE DETECTION                                │  │
-│  │     ├─ Strategy A: Header-anchored detection                      │  │
-│  │     ├─ Strategy B: Geometry gutter detection                      │  │
-│  │     ├─ Strategy C: Column-count heuristic                         │  │
-│  │     └─ Strategy D: Font-weight anchoring                          │  │
-│  │     → Score each → Select BEST result                             │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  2. ENHANCED ROW EXTRACTION                                       │  │
-│  │     ├─ Adaptive column drift tolerance (15-30px based on page)   │  │
-│  │     ├─ Bank-specific skip pattern filtering                       │  │
-│  │     └─ Smart continuation line stitching                          │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  3. PER-ROW CONFIDENCE SCORING                                    │  │
-│  │     ├─ Date clarity (20%)                                         │  │
-│  │     ├─ Amount presence (30%)                                      │  │
-│  │     ├─ Balance integrity (30%)                                    │  │
-│  │     └─ Description quality (20%)                                  │  │
-│  │     → Flag low-confidence rows for review                         │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  4. TIERED BALANCE VALIDATION                                     │  │
-│  │     Try: Exact (0.001) → Penny (0.01) → Rounding (0.10) → Loose   │  │
-│  │     Accept first tier that passes                                 │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  5. MULTI-FLIP AUTO-REPAIR (if validation failed)                 │  │
-│  │     ├─ Single debit/credit flips                                  │  │
-│  │     ├─ Double flip combinations                                   │  │
-│  │     └─ Accept if imbalance → 0                                    │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  6. EXPORT WITH FALLBACK CHAIN                                    │  │
-│  │     Try: Full → Validated → Raw → Minimal                         │  │
-│  │     Always produce output, warn if degraded                       │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+1. Create `src/pages/blog/BlogPostRuleBasedVsAI.tsx` with full content
+2. Update `src/pages/Blog.tsx` to add post to blogPosts array
+3. Update `src/App.tsx` to add lazy import and route
 
