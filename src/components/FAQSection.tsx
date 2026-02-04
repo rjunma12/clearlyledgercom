@@ -1,4 +1,3 @@
-import { forwardRef } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -19,12 +18,12 @@ interface FAQSectionProps {
   showSchema?: boolean;
 }
 
-const FAQSection = forwardRef<HTMLElement, FAQSectionProps>(({ 
+const FAQSection = ({ 
   faqs, 
   title = "Frequently Asked Questions",
   description,
   showSchema = true 
-}, ref) => {
+}: FAQSectionProps) => {
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
