@@ -104,6 +104,8 @@ const App = () => {
                   <Route path="/blog/rule-based-vs-ai-bank-statement-conversion" element={<BlogPostRuleBasedVsAI />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/about" element={<About />} />
