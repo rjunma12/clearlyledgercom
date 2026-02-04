@@ -128,8 +128,23 @@ serve(async (req) => {
     const returnUrl = `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&plan=${planName}`;
     const cancelReturnUrl = cancelUrl || `${baseUrl}/pricing`;
 
-    // Create Dodo checkout session
-    const dodoBaseUrl = 'https://api.dodopayments.com';
+    // Create Dodo checkout session with correct environment URL
+    const dodoMode = Deno.env.get('DODO_MODE') || 'live';
+    const dodoBaseUrl = dodoMode === 'test' 
+      ? 'https://test.dodopayments.com'
+      : 'https://live.dodopayments.com';
+    
+    // Validate API key matches mode
+    const isTestKey = dodoApiKey.startsWith('sk_test_');
+    const isLiveKey = dodoApiKey.startsWith('sk_live_');
+    if (dodoMode === 'live' && isTestKey) {
+      console.warn('WARNING: Using test API key in live mode');
+    }
+    if (dodoMode === 'test' && isLiveKey) {
+      console.warn('WARNING: Using live API key in test mode');
+    }
+    
+    console.log(`Dodo mode: ${dodoMode}, Base URL: ${dodoBaseUrl}`);
     
     // Determine billing interval and base plan
     const billingInterval = getBillingInterval(planName);
