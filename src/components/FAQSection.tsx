@@ -38,7 +38,7 @@ const FAQSection = ({
   };
 
   return (
-    <section ref={ref} id="faq" className="py-16 relative bg-surface-elevated/30">
+    <section id="faq" className="py-16 relative bg-surface-elevated/30">
       {showSchema && (
         <Helmet>
           <script type="application/ld+json">
@@ -85,8 +85,6 @@ const FAQSection = ({
       </div>
     </section>
   );
-});
-
-FAQSection.displayName = 'FAQSection';
+};
 
 export default FAQSection;
