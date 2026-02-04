@@ -13,6 +13,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState<"google" | "apple" | null>(null);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -50,6 +51,29 @@ export default function Login() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOAuthSignIn = async (provider: "google" | "apple") => {
+    setIsOAuthLoading(provider);
+    try {
+      const { error } = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin,
+      });
+      if (error) {
+        toast.error(error.message || `Sign in with ${provider} failed`);
+        logError({
+          errorType: ErrorTypes.AUTH,
+          errorMessage: error.message,
+          component: 'Login',
+          action: `signInWith${provider}`,
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : `Unknown ${provider} login error`;
+      toast.error(message);
+    } finally {
+      setIsOAuthLoading(null);
     }
   };
 
