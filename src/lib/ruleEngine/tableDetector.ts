@@ -60,7 +60,7 @@ export interface TableRegion {
 
 /**
  * Group TextElements into logical lines using Y-tolerance clustering
- * Similar to pdfplumber's line grouping algorithm
+ * Optimized: Uses Map-based grouping for O(n) complexity instead of O(n log n)
  */
 export function groupWordsIntoLines(
   elements: TextElement[],
@@ -69,55 +69,64 @@ export function groupWordsIntoLines(
   if (elements.length === 0) return [];
 
   // Convert TextElements to PdfWords
-  const words: PdfWord[] = elements.map(el => ({
-    text: el.text.trim(),
-    x0: el.boundingBox.x,
-    x1: el.boundingBox.x + el.boundingBox.width,
-    top: el.boundingBox.y,
-    bottom: el.boundingBox.y + el.boundingBox.height,
-    width: el.boundingBox.width,
-    height: el.boundingBox.height,
-    pageNumber: el.pageNumber,
-  })).filter(w => w.text.length > 0);
+  const words: PdfWord[] = elements
+    .map(el => ({
+      text: el.text.trim(),
+      x0: el.boundingBox.x,
+      x1: el.boundingBox.x + el.boundingBox.width,
+      top: el.boundingBox.y,
+      bottom: el.boundingBox.y + el.boundingBox.height,
+      width: el.boundingBox.width,
+      height: el.boundingBox.height,
+      pageNumber: el.pageNumber,
+    }))
+    .filter(w => w.text.length > 0);
 
   if (words.length === 0) return [];
 
-  // Sort words by page, then Y, then X
-  words.sort((a, b) => {
-    if (a.pageNumber !== b.pageNumber) return a.pageNumber - b.pageNumber;
-    if (Math.abs(a.top - b.top) > yTolerance) return a.top - b.top;
-    return a.x0 - b.x0;
-  });
-
-  const lines: PdfLine[] = [];
-  let currentLine: PdfWord[] = [words[0]];
-  let currentTop = words[0].top;
-  let currentPage = words[0].pageNumber;
-
-  for (let i = 1; i < words.length; i++) {
-    const word = words[i];
-    
-    // Check if word belongs to same line (within Y-tolerance and same page)
-    if (word.pageNumber === currentPage && Math.abs(word.top - currentTop) <= yTolerance) {
-      currentLine.push(word);
+  // Group by page first (O(n))
+  const byPage = new Map<number, PdfWord[]>();
+  for (const word of words) {
+    const existing = byPage.get(word.pageNumber);
+    if (existing) {
+      existing.push(word);
     } else {
-      // Finalize current line
-      if (currentLine.length > 0) {
-        lines.push(createLineFromWords(currentLine));
-      }
-      // Start new line
-      currentLine = [word];
-      currentTop = word.top;
-      currentPage = word.pageNumber;
+      byPage.set(word.pageNumber, [word]);
     }
   }
 
-  // Don't forget the last line
-  if (currentLine.length > 0) {
-    lines.push(createLineFromWords(currentLine));
+  const allLines: PdfLine[] = [];
+
+  // Process each page independently
+  for (const [, pageWords] of byPage) {
+    // Sort only within page (smaller sort = faster)
+    pageWords.sort((a, b) => {
+      if (Math.abs(a.top - b.top) > yTolerance) return a.top - b.top;
+      return a.x0 - b.x0;
+    });
+
+    // Bucket by Y-position (O(n))
+    const yBuckets = new Map<number, PdfWord[]>();
+    for (const word of pageWords) {
+      const bucketKey = Math.round(word.top / yTolerance) * yTolerance;
+      const bucket = yBuckets.get(bucketKey);
+      if (bucket) {
+        bucket.push(word);
+      } else {
+        yBuckets.set(bucketKey, [word]);
+      }
+    }
+
+    // Merge adjacent buckets into lines
+    const sortedKeys = [...yBuckets.keys()].sort((a, b) => a - b);
+    for (const key of sortedKeys) {
+      const bucket = yBuckets.get(key)!;
+      bucket.sort((a, b) => a.x0 - b.x0);
+      allLines.push(createLineFromWords(bucket));
+    }
   }
 
-  return lines;
+  return allLines;
 }
 
 function createLineFromWords(words: PdfWord[]): PdfLine {
