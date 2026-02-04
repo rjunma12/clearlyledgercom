@@ -8,6 +8,15 @@ import { useState } from "react";
 
 const blogPosts = [
   {
+    slug: "rule-based-vs-ai-bank-statement-conversion",
+    title: "Rule-Based vs AI Bank Statement Conversion: Which Is Right for Your Business?",
+    excerpt: "Comprehensive comparison of rule-based and AI-based bank statement conversion. Learn which approach delivers better accuracy, compliance, and cost-effectiveness for fintech, accounting, and enterprise use cases.",
+    date: "February 4, 2026",
+    category: "Thought Leadership",
+    readTime: "15 min read",
+    featured: true
+  },
+  {
     slug: "why-banks-dont-provide-csv-excel-statements",
     title: "Why Banks Don't Provide Past Transactions in Excel or CSV Format",
     excerpt: "Learn why banks globally only provide historical statements as PDFs, why generic converters fail, and how specialized tools solve this universal problem.",

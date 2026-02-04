@@ -31,6 +31,7 @@ const BlogPostUK = lazy(() => import("./pages/blog/BlogPostUK"));
 const BlogPostJapan = lazy(() => import("./pages/blog/BlogPostJapan"));
 const BlogPostWhyBanksDontProvideCSV = lazy(() => import("./pages/blog/BlogPostWhyBanksDontProvideCSV"));
 const BlogPostAustralia = lazy(() => import("./pages/blog/BlogPostAustralia"));
+const BlogPostRuleBasedVsAI = lazy(() => import("./pages/blog/BlogPostRuleBasedVsAI"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -98,6 +99,7 @@ const App = () => {
                   <Route path="/blog/japan-bank-statement-converter" element={<BlogPostJapan />} />
                   <Route path="/blog/why-banks-dont-provide-csv-excel-statements" element={<BlogPostWhyBanksDontProvideCSV />} />
                   <Route path="/blog/australia-bank-statement-converter" element={<BlogPostAustralia />} />
+                  <Route path="/blog/rule-based-vs-ai-bank-statement-conversion" element={<BlogPostRuleBasedVsAI />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/dashboard" element={<Dashboard />} />
