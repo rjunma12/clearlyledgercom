@@ -258,9 +258,11 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
 }
 
 function isConsistentStructure(count1: number, count2: number): boolean {
-  // Allow ±3 word variance for multi-line descriptions, etc.
-  // Increased from ±2 to reduce fragmentation
-  return Math.abs(count1 - count2) <= 3;
+  // RELAXED: Allow ±50% or ±4 words, whichever is larger
+  // This handles varying description lengths across rows
+  const maxCount = Math.max(count1, count2);
+  const tolerance = Math.max(4, Math.floor(maxCount * 0.5));
+  return Math.abs(count1 - count2) <= tolerance;
 }
 
 /**
