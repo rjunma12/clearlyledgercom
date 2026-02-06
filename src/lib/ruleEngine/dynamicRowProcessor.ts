@@ -317,6 +317,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
 export interface StitchedTransaction {
   primaryRow: ExtractedRow;
   continuationRows: ExtractedRow[];
+  numericContinuationRows: ExtractedRow[];  // NEW: rows with only amounts
   fullDescription: string;
   classification: RowClassification;
   effectiveDebit: string | null;
@@ -325,12 +326,42 @@ export interface StitchedTransaction {
   recoveredDate: string | null;  // Date recovered from any column
 }
 
+// Debug counters
+let _footerSkipCount = 0;
+let _numericStitchCount = 0;
+let _missingAmountCount = 0;
+
+/**
+ * Get debug stats (call after processing)
+ */
+export function getStitchingStats() {
+  return {
+    footerSkipCount: _footerSkipCount,
+    numericStitchCount: _numericStitchCount,
+    missingAmountCount: _missingAmountCount,
+  };
+}
+
+/**
+ * Reset debug stats
+ */
+export function resetStitchingStats() {
+  _footerSkipCount = 0;
+  _numericStitchCount = 0;
+  _missingAmountCount = 0;
+}
+
 /**
  * Apply look-back stitching to merge continuation lines with parent transactions
+ * ENHANCED: Also stitches numeric-only continuation rows
  */
 export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransaction[] {
+  resetStitchingStats();
+  
   const stitched: StitchedTransaction[] = [];
   let currentTransaction: StitchedTransaction | null = null;
+  let consecutiveFooterCount = 0;
+  const FOOTER_CUTOFF_THRESHOLD = 3; // Stop after 3 consecutive footer lines
 
   for (const row of rows) {
     const classResult = classifyRow(row);
@@ -344,6 +375,19 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
       recoveredDate: classResult.recoveredDate,
     };
 
+    // Footer cutoff: after 3 consecutive footer lines, stop processing
+    if (classification.isFooter) {
+      consecutiveFooterCount++;
+      _footerSkipCount++;
+      if (consecutiveFooterCount >= FOOTER_CUTOFF_THRESHOLD) {
+        console.log(`[DynamicRowProcessor] Footer cutoff: stopping after ${consecutiveFooterCount} consecutive footer lines`);
+        break;
+      }
+      continue;
+    } else {
+      consecutiveFooterCount = 0;
+    }
+
     if (classification.isTransaction || classification.isOpeningBalance || classification.isClosingBalance) {
       // Save previous transaction
       if (currentTransaction) {
@@ -354,6 +398,7 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
       currentTransaction = {
         primaryRow: row,
         continuationRows: [],
+        numericContinuationRows: [],
         fullDescription: row.description || '',
         classification,
         effectiveDebit: classResult.effectiveDebit,
@@ -361,14 +406,19 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
         wasAmountSplit: classResult.wasAmountSplit,
         recoveredDate: classResult.recoveredDate,
       };
+    } else if (classResult.isNumericContinuation && currentTransaction) {
+      // NEW: Numeric continuation - stitch amounts into current transaction
+      currentTransaction.numericContinuationRows.push(row);
+      _numericStitchCount++;
+      console.log(`[DynamicRowProcessor] Stitched numeric continuation: debit=${row.debit}, credit=${row.credit}, balance=${row.balance}`);
     } else if (classification.isContinuation && currentTransaction) {
-      // Append to current transaction
+      // Description continuation
       currentTransaction.continuationRows.push(row);
       if (row.description) {
         currentTransaction.fullDescription += ' ' + row.description;
       }
     }
-    // Skip headers/footers
+    // Skip headers
   }
 
   // Don't forget the last transaction
@@ -376,6 +426,8 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
     stitched.push(finalizeStitchedTransaction(currentTransaction));
   }
 
+  console.log(`[DynamicRowProcessor] Stitching stats: footers skipped=${_footerSkipCount}, numeric stitched=${_numericStitchCount}`);
+  
   return stitched;
 }
 
