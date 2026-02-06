@@ -59,8 +59,11 @@ const CLOSING_BALANCE_PATTERNS = [
 ];
 
 // Patterns for merged amount column CR/DR suffix extraction
-const DEBIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*(dr|debit|\-)\s*$/i;
-const CREDIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*(cr|credit|\+)\s*$/i;
+// Enhanced to handle various Indian bank formats: "1,548.00 Dr", "500.00DR", "1548.00 (Dr)", "-1548.00"
+const DEBIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*[(\[]?\s*(dr|debit|d)\s*[)\]]?\s*$/i;
+const CREDIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*[(\[]?\s*(cr|credit|c)\s*[)\]]?\s*$/i;
+const NEGATIVE_AMOUNT_PATTERN = /^\s*-\s*([\d,.]+)\s*$/;
+const POSITIVE_AMOUNT_PATTERN = /^\s*\+?\s*([\d,.]+)\s*$/;
 
 // =============================================================================
 // REFERENCE EXTRACTION PATTERNS
