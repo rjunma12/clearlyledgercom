@@ -510,9 +510,9 @@ export function processExtractedRows(
   const openingBalance = stitched.find(t => t.classification.isOpeningBalance) || null;
   const closingBalance = stitched.find(t => t.classification.isClosingBalance) || null;
   
-  // Filter to actual transactions
+  // RELAXED: Include ALL stitched rows except opening/closing balance
+  // Let the Excel generator filter truly empty rows at output stage
   const transactions = stitched.filter(t => 
-    t.classification.isTransaction && 
     !t.classification.isOpeningBalance && 
     !t.classification.isClosingBalance
   );

@@ -1378,7 +1378,46 @@ export function detectAndExtractTables(
     }
   }
 
-  // Step 6: Check for merged amount column pattern in extracted rows
+  // Step 6: NEW - Capture orphan lines not covered by any detected table
+  const includedLineYPositions = new Set<number>();
+  for (const table of tables) {
+    for (const dataLine of table.dataLines) {
+      // Track lines by their approximate Y position (with tolerance)
+      includedLineYPositions.add(Math.round(dataLine.top / 3) * 3);
+    }
+  }
+  
+  const orphanLines = lines.filter(l => {
+    const normalizedY = Math.round(l.top / 3) * 3;
+    return !includedLineYPositions.has(normalizedY) && l.words.length >= 1;
+  });
+  
+  if (orphanLines.length > 0) {
+    console.log(`[TableDetector] Found ${orphanLines.length} orphan lines not covered by tables`);
+    
+    // Create supplementary table for orphan lines
+    const supplementaryTable: TableRegion = {
+      top: Math.min(...orphanLines.map(l => l.top)),
+      bottom: Math.max(...orphanLines.map(l => l.bottom)),
+      left: Math.min(...orphanLines.map(l => l.left)),
+      right: Math.max(...orphanLines.map(l => l.right)),
+      headerLine: null,
+      dataLines: orphanLines,
+      columnBoundaries: reconciledBoundaries.length > 0 ? reconciledBoundaries : detectColumnBoundaries(orphanLines),
+      pageNumbers: [...new Set(orphanLines.map(l => l.pageNumber))],
+    };
+    
+    // Use reconciled boundaries if available
+    const boundariesToUse = reconciledBoundaries.length > 0 
+      ? reconciledBoundaries 
+      : classifyColumns(orphanLines, supplementaryTable.columnBoundaries);
+    
+    const orphanRows = extractRowsFromTable(supplementaryTable, boundariesToUse);
+    console.log(`[TableDetector] Extracted ${orphanRows.length} rows from orphan lines`);
+    allRows = allRows.concat(orphanRows);
+  }
+
+  // Step 7: Check for merged amount column pattern in extracted rows
   const hasMergedColumn = detectMergedColumnFromRows(allRows);
   if (hasMergedColumn) {
     console.log('[TableDetector] Detected merged debit/credit column with DR/CR suffixes in rows');
