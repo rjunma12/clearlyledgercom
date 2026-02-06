@@ -388,6 +388,35 @@ export default function TestConversion() {
           </Card>
         )}
 
+        {/* Extracted Header Info */}
+        {result?.document && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>📋 Extracted Header Info</CardTitle>
+              <CardDescription>Statement metadata extracted from PDF</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {[
+                  { label: 'Bank Name', value: (result.document as any)?.extractedHeader?.bankName },
+                  { label: 'Account Holder', value: (result.document as any)?.extractedHeader?.accountHolder },
+                  { label: 'Account Number', value: (result.document as any)?.extractedHeader?.accountNumberMasked },
+                  { label: 'Currency', value: (result.document as any)?.extractedHeader?.currency },
+                  { label: 'Statement From', value: (result.document as any)?.extractedHeader?.statementPeriodFrom },
+                  { label: 'Statement To', value: (result.document as any)?.extractedHeader?.statementPeriodTo },
+                ].map((item, idx) => (
+                  <div key={idx} className={`p-3 rounded-lg ${item.value ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+                    <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+                    <p className={`text-sm font-medium ${item.value ? '' : 'text-destructive'}`}>
+                      {item.value || '❌ Not Found'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Column Visualization */}
         {result?.columnBoundaries && result.columnBoundaries.length > 0 && (
           <div className="mb-6">
