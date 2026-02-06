@@ -672,7 +672,7 @@ function inferColumnType(
   return { type: 'unknown', confidence: 0.3 };
 }
 
-function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] {
+function postProcessColumnTypes(boundaries: ColumnBoundary[], lines: PdfLine[]): ColumnBoundary[] {
   // Ensure we have at least a date and balance column
   let hasDate = boundaries.some(b => b.inferredType === 'date');
   let hasBalance = boundaries.some(b => b.inferredType === 'balance');
