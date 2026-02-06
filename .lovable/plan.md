@@ -1,243 +1,147 @@
 
-# Complete Dodo Payments Removal and Provider-Agnostic Payment System
+# Backend PDF Processing Test Infrastructure
 
-## Overview
+## Current Situation
 
-This plan removes all Dodo Payments integration and creates a clean, provider-agnostic payment abstraction layer ready for future integration with any payment provider.
+The ClearlyLedger conversion pipeline is entirely **client-side**:
 
-## Scope of Changes
+| Component | Technology | Runs In |
+|-----------|------------|---------|
+| PDF Loading | pdfjs-dist | Browser |
+| Text Extraction | pdfjs-dist text layer | Browser |
+| OCR (scanned) | tesseract.js | Browser |
+| Rule Engine | TypeScript (geometric parsing) | Browser |
+| Export Generation | ExcelJS via Edge Function | Server |
 
-### 1. Edge Functions to Delete (4 functions)
-| Function | Purpose | Action |
-|----------|---------|--------|
-| `supabase/functions/create-checkout/` | Dodo checkout session creation | Delete entirely |
-| `supabase/functions/dodo-webhook/` | Dodo webhook handler | Delete entirely |
-| `supabase/functions/verify-payment/` | Payment verification via Dodo | Delete entirely |
-| `supabase/functions/manage-subscription/` | Subscription management via Dodo API | Refactor to provider-agnostic |
+**The backend can only receive already-parsed transaction data** - it cannot process raw PDFs.
 
-### 2. Frontend Files to Modify
+## Option 1: Create a Test Page (Fastest)
 
-| File | Change |
-|------|--------|
-| `src/hooks/use-checkout.tsx` | Replace with provider-agnostic abstraction (stub implementation) |
-| `src/hooks/use-subscription-management.tsx` | Refactor to use new abstraction layer |
-| `src/pages/CheckoutSuccess.tsx` | Refactor to generic payment success page |
-| `src/components/PricingSection.tsx` | Remove "Secure payment via Dodo" text |
-| `src/components/dashboard/SubscriptionCard.tsx` | Remove any Dodo-specific logic |
+Add a hidden `/test-conversion` route that:
+- Bypasses quota limits for testing
+- Shows detailed timing breakdowns for each stage
+- Logs all intermediate data (columns detected, rows extracted, etc.)
+- Allows unlimited page processing
 
-### 3. Database Schema Changes
+**Files to Create:**
+- `src/pages/TestConversion.tsx` - Test interface with detailed logging
+- `src/components/TestFileUpload.tsx` - Enhanced upload component with timing
 
-Remove Dodo-specific columns from tables:
+**Output:**
+```text
+PDF Type: TEXT_BASED (1,247 chars on page 1)
+Page Count: 3
+Text Extraction: 245ms
+Table Detection: 89ms  
+  - Lines detected: 47
+  - Columns: [date, description, debit, credit, balance]
+  - Confidence: 0.92
+Row Processing: 156ms
+  - Transactions: 24
+  - Opening balance: Yes
+  - Closing balance: Yes
+Validation: 34ms
+  - Balance check: PASSED
+  - Errors: 0
+  - Warnings: 1
+Total Time: 524ms
+```
+
+## Option 2: Create Backend Processing Capability (Complex)
+
+This would require significant changes:
+
+### Edge Function Infrastructure
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│ payment_events table                                            │
-├─────────────────────────────────────────────────────────────────┤
-│ REMOVE: dodo_payment_id, dodo_subscription_id, dodo_customer_id │
-│ ADD: provider_payment_id, provider_subscription_id,             │
-│      provider_customer_id, provider_name                        │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ user_subscriptions table                                        │
-├─────────────────────────────────────────────────────────────────┤
-│ REMOVE: dodo_subscription_id, dodo_payment_id, dodo_customer_id │
-│ ADD: provider_subscription_id, provider_payment_id,             │
-│      provider_customer_id, provider_name                        │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ plans table                                                     │
-├─────────────────────────────────────────────────────────────────┤
-│ REMOVE: dodo_product_id                                         │
-│ ADD: provider_product_id, provider_price_id                     │
-└─────────────────────────────────────────────────────────────────┘
+supabase/functions/process-pdf/
+├── index.ts          # Entry point
+├── pdfParser.ts      # Server-side PDF parsing
+└── deps.ts           # Deno-compatible dependencies
 ```
 
-### 4. Secrets to Remove
+### Technical Challenges
 
-| Secret | Description |
-|--------|-------------|
-| `DODO_PAYMENTS_API_KEY` | Dodo API key |
-| `DODO_PAYMENTS_WEBHOOK_KEY` | Dodo webhook signing key |
-| `DODO_MODE` | Dodo environment mode |
+| Challenge | Browser Solution | Server Solution |
+|-----------|------------------|-----------------|
+| PDF Parsing | pdfjs-dist | pdf-lib or external service |
+| OCR | tesseract.js WASM | Google Vision API or external |
+| Canvas | DOM canvas | No native support |
+| Memory | User device | Edge function limits (256MB) |
 
----
+### Required Dependencies
 
-## New Payment Abstraction Layer
+1. **pdf-lib** - Can parse PDFs in Deno but text extraction is limited
+2. **External OCR Service** - Google Vision, AWS Textract, or Azure Form Recognizer
+3. **PDF Text Extraction Service** - Like pdf.co or pdftables.com
 
-### Directory Structure
+### Migration Scope
 
-```text
-src/
-├── lib/
-│   └── payments/
-│       ├── index.ts              # Main exports
-│       ├── types.ts              # Provider-agnostic type definitions
-│       ├── PaymentProvider.ts    # Abstract interface
-│       ├── events.ts             # Standard webhook event types
-│       └── errors.ts             # Payment error types
-│
-supabase/functions/
-├── payment-webhook/
-│   └── index.ts                  # Provider-agnostic webhook handler (stub)
-├── create-checkout-session/
-│   └── index.ts                  # Provider-agnostic checkout (stub)
-└── manage-subscription/
-    └── index.ts                  # Refactored subscription management
-```
+1. Abstract the rule engine to work with raw text (already mostly done)
+2. Create server-side PDF text extraction
+3. Handle OCR via external API
+4. Move processing from client to server
 
-### Core Interfaces
+## Recommendation
 
-**PaymentProvider Interface:**
-```typescript
-interface PaymentProvider {
-  name: string;
-  createCheckoutSession(params: CheckoutParams): Promise<CheckoutResult>;
-  verifyWebhookSignature(payload: string, signature: string): Promise<boolean>;
-  cancelSubscription(subscriptionId: string): Promise<void>;
-  reactivateSubscription(subscriptionId: string): Promise<void>;
-  getSubscription(subscriptionId: string): Promise<SubscriptionDetails>;
-}
-```
+**Start with Option 1** (Test Page) to:
+1. Test the current pipeline with your PDF without limits
+2. Get detailed timing and quality metrics
+3. Identify any parsing issues
 
-**Standard Webhook Events:**
-```typescript
-type PaymentWebhookEventType =
-  | 'payment_success'
-  | 'payment_failed'
-  | 'subscription_created'
-  | 'subscription_renewed'
-  | 'subscription_canceled'
-  | 'subscription_expired'
-  | 'refund_completed';
-```
+**Then evaluate Option 2** if you need:
+- Processing without client resources
+- Higher security (files never leave server)
+- API-first architecture for integrations
 
----
+## Implementation for Option 1
 
-## Implementation Steps
-
-### Phase 1: Database Migration
-1. Create migration to add provider-agnostic columns
-2. Create migration to drop Dodo-specific columns
-
-### Phase 2: Create Payment Abstraction Layer
-1. Create `src/lib/payments/types.ts` with interfaces
-2. Create `src/lib/payments/PaymentProvider.ts` abstract class
-3. Create `src/lib/payments/events.ts` with webhook event types
-4. Create `src/lib/payments/errors.ts` for payment errors
-5. Create `src/lib/payments/index.ts` to export all
-
-### Phase 3: Delete Dodo Edge Functions
-1. Delete `supabase/functions/create-checkout/`
-2. Delete `supabase/functions/dodo-webhook/`
-3. Delete `supabase/functions/verify-payment/`
-
-### Phase 4: Create Stub Edge Functions
-1. Create `supabase/functions/create-checkout-session/index.ts` (returns "not configured")
-2. Create `supabase/functions/payment-webhook/index.ts` (stub handler)
-3. Refactor `supabase/functions/manage-subscription/index.ts` to be provider-agnostic
-
-### Phase 5: Update Frontend
-1. Update `src/hooks/use-checkout.tsx` to use new abstraction
-2. Update `src/hooks/use-subscription-management.tsx`
-3. Update `src/pages/CheckoutSuccess.tsx` to be generic
-4. Update `src/components/PricingSection.tsx` - remove Dodo mention
-5. Update `src/components/dashboard/SubscriptionCard.tsx`
-
-### Phase 6: Cleanup
-1. Remove Dodo secrets (will need manual removal from dashboard)
-
----
-
-## Technical Details
-
-### New Edge Function: create-checkout-session (Stub)
+### New Test Page
 
 ```typescript
-// Returns error indicating no payment provider configured
-serve(async (req) => {
-  return new Response(
-    JSON.stringify({ 
-      error: 'Payment provider not configured',
-      code: 'PAYMENT_PROVIDER_NOT_CONFIGURED'
-    }),
-    { status: 503, headers: corsHeaders }
-  );
-});
+// Route: /test-conversion (not linked in navigation)
+// Features:
+// - No quota checks
+// - No page limits
+// - Detailed console logging
+// - Timing breakdown per stage
+// - Raw data inspection
+// - Export all debug info
 ```
 
-### New Edge Function: payment-webhook (Stub)
+### Timing Instrumentation
 
-```typescript
-// Placeholder for future payment provider webhook
-serve(async (req) => {
-  console.log('Payment webhook received - no provider configured');
-  return new Response(JSON.stringify({ received: true }), { status: 200 });
-});
-```
+Add detailed timing to each pipeline stage:
+- `loadPdfDocument()` - PDF loading time
+- `analyzePdfType()` - Type detection time
+- `extractTextFromPage()` - Per-page extraction
+- `detectAndExtractTables()` - Table detection
+- `processExtractedRows()` - Row processing
+- `validateDocument()` - Balance validation
 
-### Refactored manage-subscription
+### Quality Metrics Dashboard
 
-Removes all Dodo API calls, operates only on local database:
-- Cancel: Sets `cancel_at_period_end = true`
-- Reactivate: Sets `cancel_at_period_end = false`
-- Logs events to `payment_events` table
+Display:
+- PDF type (text-based vs scanned)
+- Characters extracted per page
+- Columns detected with confidence scores
+- Transaction count vs expected
+- Balance validation results
+- Any auto-repair actions taken
 
-### Frontend Changes
+## Files to Create/Modify
 
-**use-checkout.tsx:**
-- Returns clear error message when no provider configured
-- Ready to accept provider implementation
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/pages/TestConversion.tsx` | Create | Test UI with detailed output |
+| `src/components/TestFileUpload.tsx` | Create | Unlimited processing component |
+| `src/lib/pdfProcessor.ts` | Modify | Add timing instrumentation |
+| `src/lib/ruleEngine/index.ts` | Modify | Add debug output hooks |
+| `src/App.tsx` | Modify | Add `/test-conversion` route |
 
-**PricingSection.tsx line 510:**
-```typescript
-// FROM: "Secure payment via Dodo • Cancel anytime • No hidden fees"
-// TO: "Secure payments • Cancel anytime • No hidden fees"
-```
+## Next Steps
 
----
-
-## Post-Removal Verification
-
-### Zero Dodo References Checklist
-- [ ] No "dodo" or "Dodo" in any `.ts`, `.tsx`, `.json`, `.toml` files
-- [ ] No `DODO_*` environment variables
-- [ ] No database columns containing "dodo"
-- [ ] No outbound network calls to `*.dodopayments.com`
-
-### Payment System Ready for Integration
-- [ ] `PaymentProvider` interface defined
-- [ ] Standard webhook event types defined
-- [ ] Stub edge functions return appropriate errors
-- [ ] Database schema is provider-agnostic
-- [ ] Frontend shows "coming soon" or disabled state
-
----
-
-## Files Summary
-
-### Files to Delete
-- `supabase/functions/create-checkout/index.ts`
-- `supabase/functions/dodo-webhook/index.ts`
-- `supabase/functions/verify-payment/index.ts`
-
-### Files to Create
-- `src/lib/payments/types.ts`
-- `src/lib/payments/PaymentProvider.ts`
-- `src/lib/payments/events.ts`
-- `src/lib/payments/errors.ts`
-- `src/lib/payments/index.ts`
-- `supabase/functions/create-checkout-session/index.ts`
-- `supabase/functions/payment-webhook/index.ts`
-
-### Files to Modify
-- `src/hooks/use-checkout.tsx`
-- `src/hooks/use-subscription-management.tsx`
-- `src/pages/CheckoutSuccess.tsx`
-- `src/components/PricingSection.tsx`
-- `supabase/functions/manage-subscription/index.ts`
-
-### Database Migrations
-1. Add provider-agnostic columns to `payment_events`, `user_subscriptions`, `plans`
-2. Drop dodo-specific columns from all tables
+1. **Approve this plan** to create the test infrastructure
+2. **Upload your PDF** through the test page
+3. **Review results** including timing, transaction count, validation
+4. **Decide on backend** based on performance needs
