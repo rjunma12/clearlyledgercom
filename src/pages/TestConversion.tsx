@@ -16,8 +16,9 @@ interface QualityMetrics {
   totalTransactions: number;
   totalErrors: number;
   totalWarnings: number;
-  balanceValid: boolean;
-  averageConfidence: number;
+  validationStatus: string;
+  errorTransactions: number;
+  warningTransactions: number;
   hasScannedPages: boolean;
 }
 
@@ -72,8 +73,9 @@ export default function TestConversion() {
         totalTransactions: result.document?.totalTransactions || 0,
         totalErrors: result.errors?.length || 0,
         totalWarnings: result.warnings?.length || 0,
-        balanceValid: result.document?.validationStatus === 'valid',
-        averageConfidence: result.document?.averageConfidence || 0,
+        validationStatus: result.document?.overallValidation || 'unchecked',
+        errorTransactions: result.document?.errorTransactions || 0,
+        warningTransactions: result.document?.warningTransactions || 0,
         hasScannedPages: result.warnings?.some(w => w.includes('OCR')) || false,
       };
 
@@ -188,34 +190,30 @@ export default function TestConversion() {
                 </div>
 
                 <div className="bg-secondary/50 p-4 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Average Confidence</p>
-                  <p className="text-lg font-semibold">{(qualityMetrics.averageConfidence * 100).toFixed(1)}%</p>
+                  <p className="text-xs text-muted-foreground mb-1">Validation Status</p>
+                  <p className="text-lg font-semibold capitalize">{qualityMetrics.validationStatus}</p>
                 </div>
 
                 <div className="bg-secondary/50 p-4 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Balance Valid</p>
-                  <p className={`text-lg font-semibold ${qualityMetrics.balanceValid ? 'text-green-600' : 'text-red-600'}`}>
-                    {qualityMetrics.balanceValid ? 'YES' : 'NO'}
-                  </p>
+                  <p className="text-xs text-muted-foreground mb-1">Error Transactions</p>
+                  <p className="text-lg font-semibold">{qualityMetrics.errorTransactions}</p>
                 </div>
 
                 <div className="bg-secondary/50 p-4 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Scanned (OCR)</p>
-                  <p className={`text-lg font-semibold ${qualityMetrics.hasScannedPages ? 'text-amber-600' : 'text-green-600'}`}>
-                    {qualityMetrics.hasScannedPages ? 'YES' : 'NO'}
-                  </p>
+                  <p className="text-lg font-semibold">{qualityMetrics.hasScannedPages ? 'Yes' : 'No'}</p>
                 </div>
               </div>
 
               {qualityMetrics.totalErrors > 0 && (
-                <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 rounded-lg">
-                  <p className="text-sm font-semibold text-red-600 dark:text-red-400">⚠️ Errors: {qualityMetrics.totalErrors}</p>
+                <div className="mt-4 p-3 bg-destructive/10 rounded-lg">
+                  <p className="text-sm font-semibold text-destructive">⚠️ Processing Errors: {qualityMetrics.totalErrors}</p>
                 </div>
               )}
 
               {qualityMetrics.totalWarnings > 0 && (
-                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
-                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">ℹ️ Warnings: {qualityMetrics.totalWarnings}</p>
+                <div className="mt-2 p-3 bg-warning/10 rounded-lg">
+                  <p className="text-sm font-semibold text-warning">ℹ️ Warnings: {qualityMetrics.totalWarnings}</p>
                 </div>
               )}
             </CardContent>
