@@ -29,6 +29,7 @@ export interface RowClassification {
   isFooter: boolean;
   isOpeningBalance: boolean;
   isClosingBalance: boolean;
+  recoveredDate: string | null;
 }
 
 const SKIP_PATTERNS = [
@@ -152,7 +153,42 @@ function splitMergedAmount(amountText: string): { debit: string | null; credit: 
 }
 
 /**
+ * Find a date pattern in ANY column of the row
+ * Used for cross-column recovery when date column is misclassified
+ */
+function findDateInAnyColumn(row: ExtractedRow): string | null {
+  const allFields = [row.date, row.description, row.debit, row.credit, row.balance, row.amount];
+  
+  for (const field of allFields) {
+    if (!field) continue;
+    
+    // Check each part of the field for date patterns
+    const parts = field.split(/\s+/);
+    for (const part of parts) {
+      if (DATE_VALIDATION_PATTERNS.some(p => p.test(part))) {
+        return part;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Check if row contains any numeric content (likely amounts)
+ */
+function hasNumericContent(row: ExtractedRow): boolean {
+  const allFields = [row.debit, row.credit, row.balance, row.amount];
+  return allFields.some(field => {
+    if (!field) return false;
+    // Remove common formatting and check for digits
+    const cleaned = field.replace(/[,\s]/g, '');
+    return /\d+\.?\d*/.test(cleaned);
+  });
+}
+
+/**
  * Classify a row to determine its type
+ * ULTRA-RELAXED: Include rows with ANY meaningful content
  */
 export function classifyRow(row: ExtractedRow): RowClassification & { 
   effectiveDebit: string | null; 
@@ -183,26 +219,43 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
   // Check for skip patterns (headers/footers)
   const isSkip = SKIP_PATTERNS.some(p => p.test(fullText));
 
-  // Check if it's a valid transaction
-  // RELAXED: Allow transactions even if date is misclassified, as long as we have amount + balance
+  // ULTRA-RELAXED DETECTION
+  // 1. Try to validate date in date column
   const hasValidDate = row.date !== null && 
     DATE_VALIDATION_PATTERNS.some(p => p.test(row.date!));
-  const hasBalance = row.balance !== null;
+  
+  // 2. Cross-column date recovery - search all fields for dates
+  const recoveredDate = hasValidDate ? row.date : findDateInAnyColumn(row);
+  const hasRecoveredDate = recoveredDate !== null;
+  
+  // 3. Check for balance and amounts
+  const hasBalance = row.balance !== null && row.balance.trim().length > 0;
   const hasAmount = effectiveDebit !== null || effectiveCredit !== null || row.amount !== null;
   
-  // A row is a transaction if it has:
-  // 1. Valid date + any amount/balance, OR
-  // 2. Balance + any amount (even without validated date)
-  // 3. Has valid date and balance (even without explicit debit/credit)
-  const isTransaction = (
-    (hasValidDate && (hasAmount || hasBalance)) || 
-    (hasBalance && hasAmount) ||
-    (hasValidDate && hasBalance)
-  ) && !isSkip;
-
-  // Continuation row: has description but no date AND no balance AND no amounts
+  // 4. Check for any numeric content (fallback)
+  const hasNumeric = hasNumericContent(row);
+  
+  // 5. Check for meaningful description
   const hasDescription = row.description !== null && row.description.trim().length > 2;
-  const isContinuation = hasDescription && !hasValidDate && !hasBalance && !hasAmount && !isSkip;
+  
+  // RELAXED: A row is a transaction if:
+  // - Has ANY date (validated or recovered) + any other content, OR
+  // - Has balance + any amount, OR  
+  // - Has numeric content + description (likely a transaction row), OR
+  // - Has description + any date (even recovered), OR
+  // - Has at least 2 of: date, description, amount, balance
+  const contentCount = [hasRecoveredDate, hasDescription, hasAmount || hasNumeric, hasBalance].filter(Boolean).length;
+  
+  const isTransaction = !isSkip && !isOpeningBalance && !isClosingBalance && (
+    (hasRecoveredDate && (hasAmount || hasBalance || hasDescription)) ||
+    (hasBalance && hasAmount) ||
+    (hasNumeric && hasDescription) ||
+    (hasValidDate && hasBalance) ||
+    contentCount >= 2
+  );
+
+  // Continuation row: has ONLY description (no date anywhere, no balance, no amounts)
+  const isContinuation = hasDescription && !hasRecoveredDate && !hasBalance && !hasAmount && !hasNumeric && !isSkip;
 
   return {
     isTransaction,
@@ -211,6 +264,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
     isFooter: isSkip && !isOpeningBalance && !isClosingBalance,
     isOpeningBalance,
     isClosingBalance,
+    recoveredDate,
     effectiveDebit,
     effectiveCredit,
     wasAmountSplit,
@@ -226,9 +280,10 @@ export interface StitchedTransaction {
   continuationRows: ExtractedRow[];
   fullDescription: string;
   classification: RowClassification;
-  effectiveDebit: string | null;   // NEW: Resolved debit (from split or original)
-  effectiveCredit: string | null;  // NEW: Resolved credit (from split or original)
-  wasAmountSplit: boolean;         // NEW: Track if amount was split from merged column
+  effectiveDebit: string | null;
+  effectiveCredit: string | null;
+  wasAmountSplit: boolean;
+  recoveredDate: string | null;  // Date recovered from any column
 }
 
 /**
@@ -247,6 +302,7 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
       isFooter: classResult.isFooter,
       isOpeningBalance: classResult.isOpeningBalance,
       isClosingBalance: classResult.isClosingBalance,
+      recoveredDate: classResult.recoveredDate,
     };
 
     if (classification.isTransaction || classification.isOpeningBalance || classification.isClosingBalance) {
@@ -264,6 +320,7 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
         effectiveDebit: classResult.effectiveDebit,
         effectiveCredit: classResult.effectiveCredit,
         wasAmountSplit: classResult.wasAmountSplit,
+        recoveredDate: classResult.recoveredDate,
       };
     } else if (classification.isContinuation && currentTransaction) {
       // Append to current transaction
@@ -334,8 +391,23 @@ export function convertToRawTransactions(
       console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${effectiveDebit}, credit: ${effectiveCredit}`);
     }
     
+    // Use recovered date if original date is empty
+    let rawDate = row.date;
+    if (!rawDate && tx.recoveredDate) {
+      rawDate = tx.recoveredDate;
+      console.log(`[DynamicRowProcessor] Recovered date "${tx.recoveredDate}" from another column`);
+    }
+    
     // Extract reference from description
-    const { reference, referenceType, cleanedDescription } = extractReference(tx.fullDescription);
+    let description = tx.fullDescription;
+    const { reference, referenceType, cleanedDescription } = extractReference(description);
+    
+    // If date was recovered from description, remove it from description
+    if (tx.recoveredDate && cleanedDescription.includes(tx.recoveredDate)) {
+      description = cleanedDescription.replace(tx.recoveredDate, '').replace(/\s+/g, ' ').trim();
+    } else {
+      description = cleanedDescription;
+    }
     
     // Collect all text elements from primary and continuation rows
     const allElements: TextElement[] = [];
@@ -365,8 +437,8 @@ export function convertToRawTransactions(
       rowIndex: index,
       pageNumber: row.pageNumber,
       elements: allElements,
-      rawDate: row.date || undefined,
-      rawDescription: cleanedDescription,  // Use cleaned description (reference removed)
+      rawDate: rawDate || undefined,
+      rawDescription: description,  // Use cleaned description (reference and recovered date removed)
       rawDebit: effectiveDebit || undefined,
       rawCredit: effectiveCredit || undefined,
       rawBalance: row.balance || undefined,

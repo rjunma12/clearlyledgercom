@@ -38,7 +38,18 @@ const TRANSACTION_COLUMNS = [
  * Generate a simplified single-sheet Excel file
  */
 export async function generateSimpleExcel(options: SimpleExcelOptions): Promise<ArrayBuffer> {
-  const { accountInfo, transactions } = options;
+  const { accountInfo, transactions: rawTransactions } = options;
+  
+  // Filter out completely empty rows - only include rows with at least one data point
+  const transactions = rawTransactions.filter(tx => 
+    (tx.date && tx.date.trim()) || 
+    (tx.description && tx.description.trim()) || 
+    (tx.debit && tx.debit.trim()) || 
+    (tx.credit && tx.credit.trim()) || 
+    (tx.balance && tx.balance.trim())
+  );
+  
+  console.log(`[SimpleExcelGenerator] Filtered ${rawTransactions.length} rows -> ${transactions.length} valid transactions`);
   
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'ClearlyLedger';
