@@ -1027,7 +1027,9 @@ function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
 }
 
 /**
- * Check if a column contains mixed CR/DR suffixes indicating a merged amount column
+ * Check if a column contains CR/DR suffixes indicating a merged amount column
+ * Updated: Now handles asymmetric suffixes (only DR or only CR present)
+ * If only one suffix type is found, amounts without suffix are the opposite type
  */
 function checkForMergedColumnSuffixes(lines: PdfLine[], boundary: ColumnBoundary): boolean {
   let drCount = 0;
@@ -1058,8 +1060,20 @@ function checkForMergedColumnSuffixes(lines: PdfLine[], boundary: ColumnBoundary
     }
   }
   
-  // Must have at least 3 numeric values and both DR and CR present
-  return totalNumeric >= 3 && drCount > 0 && crCount > 0;
+  // UPDATED: Handle asymmetric suffixes
+  // If only DR suffix is found: amounts without suffix are credits
+  // If only CR suffix is found: amounts without suffix are debits
+  const hasSuffixes = drCount > 0 || crCount > 0;
+  const hasBothTypes = (drCount > 0 && (totalNumeric - drCount) > 0) || 
+                       (crCount > 0 && (totalNumeric - crCount) > 0);
+  
+  const result = totalNumeric >= 3 && hasSuffixes && hasBothTypes;
+  
+  if (result) {
+    console.log(`[MergedColumnCheck] Detected merged column: ${totalNumeric} numeric, ${drCount} DR, ${crCount} CR`);
+  }
+  
+  return result;
 }
 
 /**
