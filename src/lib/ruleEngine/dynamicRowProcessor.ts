@@ -59,8 +59,11 @@ const CLOSING_BALANCE_PATTERNS = [
 ];
 
 // Patterns for merged amount column CR/DR suffix extraction
-const DEBIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*(dr|debit|\-)\s*$/i;
-const CREDIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*(cr|credit|\+)\s*$/i;
+// Enhanced to handle various Indian bank formats: "1,548.00 Dr", "500.00DR", "1548.00 (Dr)", "-1548.00"
+const DEBIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*[(\[]?\s*(dr|debit|d)\s*[)\]]?\s*$/i;
+const CREDIT_SUFFIX_PATTERN = /([\d,.\s]+)\s*[(\[]?\s*(cr|credit|c)\s*[)\]]?\s*$/i;
+const NEGATIVE_AMOUNT_PATTERN = /^\s*-\s*([\d,.]+)\s*$/;
+const POSITIVE_AMOUNT_PATTERN = /^\s*\+?\s*([\d,.]+)\s*$/;
 
 // =============================================================================
 // REFERENCE EXTRACTION PATTERNS
@@ -107,36 +110,65 @@ export function extractReference(description: string): {
 
 /**
  * Extract debit/credit from merged amount column based on suffix
+ * Handles multiple formats:
+ * - "1,548.00 Dr" / "500.00 Cr"
+ * - "1548.00DR" / "500.00CR"
+ * - "1,548.00 (Dr)" / "500.00 (Cr)"
+ * - "-1548.00" (negative = debit)
+ * - "+500.00" (positive = credit)
+ * - "1548.00 D" / "500.00 C"
  */
-function splitMergedAmount(amountText: string): { debit: string | null; credit: string | null } {
-  if (!amountText) return { debit: null, credit: null };
+function splitMergedAmount(amountText: string): { debit: string | null; credit: string | null; wasClassified: boolean } {
+  if (!amountText) return { debit: null, credit: null, wasClassified: false };
   
-  const debitMatch = amountText.match(DEBIT_SUFFIX_PATTERN);
+  const trimmed = amountText.trim();
+  
+  // Check for DR/Debit suffix
+  const debitMatch = trimmed.match(DEBIT_SUFFIX_PATTERN);
   if (debitMatch) {
-    return { debit: debitMatch[1].trim(), credit: null };
+    return { debit: debitMatch[1].trim(), credit: null, wasClassified: true };
   }
   
-  const creditMatch = amountText.match(CREDIT_SUFFIX_PATTERN);
+  // Check for CR/Credit suffix
+  const creditMatch = trimmed.match(CREDIT_SUFFIX_PATTERN);
   if (creditMatch) {
-    return { debit: null, credit: creditMatch[1].trim() };
+    return { debit: null, credit: creditMatch[1].trim(), wasClassified: true };
+  }
+  
+  // Check for negative prefix (common in some banks for debit)
+  const negativeMatch = trimmed.match(NEGATIVE_AMOUNT_PATTERN);
+  if (negativeMatch) {
+    return { debit: negativeMatch[1].trim(), credit: null, wasClassified: true };
+  }
+  
+  // Check for explicit positive prefix (less common, but indicates credit)
+  const positiveMatch = trimmed.match(POSITIVE_AMOUNT_PATTERN);
+  if (positiveMatch && trimmed.startsWith('+')) {
+    return { debit: null, credit: positiveMatch[1].trim(), wasClassified: true };
   }
   
   // No suffix found - return as-is (will need manual classification)
-  return { debit: null, credit: null };
+  return { debit: null, credit: null, wasClassified: false };
 }
 
 /**
  * Classify a row to determine its type
  */
-export function classifyRow(row: ExtractedRow): RowClassification {
+export function classifyRow(row: ExtractedRow): RowClassification & { 
+  effectiveDebit: string | null; 
+  effectiveCredit: string | null;
+  wasAmountSplit: boolean;
+} {
   // Handle merged amount column by splitting into debit/credit
   let effectiveDebit = row.debit;
   let effectiveCredit = row.credit;
+  let wasAmountSplit = false;
   
   if (row.amount && !row.debit && !row.credit) {
-    const { debit, credit } = splitMergedAmount(row.amount);
+    const { debit, credit, wasClassified } = splitMergedAmount(row.amount);
     effectiveDebit = debit;
     effectiveCredit = credit;
+    wasAmountSplit = wasClassified;
   }
   
   const fullText = [row.date, row.description, effectiveDebit, effectiveCredit, row.balance]
@@ -168,6 +200,9 @@ export function classifyRow(row: ExtractedRow): RowClassification {
     isFooter: isSkip && !isOpeningBalance && !isClosingBalance,
     isOpeningBalance,
     isClosingBalance,
+    effectiveDebit,
+    effectiveCredit,
+    wasAmountSplit,
   };
 }
 
@@ -180,6 +215,9 @@ export interface StitchedTransaction {
   continuationRows: ExtractedRow[];
   fullDescription: string;
   classification: RowClassification;
+  effectiveDebit: string | null;   // NEW: Resolved debit (from split or original)
+  effectiveCredit: string | null;  // NEW: Resolved credit (from split or original)
+  wasAmountSplit: boolean;         // NEW: Track if amount was split from merged column
 }
 
 /**
@@ -190,7 +228,15 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
   let currentTransaction: StitchedTransaction | null = null;
 
   for (const row of rows) {
-    const classification = classifyRow(row);
+    const classResult = classifyRow(row);
+    const classification: RowClassification = {
+      isTransaction: classResult.isTransaction,
+      isContinuation: classResult.isContinuation,
+      isHeader: classResult.isHeader,
+      isFooter: classResult.isFooter,
+      isOpeningBalance: classResult.isOpeningBalance,
+      isClosingBalance: classResult.isClosingBalance,
+    };
 
     if (classification.isTransaction || classification.isOpeningBalance || classification.isClosingBalance) {
       // Save previous transaction
@@ -198,12 +244,15 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
         stitched.push(finalizeStitchedTransaction(currentTransaction));
       }
 
-      // Start new transaction
+      // Start new transaction with resolved debit/credit
       currentTransaction = {
         primaryRow: row,
         continuationRows: [],
         fullDescription: row.description || '',
         classification,
+        effectiveDebit: classResult.effectiveDebit,
+        effectiveCredit: classResult.effectiveCredit,
+        wasAmountSplit: classResult.wasAmountSplit,
       };
     } else if (classification.isContinuation && currentTransaction) {
       // Append to current transaction
@@ -254,27 +303,24 @@ function cleanDescription(description: string): string {
 
 /**
  * Convert stitched transactions to RawTransaction format for downstream processing
- * Handles merged amount columns by splitting based on CR/DR suffixes
+ * Handles merged amount columns by using pre-split effective values
  * Extracts reference numbers (UTR, NEFT, cheque, etc.) to separate field
  */
 export function convertToRawTransactions(
   stitchedTransactions: StitchedTransaction[]
 ): RawTransaction[] {
-  return stitchedTransactions.map((tx, index) => {
+  let splitCount = 0;
+  
+  const result = stitchedTransactions.map((tx, index) => {
     const row = tx.primaryRow;
     
-    // Handle merged amount column
-    let effectiveDebit = row.debit;
-    let effectiveCredit = row.credit;
+    // Use pre-computed effective debit/credit from classification
+    const effectiveDebit = tx.effectiveDebit ?? row.debit;
+    const effectiveCredit = tx.effectiveCredit ?? row.credit;
     
-    if (row.amount && !row.debit && !row.credit) {
-      const { debit, credit } = splitMergedAmount(row.amount);
-      effectiveDebit = debit;
-      effectiveCredit = credit;
-      
-      if (debit || credit) {
-        console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${debit}, credit: ${credit}`);
-      }
+    if (tx.wasAmountSplit) {
+      splitCount++;
+      console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${effectiveDebit}, credit: ${effectiveCredit}`);
     }
     
     // Extract reference from description
@@ -317,6 +363,12 @@ export function convertToRawTransactions(
       referenceType: referenceType || undefined,
     };
   });
+
+  if (splitCount > 0) {
+    console.log(`[DynamicRowProcessor] Split ${splitCount} merged amount values into debit/credit`);
+  }
+
+  return result;
 }
 
 // =============================================================================

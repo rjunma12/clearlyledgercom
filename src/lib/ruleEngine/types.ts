@@ -303,6 +303,30 @@ export interface ProcessingResult {
   warnings: string[];
   stages: ProcessingStage[];
   totalDuration: number;
+  
+  // Extended diagnostics for debugging (NEW)
+  perTableMetrics?: Array<{
+    tableIndex: number;
+    pageNumbers: number[];
+    lineCount: number;
+    columnTypes: string[];
+    rowsExtracted: number;
+    columns: Array<{
+      x0: number;
+      x1: number;
+      centerX: number;
+      inferredType: string | null;
+      confidence: number;
+    }>;
+  }>;
+  columnBoundaries?: Array<{
+    x0: number;
+    x1: number;
+    centerX: number;
+    inferredType: string | null;
+    confidence: number;
+  }>;
+  confidence?: number;
 }
 
 export interface ProcessingError {
