@@ -148,7 +148,8 @@ function createLineFromWords(words: PdfWord[]): PdfLine {
 // =============================================================================
 
 // Threshold for vertical gap that indicates a table break
-const VERTICAL_GAP_THRESHOLD = 50;
+// Increased from 50px to 80px to reduce over-fragmentation on bank statements
+const VERTICAL_GAP_THRESHOLD = 80;
 
 /**
  * Section header patterns that indicate a new table region
