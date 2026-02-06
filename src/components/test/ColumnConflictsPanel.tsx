@@ -62,8 +62,8 @@ export function ColumnConflictsPanel({
     }
   }
   
-  // Check for missing required columns
-  const requiredColumns = ['date', 'debit', 'credit', 'balance'];
+  // Check for missing required columns  
+  const requiredColumns: Array<'date' | 'debit' | 'credit' | 'balance'> = ['date', 'debit', 'credit', 'balance'];
   const missingColumns: string[] = [];
   const presentTypes = new Set(reconciledBoundaries.map(b => b.inferredType));
   

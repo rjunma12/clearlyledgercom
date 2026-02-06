@@ -151,9 +151,17 @@ export function RawTransactionTable({
                           <div className="p-3 text-xs space-y-2">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <strong>Raw Line Data:</strong>
+                                <strong>Transaction Details:</strong>
                                 <pre className="bg-secondary p-2 rounded mt-1 overflow-auto max-h-32">
-                                  {JSON.stringify(tx.provenance || {}, null, 2)}
+                                  {JSON.stringify({
+                                    date: tx.date,
+                                    description: tx.description,
+                                    debit: tx.debit,
+                                    credit: tx.credit,
+                                    balance: tx.balance,
+                                    reference: tx.reference,
+                                    validationStatus: tx.validationStatus,
+                                  }, null, 2)}
                                 </pre>
                               </div>
                               <div>
@@ -162,7 +170,6 @@ export function RawTransactionTable({
                                   <li>Score: {extTx.confidenceScore ?? 'N/A'}%</li>
                                   <li>Grade: {extTx.grade || 'N/A'}</li>
                                   <li>Reference: {tx.reference || 'N/A'}</li>
-                                  <li>Currency: {tx.currency || 'N/A'}</li>
                                 </ul>
                               </div>
                             </div>
