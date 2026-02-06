@@ -3,7 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { processPDF } from '@/lib/pdfProcessor';
 import type { ProcessingResult } from '@/lib/ruleEngine/types';
-import { Loader2 } from 'lucide-react';
+import type { TableMetrics, ColumnBoundary } from '@/lib/ruleEngine/tableDetector';
+import { Loader2, Download } from 'lucide-react';
+import { TableMetricsPanel } from '@/components/test/TableMetricsPanel';
+import { TransactionSummaryPanel } from '@/components/test/TransactionSummaryPanel';
+import { ColumnVisualization } from '@/components/test/ColumnVisualization';
+
+interface ExtendedResult extends ProcessingResult {
+  perTableMetrics?: TableMetrics[];
+  columnBoundaries?: ColumnBoundary[];
+}
 
 interface TimingMetrics {
   totalTime: number;
@@ -20,12 +29,14 @@ interface QualityMetrics {
   errorTransactions: number;
   warningTransactions: number;
   hasScannedPages: boolean;
+  confidence: number;
+  tableRegions: number;
 }
 
 export default function TestConversion() {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<ProcessingResult | null>(null);
+  const [result, setResult] = useState<ExtendedResult | null>(null);
   const [timingMetrics, setTimingMetrics] = useState<TimingMetrics | null>(null);
   const [qualityMetrics, setQualityMetrics] = useState<QualityMetrics | null>(null);
 
@@ -48,7 +59,7 @@ export default function TestConversion() {
     try {
       const result = await processPDF(file, {
         maxPages: 0, // No limit
-      });
+      }) as ExtendedResult;
 
       const endTime = performance.now();
       const totalTime = endTime - startTime;
@@ -77,6 +88,8 @@ export default function TestConversion() {
         errorTransactions: result.document?.errorTransactions || 0,
         warningTransactions: result.document?.warningTransactions || 0,
         hasScannedPages: result.warnings?.some(w => w.includes('OCR')) || false,
+        confidence: (result as any).confidence || 0,
+        tableRegions: result.perTableMetrics?.length || 0,
       };
 
       setQualityMetrics(qualityMetrics);
@@ -87,12 +100,40 @@ export default function TestConversion() {
       console.log('Total Time:', totalTime.toFixed(2), 'ms');
       console.log('Result:', result);
       console.log('Quality Metrics:', qualityMetrics);
+      console.log('Per-Table Metrics:', result.perTableMetrics);
+      console.log('Column Boundaries:', result.columnBoundaries);
     } catch (error) {
       console.error('Error processing PDF:', error);
     } finally {
       setIsProcessing(false);
     }
   };
+
+  const handleExportDebugData = () => {
+    if (!result) return;
+    
+    const debugData = {
+      timingMetrics,
+      qualityMetrics,
+      perTableMetrics: result.perTableMetrics,
+      columnBoundaries: result.columnBoundaries,
+      document: result.document,
+      errors: result.errors,
+      warnings: result.warnings,
+    };
+    
+    const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debug-${file?.name || 'result'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Get transactions for summary
+  const transactions = result?.document?.rawTransactions || 
+    result?.document?.segments?.flatMap(s => s.transactions) || [];
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -169,11 +210,19 @@ export default function TestConversion() {
         {qualityMetrics && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>✓ Quality Analysis</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>✓ Quality Analysis</span>
+                {result && (
+                  <Button variant="outline" size="sm" onClick={handleExportDebugData} className="gap-2">
+                    <Download className="w-4 h-4" />
+                    Export Debug Data
+                  </Button>
+                )}
+              </CardTitle>
               <CardDescription>Document parsing quality and accuracy metrics</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-secondary/50 p-4 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">PDF Type</p>
                   <p className="text-lg font-semibold">{qualityMetrics.pdfType}</p>
@@ -187,6 +236,16 @@ export default function TestConversion() {
                 <div className="bg-secondary/50 p-4 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Transactions Extracted</p>
                   <p className="text-lg font-semibold">{qualityMetrics.totalTransactions}</p>
+                </div>
+
+                <div className={`p-4 rounded-lg ${qualityMetrics.confidence >= 0.75 ? 'bg-primary/10' : qualityMetrics.confidence >= 0.5 ? 'bg-accent/20' : 'bg-destructive/10'}`}>
+                  <p className="text-xs text-muted-foreground mb-1">Confidence Score</p>
+                  <p className="text-lg font-semibold">{(qualityMetrics.confidence * 100).toFixed(0)}%</p>
+                </div>
+
+                <div className="bg-secondary/50 p-4 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Table Regions</p>
+                  <p className="text-lg font-semibold">{qualityMetrics.tableRegions}</p>
                 </div>
 
                 <div className="bg-secondary/50 p-4 rounded-lg">
@@ -212,12 +271,37 @@ export default function TestConversion() {
               )}
 
               {qualityMetrics.totalWarnings > 0 && (
-                <div className="mt-2 p-3 bg-warning/10 rounded-lg">
-                  <p className="text-sm font-semibold text-warning">ℹ️ Warnings: {qualityMetrics.totalWarnings}</p>
+                <div className="mt-2 p-3 bg-accent/20 rounded-lg">
+                  <p className="text-sm font-semibold">ℹ️ Warnings: {qualityMetrics.totalWarnings}</p>
                 </div>
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* Column Visualization */}
+        {result?.columnBoundaries && result.columnBoundaries.length > 0 && (
+          <div className="mb-6">
+            <ColumnVisualization boundaries={result.columnBoundaries} />
+          </div>
+        )}
+
+        {/* Per-Table Metrics */}
+        {result?.perTableMetrics && result.perTableMetrics.length > 0 && (
+          <div className="mb-6">
+            <TableMetricsPanel metrics={result.perTableMetrics} />
+          </div>
+        )}
+
+        {/* Debit/Credit Summary */}
+        {transactions.length > 0 && (
+          <div className="mb-6">
+            <TransactionSummaryPanel 
+              transactions={transactions}
+              openingBalance={result?.document?.segments?.[0]?.openingBalance}
+              closingBalance={result?.document?.segments?.[result.document.segments.length - 1]?.closingBalance}
+            />
+          </div>
         )}
 
         {/* Raw Data */}
