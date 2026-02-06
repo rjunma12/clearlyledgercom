@@ -148,19 +148,18 @@ function createLineFromWords(words: PdfWord[]): PdfLine {
 // =============================================================================
 
 // Threshold for vertical gap that indicates a table break
-// Increased from 50px to 80px to reduce over-fragmentation on bank statements
-const VERTICAL_GAP_THRESHOLD = 80;
+// Increased from 80px to 150px to reduce over-fragmentation on bank statements
+// Bank statements often have large section gaps that shouldn't split tables
+const VERTICAL_GAP_THRESHOLD = 150;
 
 /**
  * Section header patterns that indicate a new table region
+ * Made more strict to avoid false splits
  */
 const SECTION_HEADER_PATTERNS = [
-  /^(savings|current|fixed\s*deposit|credit\s*card|loan)\s+(account|statement)/i,
-  /^account\s+summary/i,
-  /^transaction\s+history/i,
-  /^transaction\s+details/i,
-  /^statement\s+of\s+account/i,
-  /^account\s+transactions/i,
+  /^(savings|current|fixed\s*deposit|credit\s*card|loan)\s+(account|statement)$/i,
+  /^account\s+summary$/i,
+  /^statement\s+of\s+account$/i,
 ];
 
 /**
@@ -249,14 +248,67 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
     tables.push(createTableRegion(lines, tableStartIndex, lines.length - 1));
   }
   
-  console.log(`[TableDetector] Detected ${tables.length} table region(s)`);
+  console.log(`[TableDetector] Detected ${tables.length} table region(s) before merging`);
 
-  return tables;
+  // NEW: Merge compatible adjacent tables to reduce fragmentation
+  const mergedTables = mergeCompatibleTables(tables);
+  console.log(`[TableDetector] After merging: ${mergedTables.length} table region(s)`);
+
+  return mergedTables;
 }
 
 function isConsistentStructure(count1: number, count2: number): boolean {
-  // Allow ±2 word variance for multi-line descriptions, etc.
-  return Math.abs(count1 - count2) <= 2;
+  // Allow ±3 word variance for multi-line descriptions, etc.
+  // Increased from ±2 to reduce fragmentation
+  return Math.abs(count1 - count2) <= 3;
+}
+
+/**
+ * Merge compatible adjacent tables to reduce fragmentation
+ * Criteria: same or adjacent pages + similar column count
+ */
+function mergeCompatibleTables(tables: TableRegion[]): TableRegion[] {
+  if (tables.length <= 1) return tables;
+  
+  const merged: TableRegion[] = [];
+  let current = tables[0];
+  
+  for (let i = 1; i < tables.length; i++) {
+    const next = tables[i];
+    
+    // Check if tables should be merged
+    const currentLastPage = current.pageNumbers[current.pageNumbers.length - 1];
+    const nextFirstPage = next.pageNumbers[0];
+    const sameOrAdjacentPage = Math.abs(nextFirstPage - currentLastPage) <= 1;
+    
+    // Use dataLines word count variance for column comparison
+    const currentAvgWords = current.dataLines.length > 0 
+      ? current.dataLines.reduce((sum, l) => sum + l.words.length, 0) / current.dataLines.length
+      : 0;
+    const nextAvgWords = next.dataLines.length > 0 
+      ? next.dataLines.reduce((sum, l) => sum + l.words.length, 0) / next.dataLines.length
+      : 0;
+    const similarStructure = Math.abs(currentAvgWords - nextAvgWords) <= 2;
+    
+    if (sameOrAdjacentPage && similarStructure) {
+      // Merge: extend current table
+      current = {
+        ...current,
+        bottom: next.bottom,
+        right: Math.max(current.right, next.right),
+        left: Math.min(current.left, next.left),
+        dataLines: [...current.dataLines, ...next.dataLines],
+        pageNumbers: [...new Set([...current.pageNumbers, ...next.pageNumbers])],
+      };
+      console.log(`[TableMerger] Merged table ${i} into previous (similar structure)`);
+    } else {
+      merged.push(current);
+      current = next;
+    }
+  }
+  merged.push(current);
+  
+  return merged;
 }
 
 function createTableRegion(lines: PdfLine[], startIdx: number, endIdx: number): TableRegion {
@@ -1233,16 +1285,85 @@ export function detectAndExtractTables(
     console.log('[TableDetector] Detected merged debit/credit column with DR/CR suffixes in rows');
   }
 
-  // Calculate overall confidence
-  const avgConfidence = reconciledBoundaries.length > 0
-    ? reconciledBoundaries.reduce((sum, b) => sum + b.confidence, 0) / reconciledBoundaries.length
-    : 0;
+  // Calculate overall confidence using weighted scoring
+  const confidence = calculateWeightedConfidence(
+    reconciledBoundaries, 
+    tables.length,
+    allRows.length
+  );
 
   return {
     tables,
     allRows,
     columnBoundaries: reconciledBoundaries,
-    confidence: avgConfidence,
+    confidence,
     perTableMetrics,
   };
+}
+
+/**
+ * Calculate weighted confidence score based on column importance
+ * and bonus for having all required columns
+ */
+function calculateWeightedConfidence(
+  boundaries: ColumnBoundary[],
+  tableCount: number,
+  rowCount: number
+): number {
+  if (boundaries.length === 0) return 0;
+  
+  const weights: Record<string, number> = {
+    date: 1.5,
+    balance: 1.5,
+    description: 1.2,
+    debit: 1.0,
+    credit: 1.0,
+    amount: 1.0,
+    reference: 0.5,
+    value_date: 0.5,
+    unknown: 0.3,
+  };
+  
+  let weightedSum = 0;
+  let totalWeight = 0;
+  
+  for (const b of boundaries) {
+    const type = b.inferredType || 'unknown';
+    const weight = weights[type] || 0.5;
+    weightedSum += b.confidence * weight;
+    totalWeight += weight;
+  }
+  
+  let baseConfidence = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  
+  // Check for required columns
+  const hasDate = boundaries.some(b => b.inferredType === 'date');
+  const hasBalance = boundaries.some(b => b.inferredType === 'balance');
+  const hasDescription = boundaries.some(b => b.inferredType === 'description');
+  const hasAmountColumn = boundaries.some(b => 
+    b.inferredType === 'debit' || b.inferredType === 'credit' || b.inferredType === 'amount'
+  );
+  
+  // Bonus for having all required columns
+  const hasAllRequired = hasDate && hasBalance && hasDescription && hasAmountColumn;
+  if (hasAllRequired) {
+    baseConfidence += 0.15;
+    console.log('[Confidence] All required columns found (+15% bonus)');
+  }
+  
+  // Bonus for having rows extracted
+  if (rowCount >= 3) {
+    baseConfidence += 0.05;
+  }
+  
+  // Small penalty for excessive fragmentation (but less severe now with merging)
+  if (tableCount > 5) {
+    baseConfidence -= 0.02;
+    console.log(`[Confidence] Table fragmentation penalty: ${tableCount} tables (-2%)`);
+  }
+  
+  const finalConfidence = Math.min(Math.max(baseConfidence, 0), 1);
+  console.log(`[Confidence] Weighted calculation: ${(finalConfidence * 100).toFixed(0)}%`);
+  
+  return finalConfidence;
 }
