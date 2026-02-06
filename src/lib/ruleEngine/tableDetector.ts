@@ -148,19 +148,18 @@ function createLineFromWords(words: PdfWord[]): PdfLine {
 // =============================================================================
 
 // Threshold for vertical gap that indicates a table break
-// Increased from 50px to 80px to reduce over-fragmentation on bank statements
-const VERTICAL_GAP_THRESHOLD = 80;
+// Increased from 80px to 150px to reduce over-fragmentation on bank statements
+// Bank statements often have large section gaps that shouldn't split tables
+const VERTICAL_GAP_THRESHOLD = 150;
 
 /**
  * Section header patterns that indicate a new table region
+ * Made more strict to avoid false splits
  */
 const SECTION_HEADER_PATTERNS = [
-  /^(savings|current|fixed\s*deposit|credit\s*card|loan)\s+(account|statement)/i,
-  /^account\s+summary/i,
-  /^transaction\s+history/i,
-  /^transaction\s+details/i,
-  /^statement\s+of\s+account/i,
-  /^account\s+transactions/i,
+  /^(savings|current|fixed\s*deposit|credit\s*card|loan)\s+(account|statement)$/i,
+  /^account\s+summary$/i,
+  /^statement\s+of\s+account$/i,
 ];
 
 /**
