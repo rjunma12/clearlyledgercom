@@ -232,9 +232,17 @@ export default function TestConversion() {
       .join(', ') || 'N/A';
   }
 
-  // Get transactions for summary
-  const transactions = result?.document?.rawTransactions || 
-    result?.document?.segments?.flatMap(s => s.transactions) || [];
+  // Get transactions for summary - improved extraction logic
+  const transactions = (() => {
+    if (!result?.document) return [];
+    
+    // Try multiple paths and use whichever has more transactions
+    const fromRaw = result.document.rawTransactions || [];
+    const fromSegments = result.document.segments?.flatMap(s => s.transactions) || [];
+    
+    // Return whichever has more transactions, preferring raw if equal
+    return fromRaw.length >= fromSegments.length ? fromRaw : fromSegments;
+  })();
 
   return (
     <div className="min-h-screen bg-background p-8">
