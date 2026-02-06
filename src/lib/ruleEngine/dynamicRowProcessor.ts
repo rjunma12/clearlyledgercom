@@ -110,22 +110,45 @@ export function extractReference(description: string): {
 
 /**
  * Extract debit/credit from merged amount column based on suffix
+ * Handles multiple formats:
+ * - "1,548.00 Dr" / "500.00 Cr"
+ * - "1548.00DR" / "500.00CR"
+ * - "1,548.00 (Dr)" / "500.00 (Cr)"
+ * - "-1548.00" (negative = debit)
+ * - "+500.00" (positive = credit)
+ * - "1548.00 D" / "500.00 C"
  */
-function splitMergedAmount(amountText: string): { debit: string | null; credit: string | null } {
-  if (!amountText) return { debit: null, credit: null };
+function splitMergedAmount(amountText: string): { debit: string | null; credit: string | null; wasClassified: boolean } {
+  if (!amountText) return { debit: null, credit: null, wasClassified: false };
   
-  const debitMatch = amountText.match(DEBIT_SUFFIX_PATTERN);
+  const trimmed = amountText.trim();
+  
+  // Check for DR/Debit suffix
+  const debitMatch = trimmed.match(DEBIT_SUFFIX_PATTERN);
   if (debitMatch) {
-    return { debit: debitMatch[1].trim(), credit: null };
+    return { debit: debitMatch[1].trim(), credit: null, wasClassified: true };
   }
   
-  const creditMatch = amountText.match(CREDIT_SUFFIX_PATTERN);
+  // Check for CR/Credit suffix
+  const creditMatch = trimmed.match(CREDIT_SUFFIX_PATTERN);
   if (creditMatch) {
-    return { debit: null, credit: creditMatch[1].trim() };
+    return { debit: null, credit: creditMatch[1].trim(), wasClassified: true };
+  }
+  
+  // Check for negative prefix (common in some banks for debit)
+  const negativeMatch = trimmed.match(NEGATIVE_AMOUNT_PATTERN);
+  if (negativeMatch) {
+    return { debit: negativeMatch[1].trim(), credit: null, wasClassified: true };
+  }
+  
+  // Check for explicit positive prefix (less common, but indicates credit)
+  const positiveMatch = trimmed.match(POSITIVE_AMOUNT_PATTERN);
+  if (positiveMatch && trimmed.startsWith('+')) {
+    return { debit: null, credit: positiveMatch[1].trim(), wasClassified: true };
   }
   
   // No suffix found - return as-is (will need manual classification)
-  return { debit: null, credit: null };
+  return { debit: null, credit: null, wasClassified: false };
 }
 
 /**
