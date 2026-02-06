@@ -248,9 +248,13 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
     tables.push(createTableRegion(lines, tableStartIndex, lines.length - 1));
   }
   
-  console.log(`[TableDetector] Detected ${tables.length} table region(s)`);
+  console.log(`[TableDetector] Detected ${tables.length} table region(s) before merging`);
 
-  return tables;
+  // NEW: Merge compatible adjacent tables to reduce fragmentation
+  const mergedTables = mergeCompatibleTables(tables);
+  console.log(`[TableDetector] After merging: ${mergedTables.length} table region(s)`);
+
+  return mergedTables;
 }
 
 function isConsistentStructure(count1: number, count2: number): boolean {
