@@ -1,161 +1,220 @@
 
-# Test Conversion Issues Analysis & Improvement Plan
+# Test Lab Improvements: Rule Engine Fixes & Excel Download
 
-## Current State Analysis
+## Current Issues Identified
 
-After running your bank statement through the test conversion page, here's what we found:
+Based on the console logs from your bank statement conversion, I identified these critical problems:
 
-### Processing Metrics
-| Metric | Value | Status |
-|--------|-------|--------|
-| PDF Type | TEXT_BASED | Good - fast extraction |
-| Text Elements | 7,080 | Good |
-| Table Regions | 11 | Issue - too fragmented |
-| Transactions | 40 | Needs verification |
-| Confidence | 0.61 (61%) | Below 75% threshold |
+### Issue 1: Fragmented Table Detection (11 tables instead of 1-2)
+The statement was split into 11 separate table regions, causing:
+- Inconsistent column mappings across regions
+- Loss of context between sections
+- Different column classifications per table
 
-### Critical Issues Found
+### Issue 2: Credit Column Misclassification
+```
+[PostProcess] Promoted column 3 to CREDIT
+[PostProcess] Reassigned column 3 to DEBIT (single column)
+```
+The engine promoted a column to CREDIT, then immediately reassigned it to DEBIT because it detected only a single amount column. This loses all credit transactions.
 
-1. **Missing Credit Column**
-   The column detection promoted column 3 to CREDIT but then reassigned it to DEBIT because it detected only a single amount column. This means all credits in your statement are being missed or mis-classified as debits.
+### Issue 3: Column Reconciliation Errors
+```
+[ColumnReconciliation] Reconciled column at x=512: debit -> credit
+```
+The cross-table reconciliation is changing column types incorrectly, causing debit columns to become credit columns.
 
-2. **Fragmented Table Detection**
-   Your statement was split into 11 separate table regions. This causes:
-   - Inconsistent column mappings across regions
-   - Lost context between sections
-   - Multiple "unknown" column assignments
-
-3. **Column Mapping Inconsistency**
-   Different regions detected different columns:
-   - Region 1: `[description, reference, date, debit, balance]`
-   - Regions 2-3: `[description, unknown, date, credit, balance]`
-   - Other regions: mixed results
-
-4. **Low Confidence Score (61%)**
-   This is below the 75% threshold required for trusted export. Key factors:
-   - Missing credit column detection
-   - Multiple "unknown" column types
-   - Fragmented table structure
+### Issue 4: No Excel Download in Test Lab
+Currently the test page only exports debug JSON data, not the actual Excel file that users would receive.
 
 ---
 
-## Improvement Plan
+## Implementation Plan
 
-### Phase 1: Enhanced Test Page Diagnostics
+### Phase 1: Add Excel Download to Test Lab
 
-Add more detailed metrics to identify exactly what's happening:
+**File: `src/pages/TestConversion.tsx`**
 
-**New Test Page Features:**
-- Per-table breakdown showing columns detected for each region
-- Visual highlighting of problematic rows
-- Column classification confidence per column
-- Debit/Credit totals comparison
-- Raw extracted text viewer for debugging
+Add a new "Download Excel" button that:
+1. Generates the standardized 3-sheet Excel file using `generateStandardizedExcel()`
+2. Downloads directly in the browser
+3. Shows the same format users would receive in production
 
-```text
-Table Region Analysis:
-  Region 1 (Page 1, lines 15-42): 
-    Columns: date(0.67), description(1.00), debit(0.50), balance(0.40)
-    Rows: 12
-  Region 2 (Page 1, lines 50-80):
-    Columns: date(1.00), description(0.97), credit(0.80), balance(0.40)
-    Rows: 8
-  ...
+Changes:
+- Import `generateStandardizedExcel` and `arrayBufferToBase64` from `src/lib/excelGenerator.ts`
+- Add function to build `StatementMetadata` from processing result
+- Add function to build `ValidationSummary` from processing result  
+- Add function to convert parsed transactions to `StandardizedTransaction[]`
+- Add "Download Excel" button next to existing "Export Debug Data" button
+
+### Phase 2: Fix Single Amount Column Detection
+
+**File: `src/lib/ruleEngine/tableDetector.ts`**
+
+The current logic in `postProcessColumnTypes()` (lines 774-786) incorrectly reassigns CREDIT to DEBIT when only one amount column is found. 
+
+Fix: Before reassigning, check if the column content contains CR/DR suffixes. If it does, keep it as `amount` type (merged column) rather than forcing it to `debit`.
+
+```typescript
+// Before reassigning to DEBIT, check if it's actually a merged amount column
+if (candidateColumns.length === 1 && !hasDebit && hasCredit) {
+  // Check column content for CR/DR suffixes
+  const colBoundary = boundaries[candidateColumns[0].index];
+  const hasMixedSuffixes = checkForMergedColumnSuffixes(lines, colBoundary);
+  
+  if (hasMixedSuffixes) {
+    // Keep as merged amount column - will be split in row processor
+    boundaries[candidateColumns[0].index] = {
+      ...boundaries[candidateColumns[0].index],
+      inferredType: 'amount',
+      confidence: 0.7,
+    };
+    console.log(`[PostProcess] Column ${candidateColumns[0].index} is merged amount (CR/DR suffixes detected)`);
+  } else {
+    // Actually a single debit column
+    boundaries[candidateColumns[0].index] = {
+      ...boundaries[candidateColumns[0].index],
+      inferredType: 'debit',
+      confidence: 0.5,
+    };
+  }
+}
 ```
 
-### Phase 2: Column Detection Improvements
+### Phase 3: Improve Table Fragmentation Handling
 
-Fix the core issues in the parsing engine:
+**File: `src/lib/ruleEngine/tableDetector.ts`**
 
-**2.1 Single Amount Column Handling**
-Current behavior: If only one numeric column found between date and balance, it's assigned as DEBIT only.
+The current `VERTICAL_GAP_THRESHOLD = 50` is too aggressive. Bank statements often have section breaks that shouldn't create new tables.
 
-**Fix:** Check for CR/DR suffixes in the amount values to split into debit/credit dynamically.
+Fixes:
+1. Increase `VERTICAL_GAP_THRESHOLD` from 50px to 80px
+2. Add page-boundary awareness: don't split tables just because of a page break
+3. Merge tables that have compatible column structures
 
-**2.2 Cross-Table Column Reconciliation**
-Current behavior: Each table region classifies columns independently.
+Add new function:
+```typescript
+function shouldMergeTables(table1: TableRegion, table2: TableRegion): boolean {
+  // Merge if:
+  // 1. Same page or consecutive pages
+  // 2. Similar column count (within 1)
+  // 3. Column X-positions align within tolerance
+}
 
-**Fix:** Use the highest-confidence column mapping from the first valid table region and apply it consistently across all subsequent regions on the same page.
+function mergeCompatibleTables(tables: TableRegion[]): TableRegion[] {
+  // Reduce fragmentation by merging tables with compatible structures
+}
+```
 
-**2.3 Merged Debit/Credit Column Detection**
-Current behavior: Looking for explicit "Debit" and "Credit" headers separately.
+### Phase 4: Fix Column Reconciliation Logic
 
-**Fix:** Detect merged amount columns where values contain suffixes like "1,548.00 Dr" or "500.00 Cr" and split them dynamically.
+**File: `src/lib/ruleEngine/tableDetector.ts`**
 
-### Phase 3: Bank Profile Enhancement
+The current reconciliation (lines 906-944) uses position matching but doesn't account for column type conflicts properly.
 
-**3.1 Detect Bank Format**
-Add pattern matching to identify the specific bank format (likely Indian bank based on column structure) and apply appropriate column hints.
+Fix: When reconciling, prioritize:
+1. Keep explicit header-detected types (confidence >= 0.9)
+2. Use consensus voting across tables rather than just using the "best" table
+3. Don't override a debit with credit or vice versa without strong evidence
 
-**3.2 Statement-Specific Tuning**
-For this statement format:
-- Expected columns: Date | Description | Withdrawal | Deposit | Balance
-- OR: Date | Description | Amount (with DR/CR suffix) | Balance
+```typescript
+function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
+  // For amount columns (debit/credit/balance), use voting across all tables
+  // Only change a column type if >60% of tables agree
+  
+  // Prevent debit<->credit swaps unless there's overwhelming evidence
+  if ((fromType === 'debit' && toType === 'credit') || 
+      (fromType === 'credit' && toType === 'debit')) {
+    // Require higher confidence threshold for this swap
+    if (votePercentage < 0.8) continue;
+  }
+}
+```
 
-### Phase 4: Validation Improvements
+### Phase 5: Enhanced Error Display in Test Lab
 
-**4.1 Cross-Check Totals**
-Add validation that compares:
-- Sum of all debits
-- Sum of all credits
-- Opening balance + credits - debits = Closing balance
+**File: `src/pages/TestConversion.tsx`**
 
-**4.2 Missing Amount Detection**
-Flag rows where:
-- No debit AND no credit detected
-- Amount exists but couldn't be classified
+Add new panels to surface the exact issues:
+1. **Column Conflicts Panel**: Show when tables have conflicting column classifications
+2. **Fragmentation Warning**: Alert when >5 tables are detected
+3. **Missing Column Alert**: Warn when required columns (date, debit, credit, balance) are missing
+
+### Phase 6: Raw Transaction Preview Table
+
+**File: `src/pages/TestConversion.tsx`**
+
+Add a paginated table showing the first 50 extracted transactions with:
+- Date, Description, Debit, Credit, Balance columns
+- Row highlighting for validation errors
+- Color-coded confidence grades
+- Clickable rows to show raw PDF line data
 
 ---
 
-## Implementation Steps
+## Files to Modify
 
-| Step | File | Change |
-|------|------|--------|
-| 1 | `TestConversion.tsx` | Add per-table metrics display |
-| 2 | `TestConversion.tsx` | Add debit/credit totals verification |
-| 3 | `tableDetector.ts` | Add merged amount column detection |
-| 4 | `tableDetector.ts` | Add cross-table column reconciliation |
-| 5 | `dynamicRowProcessor.ts` | Improve CR/DR suffix parsing |
-| 6 | `ruleEngine/index.ts` | Add validation for missing credits |
+| File | Changes |
+|------|---------|
+| `src/pages/TestConversion.tsx` | Add Excel download, error panels, transaction preview |
+| `src/lib/ruleEngine/tableDetector.ts` | Fix single column logic, reduce fragmentation, improve reconciliation |
+| `src/components/test/TransactionSummaryPanel.tsx` | Add missing column warnings |
+
+## New Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/test/RawTransactionTable.tsx` | Paginated preview of extracted transactions |
+| `src/components/test/ColumnConflictsPanel.tsx` | Display column classification conflicts across tables |
 
 ---
 
-## Expected Outcomes After Fixes
+## Expected Outcomes
 
-| Metric | Before | After (Expected) |
-|--------|--------|------------------|
-| Credit Column | Missing | Detected |
+| Metric | Before | After |
+|--------|--------|-------|
 | Table Regions | 11 (fragmented) | 2-3 (consolidated) |
-| Confidence | 61% | 85%+ |
-| Transaction Accuracy | Unknown | Verified via balance check |
+| Credit Detection | Missing | Correctly classified |
+| Column Conflicts | Undetected | Visible in UI |
+| Excel Export | Not available | Full 3-sheet download |
+| Confidence Score | 61% | 75%+ |
 
 ---
 
 ## Technical Details
 
-### File Changes Summary
+### Excel Generation for Test Lab
 
-**TestConversion.tsx** - Enhanced diagnostics
-- Add per-table region breakdown panel
-- Display column confidence scores per column
-- Show debit/credit totals with balance verification
-- Add raw text viewer for selected rows
-- Export debug data as JSON
+The Excel download will use the existing `generateStandardizedExcel()` function which creates:
+- **Sheet 1: Transactions** - Date, Description, Debit, Credit, Balance, Currency, Reference, Grade, Confidence
+- **Sheet 2: Statement_Info** - Bank name, account holder, period, opening/closing balance, PDF type
+- **Sheet 3: Validation** - Balance check results, row counts, warnings, confidence summary
 
-**tableDetector.ts** - Column detection fixes
-- Add merged amount column detection (DR/CR suffix)
-- Implement cross-table column reconciliation
-- Reduce table fragmentation threshold
-- Improve column type inference for Indian bank formats
+### Column Detection Algorithm Fix
 
-**dynamicRowProcessor.ts** - Row processing fixes
-- Enhance CR/DR suffix parsing patterns
-- Add fallback for unclassified amounts
-- Improve reference extraction for Indian payment modes
+Current problematic flow:
+1. Detect columns with numeric content
+2. Assign rightmost as Balance
+3. Assign next as Credit
+4. If only 1 remaining, reassign Credit to Debit ← **This is wrong**
 
-### Testing Strategy
+Fixed flow:
+1. Detect columns with numeric content
+2. Check for CR/DR suffixes in numeric columns
+3. If suffixes found → mark as `amount` (merged column)
+4. If no suffixes → apply standard right-to-left assignment (Balance, Credit, Debit)
+5. If only 1 amount column with no suffixes → assign as Debit
 
-1. Process your statement with enhanced diagnostics
-2. Verify all 40 transactions have correct debit/credit assignment
-3. Validate running balance matches actual statement
-4. Compare totals with statement summary section
+### Table Merging Algorithm
+
+```text
+For each pair of adjacent tables:
+  If table2.pageNumber == table1.pageNumber OR 
+     table2.pageNumber == table1.lastPage + 1:
+    
+    If abs(table1.columnCount - table2.columnCount) <= 1:
+      alignedColumns = countAlignedColumns(table1, table2, tolerance=15px)
+      
+      If alignedColumns >= min(table1.columnCount, table2.columnCount) - 1:
+        Merge table2 into table1
+```
