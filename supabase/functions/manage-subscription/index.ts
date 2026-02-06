@@ -11,6 +11,16 @@ interface ManageRequest {
   newPlanName?: string;
 }
 
+/**
+ * Manage Subscription - Provider-Agnostic Implementation
+ * 
+ * This edge function handles subscription management operations.
+ * Currently operates only on local database state.
+ * 
+ * When a payment provider is integrated, this should also:
+ * - Call the provider's API to cancel/reactivate subscriptions
+ * - Sync subscription state with the provider
+ */
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -21,11 +31,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const dodoApiKey = Deno.env.get('DODO_PAYMENTS_API_KEY');
-
-    if (!dodoApiKey) {
-      throw new Error('DODO_PAYMENTS_API_KEY not configured');
-    }
 
     // Get authorization header
     const authHeader = req.headers.get('Authorization');
@@ -98,34 +103,8 @@ serve(async (req) => {
           );
         }
 
-        // Determine correct Dodo API URL
-        const dodoMode = Deno.env.get('DODO_MODE') || 'live';
-        const dodoBaseUrl = dodoMode === 'test' 
-          ? 'https://test.dodopayments.com'
-          : 'https://live.dodopayments.com';
-
-        // If there's a Dodo subscription, cancel it via API
-        if (subscription.dodo_subscription_id) {
-          const dodoResponse = await fetch(
-            `${dodoBaseUrl}/v1/subscriptions/${subscription.dodo_subscription_id}`,
-            {
-              method: 'PATCH',
-              headers: {
-                'Authorization': `Bearer ${dodoApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ status: 'cancelled' }),
-            }
-          );
-
-          if (!dodoResponse.ok) {
-            const errorText = await dodoResponse.text();
-            console.error('Dodo cancel error:', errorText);
-            // Continue anyway to update local state
-          }
-        }
-
         // Update local subscription status
+        // Note: When a payment provider is integrated, this should also call the provider's API
         await supabaseAdmin
           .from('user_subscriptions')
           .update({
@@ -135,11 +114,12 @@ serve(async (req) => {
           })
           .eq('id', subscription.id);
 
-        // Log the cancellation
+        // Log the cancellation event
         await supabaseAdmin.from('payment_events').insert({
           user_id: user.id,
           event_type: 'subscription_cancelled',
-          dodo_subscription_id: subscription.dodo_subscription_id,
+          provider_subscription_id: subscription.provider_subscription_id,
+          provider_name: subscription.provider_name,
           plan_name: subscription.plans?.name,
           status: 'cancelled',
           raw_payload: { action: 'cancel', cancelled_at: new Date().toISOString() }
@@ -170,37 +150,8 @@ serve(async (req) => {
           );
         }
 
-        // Determine correct Dodo API URL
-        const dodoMode = Deno.env.get('DODO_MODE') || 'live';
-        const dodoBaseUrl = dodoMode === 'test' 
-          ? 'https://test.dodopayments.com'
-          : 'https://live.dodopayments.com';
-
-        // If there's a Dodo subscription, try to reactivate
-        if (subscription.dodo_subscription_id) {
-          const dodoResponse = await fetch(
-            `${dodoBaseUrl}/v1/subscriptions/${subscription.dodo_subscription_id}`,
-            {
-              method: 'PATCH',
-              headers: {
-                'Authorization': `Bearer ${dodoApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ status: 'active' }),
-            }
-          );
-
-          if (!dodoResponse.ok) {
-            const errorText = await dodoResponse.text();
-            console.error('Dodo reactivate error:', errorText);
-            return new Response(
-              JSON.stringify({ error: 'Failed to reactivate subscription' }),
-              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-        }
-
         // Update local subscription status
+        // Note: When a payment provider is integrated, this should also call the provider's API
         await supabaseAdmin
           .from('user_subscriptions')
           .update({
@@ -210,11 +161,12 @@ serve(async (req) => {
           })
           .eq('id', subscription.id);
 
-        // Log the reactivation
+        // Log the reactivation event
         await supabaseAdmin.from('payment_events').insert({
           user_id: user.id,
           event_type: 'subscription_reactivated',
-          dodo_subscription_id: subscription.dodo_subscription_id,
+          provider_subscription_id: subscription.provider_subscription_id,
+          provider_name: subscription.provider_name,
           plan_name: subscription.plans?.name,
           status: 'active',
           raw_payload: { action: 'reactivate' }
@@ -248,8 +200,7 @@ serve(async (req) => {
           );
         }
 
-        // For plan changes, we redirect to a new checkout
-        // The old subscription will be cancelled when the new one activates
+        // For plan changes, redirect to checkout for the new plan
         return new Response(
           JSON.stringify({ 
             success: true, 
