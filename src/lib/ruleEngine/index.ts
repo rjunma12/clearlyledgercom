@@ -576,6 +576,29 @@ export async function processDocument(
       warnings,
       stages,
       totalDuration: Date.now() - startTime,
+      // Extended diagnostics for debugging (NEW)
+      perTableMetrics: tableResult.perTableMetrics?.map(m => ({
+        tableIndex: m.tableIndex,
+        pageNumbers: m.pageNumbers,
+        lineCount: m.lineCount,
+        columnTypes: m.columnTypes,
+        rowsExtracted: m.rowsExtracted,
+        columns: m.columns.map(c => ({
+          x0: c.x0,
+          x1: c.x1,
+          centerX: c.centerX,
+          inferredType: c.inferredType,
+          confidence: c.confidence,
+        })),
+      })),
+      columnBoundaries: tableResult.columnBoundaries.map(c => ({
+        x0: c.x0,
+        x1: c.x1,
+        centerX: c.centerX,
+        inferredType: c.inferredType,
+        confidence: c.confidence,
+      })),
+      confidence: tableResult.confidence,
     };
     
   } catch (error) {
