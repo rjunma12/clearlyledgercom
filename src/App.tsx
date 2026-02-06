@@ -14,7 +14,6 @@ import Index from "./pages/Index";
 
 // Lazy load all other routes for code splitting
 const NotFound = lazy(() => import("./pages/NotFound"));
-const TestConversion = lazy(() => import("./pages/TestConversion"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const DataProcessing = lazy(() => import("./pages/DataProcessing"));
