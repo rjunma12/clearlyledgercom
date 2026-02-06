@@ -187,12 +187,13 @@ export type Database = {
           amount_cents: number | null
           created_at: string
           currency: string | null
-          dodo_customer_id: string | null
-          dodo_payment_id: string | null
-          dodo_subscription_id: string | null
           event_type: string
           id: string
           plan_name: string | null
+          provider_customer_id: string | null
+          provider_name: string | null
+          provider_payment_id: string | null
+          provider_subscription_id: string | null
           raw_payload: Json | null
           status: string | null
           user_id: string | null
@@ -201,12 +202,13 @@ export type Database = {
           amount_cents?: number | null
           created_at?: string
           currency?: string | null
-          dodo_customer_id?: string | null
-          dodo_payment_id?: string | null
-          dodo_subscription_id?: string | null
           event_type: string
           id?: string
           plan_name?: string | null
+          provider_customer_id?: string | null
+          provider_name?: string | null
+          provider_payment_id?: string | null
+          provider_subscription_id?: string | null
           raw_payload?: Json | null
           status?: string | null
           user_id?: string | null
@@ -215,12 +217,13 @@ export type Database = {
           amount_cents?: number | null
           created_at?: string
           currency?: string | null
-          dodo_customer_id?: string | null
-          dodo_payment_id?: string | null
-          dodo_subscription_id?: string | null
           event_type?: string
           id?: string
           plan_name?: string | null
+          provider_customer_id?: string | null
+          provider_name?: string | null
+          provider_payment_id?: string | null
+          provider_subscription_id?: string | null
           raw_payload?: Json | null
           status?: string | null
           user_id?: string | null
@@ -233,39 +236,42 @@ export type Database = {
           created_at: string
           daily_page_limit: number | null
           display_name: string
-          dodo_product_id: string | null
           id: string
           is_recurring: boolean
           monthly_page_limit: number | null
           name: Database["public"]["Enums"]["plan_type"]
           pii_masking: Database["public"]["Enums"]["pii_masking_level"]
           price_cents: number
+          provider_price_id: string | null
+          provider_product_id: string | null
         }
         Insert: {
           allowed_formats?: string[] | null
           created_at?: string
           daily_page_limit?: number | null
           display_name: string
-          dodo_product_id?: string | null
           id?: string
           is_recurring?: boolean
           monthly_page_limit?: number | null
           name: Database["public"]["Enums"]["plan_type"]
           pii_masking?: Database["public"]["Enums"]["pii_masking_level"]
           price_cents?: number
+          provider_price_id?: string | null
+          provider_product_id?: string | null
         }
         Update: {
           allowed_formats?: string[] | null
           created_at?: string
           daily_page_limit?: number | null
           display_name?: string
-          dodo_product_id?: string | null
           id?: string
           is_recurring?: boolean
           monthly_page_limit?: number | null
           name?: Database["public"]["Enums"]["plan_type"]
           pii_masking?: Database["public"]["Enums"]["pii_masking_level"]
           price_cents?: number
+          provider_price_id?: string | null
+          provider_product_id?: string | null
         }
         Relationships: []
       }
@@ -356,12 +362,13 @@ export type Database = {
           cancel_at_period_end: boolean | null
           cancelled_at: string | null
           created_at: string
-          dodo_customer_id: string | null
-          dodo_payment_id: string | null
-          dodo_subscription_id: string | null
           expires_at: string | null
           id: string
           plan_id: string
+          provider_customer_id: string | null
+          provider_name: string | null
+          provider_payment_id: string | null
+          provider_subscription_id: string | null
           started_at: string
           status: string
           updated_at: string
@@ -372,12 +379,13 @@ export type Database = {
           cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           created_at?: string
-          dodo_customer_id?: string | null
-          dodo_payment_id?: string | null
-          dodo_subscription_id?: string | null
           expires_at?: string | null
           id?: string
           plan_id: string
+          provider_customer_id?: string | null
+          provider_name?: string | null
+          provider_payment_id?: string | null
+          provider_subscription_id?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -388,12 +396,13 @@ export type Database = {
           cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           created_at?: string
-          dodo_customer_id?: string | null
-          dodo_payment_id?: string | null
-          dodo_subscription_id?: string | null
           expires_at?: string | null
           id?: string
           plan_id?: string
+          provider_customer_id?: string | null
+          provider_name?: string | null
+          provider_payment_id?: string | null
+          provider_subscription_id?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -413,36 +422,42 @@ export type Database = {
     Views: {
       user_subscriptions_public: {
         Row: {
+          billing_interval: string | null
           cancel_at_period_end: boolean | null
           cancelled_at: string | null
           created_at: string | null
           expires_at: string | null
           id: string | null
           plan_id: string | null
+          provider_name: string | null
           started_at: string | null
           status: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          billing_interval?: string | null
           cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           created_at?: string | null
           expires_at?: string | null
           id?: string | null
           plan_id?: string | null
+          provider_name?: string | null
           started_at?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          billing_interval?: string | null
           cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           created_at?: string | null
           expires_at?: string | null
           id?: string | null
           plan_id?: string | null
+          provider_name?: string | null
           started_at?: string | null
           status?: string | null
           updated_at?: string | null
