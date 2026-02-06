@@ -215,6 +215,9 @@ export interface StitchedTransaction {
   continuationRows: ExtractedRow[];
   fullDescription: string;
   classification: RowClassification;
+  effectiveDebit: string | null;   // NEW: Resolved debit (from split or original)
+  effectiveCredit: string | null;  // NEW: Resolved credit (from split or original)
+  wasAmountSplit: boolean;         // NEW: Track if amount was split from merged column
 }
 
 /**
@@ -225,7 +228,15 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
   let currentTransaction: StitchedTransaction | null = null;
 
   for (const row of rows) {
-    const classification = classifyRow(row);
+    const classResult = classifyRow(row);
+    const classification: RowClassification = {
+      isTransaction: classResult.isTransaction,
+      isContinuation: classResult.isContinuation,
+      isHeader: classResult.isHeader,
+      isFooter: classResult.isFooter,
+      isOpeningBalance: classResult.isOpeningBalance,
+      isClosingBalance: classResult.isClosingBalance,
+    };
 
     if (classification.isTransaction || classification.isOpeningBalance || classification.isClosingBalance) {
       // Save previous transaction
@@ -233,12 +244,15 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
         stitched.push(finalizeStitchedTransaction(currentTransaction));
       }
 
-      // Start new transaction
+      // Start new transaction with resolved debit/credit
       currentTransaction = {
         primaryRow: row,
         continuationRows: [],
         fullDescription: row.description || '',
         classification,
+        effectiveDebit: classResult.effectiveDebit,
+        effectiveCredit: classResult.effectiveCredit,
+        wasAmountSplit: classResult.wasAmountSplit,
       };
     } else if (classification.isContinuation && currentTransaction) {
       // Append to current transaction
