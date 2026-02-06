@@ -147,16 +147,20 @@ export default function TestConversion() {
       const pdfType: 'Text' | 'Scanned' = 
         qualityMetrics?.pdfType === 'SCANNED' ? 'Scanned' : 'Text';
 
-      // Build StatementMetadata from result
+      // Extract header data from the correct path
+      const extractedHeader = (result.document as any)?.extractedHeader;
+      const detectedCurrency = extractedHeader?.currency || 'USD';
+
+      // Build StatementMetadata from extractedHeader (correct path)
       const metadata: StatementMetadata = {
-        bankName: (result.document as any)?.bankName || 'Unknown Bank',
-        accountHolder: (result.document as any)?.accountHolder || '',
-        accountNumberMasked: (result.document as any)?.accountNumber || '',
-        statementPeriodFrom: (result.document as any)?.startDate || '',
-        statementPeriodTo: (result.document as any)?.endDate || '',
+        bankName: extractedHeader?.bankName || 'Unknown Bank',
+        accountHolder: extractedHeader?.accountHolder || '',
+        accountNumberMasked: extractedHeader?.accountNumberMasked || '',
+        statementPeriodFrom: extractedHeader?.statementPeriodFrom || '',
+        statementPeriodTo: extractedHeader?.statementPeriodTo || '',
         openingBalance: result.document?.segments?.[0]?.openingBalance,
         closingBalance: result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
-        currency: 'USD',
+        currency: detectedCurrency,
         pagesProcessed: qualityMetrics?.totalPages || 0,
         pdfType,
         ocrUsed: qualityMetrics?.hasScannedPages || false,
@@ -186,7 +190,7 @@ export default function TestConversion() {
         debit: tx.debit != null ? String(tx.debit) : '',
         credit: tx.credit != null ? String(tx.credit) : '',
         balance: tx.balance != null ? String(tx.balance) : '',
-        currency: 'USD',
+        currency: detectedCurrency,
         reference: tx.reference || '',
         validationStatus: tx.validationStatus as 'valid' | 'warning' | 'error' | undefined,
       }));
@@ -380,6 +384,35 @@ export default function TestConversion() {
                   <p className="text-sm font-semibold">ℹ️ Warnings: {qualityMetrics.totalWarnings}</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Extracted Header Info */}
+        {result?.document && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>📋 Extracted Header Info</CardTitle>
+              <CardDescription>Statement metadata extracted from PDF</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {[
+                  { label: 'Bank Name', value: (result.document as any)?.extractedHeader?.bankName },
+                  { label: 'Account Holder', value: (result.document as any)?.extractedHeader?.accountHolder },
+                  { label: 'Account Number', value: (result.document as any)?.extractedHeader?.accountNumberMasked },
+                  { label: 'Currency', value: (result.document as any)?.extractedHeader?.currency },
+                  { label: 'Statement From', value: (result.document as any)?.extractedHeader?.statementPeriodFrom },
+                  { label: 'Statement To', value: (result.document as any)?.extractedHeader?.statementPeriodTo },
+                ].map((item, idx) => (
+                  <div key={idx} className={`p-3 rounded-lg ${item.value ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+                    <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+                    <p className={`text-sm font-medium ${item.value ? '' : 'text-destructive'}`}>
+                      {item.value || '❌ Not Found'}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}

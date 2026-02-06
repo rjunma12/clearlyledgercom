@@ -964,8 +964,12 @@ function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
   
   // Determine consensus type for each position
   const consensusBoundaries: ColumnBoundary[] = [];
+  const assignedTypes = new Set<string>();
   
-  for (const [x, votes] of positionVotes) {
+  // Sort positions by X to process left-to-right
+  const sortedPositions = [...positionVotes.entries()].sort((a, b) => a[0] - b[0]);
+  
+  for (const [x, votes] of sortedPositions) {
     // Sort by count, then by confidence
     votes.sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
@@ -979,6 +983,20 @@ function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
     // For amount column types (debit/credit/balance), require higher confidence for changes
     let finalType = winner.type;
     const amountTypes = ['debit', 'credit', 'balance', 'amount'];
+    const uniqueTypes = ['date', 'description', 'balance']; // Types that should only appear once
+    
+    // Prevent duplicate date columns - keep only the first one
+    if (uniqueTypes.includes(winner.type) && assignedTypes.has(winner.type)) {
+      // Find next best non-duplicate type
+      const alternativeVote = votes.find(v => !assignedTypes.has(v.type) || !uniqueTypes.includes(v.type));
+      if (alternativeVote) {
+        finalType = alternativeVote.type;
+        console.log(`[ColumnReconciliation] Prevented duplicate ${winner.type} at x=${x.toFixed(0)}, using ${finalType} instead`);
+      } else {
+        finalType = 'unknown';
+        console.log(`[ColumnReconciliation] Prevented duplicate ${winner.type} at x=${x.toFixed(0)}, marking as unknown`);
+      }
+    }
     
     if (votes.length > 1) {
       const secondPlace = votes[1];
@@ -993,6 +1011,11 @@ function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
       }
     }
     
+    // Track assigned types to prevent duplicates
+    if (uniqueTypes.includes(finalType)) {
+      assignedTypes.add(finalType);
+    }
+    
     consensusBoundaries.push({
       x0: x - 50, // Approximate
       x1: x + 50,
@@ -1003,6 +1026,34 @@ function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
     
     console.log(`[ColumnReconciliation] Consensus at x=${x.toFixed(0)}: ${finalType} (${winner.count}/${totalVotes} votes, ${(votePercentage * 100).toFixed(0)}%)`);
   }
+  
+  // Validate required columns and add missing ones
+  const hasDate = consensusBoundaries.some(b => b.inferredType === 'date');
+  const hasDescription = consensusBoundaries.some(b => b.inferredType === 'description');
+  const hasBalance = consensusBoundaries.some(b => b.inferredType === 'balance');
+  const hasAmountColumn = consensusBoundaries.some(b => 
+    b.inferredType === 'debit' || b.inferredType === 'credit' || b.inferredType === 'amount'
+  );
+  
+  // If description is missing, find the widest unassigned column and assign it
+  if (!hasDescription) {
+    const unknownColumns = consensusBoundaries.filter(b => 
+      b.inferredType === 'unknown' || b.inferredType === null
+    );
+    if (unknownColumns.length > 0) {
+      const widest = unknownColumns.reduce((max, b) => 
+        (b.x1 - b.x0) > (max.x1 - max.x0) ? b : max
+      );
+      widest.inferredType = 'description';
+      widest.confidence = 0.4;
+      console.log(`[ColumnReconciliation] Added missing description column at x=${widest.centerX.toFixed(0)}`);
+    }
+  }
+  
+  // Log missing required columns as warnings
+  if (!hasDate) console.warn('[ColumnReconciliation] WARNING: No date column found in reconciled boundaries');
+  if (!hasBalance) console.warn('[ColumnReconciliation] WARNING: No balance column found in reconciled boundaries');
+  if (!hasAmountColumn) console.warn('[ColumnReconciliation] WARNING: No amount/debit/credit column found in reconciled boundaries');
   
   // Sort by X position
   consensusBoundaries.sort((a, b) => a.centerX - b.centerX);
@@ -1027,7 +1078,9 @@ function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
 }
 
 /**
- * Check if a column contains mixed CR/DR suffixes indicating a merged amount column
+ * Check if a column contains CR/DR suffixes indicating a merged amount column
+ * Updated: Now handles asymmetric suffixes (only DR or only CR present)
+ * If only one suffix type is found, amounts without suffix are the opposite type
  */
 function checkForMergedColumnSuffixes(lines: PdfLine[], boundary: ColumnBoundary): boolean {
   let drCount = 0;
@@ -1058,8 +1111,20 @@ function checkForMergedColumnSuffixes(lines: PdfLine[], boundary: ColumnBoundary
     }
   }
   
-  // Must have at least 3 numeric values and both DR and CR present
-  return totalNumeric >= 3 && drCount > 0 && crCount > 0;
+  // UPDATED: Handle asymmetric suffixes
+  // If only DR suffix is found: amounts without suffix are credits
+  // If only CR suffix is found: amounts without suffix are debits
+  const hasSuffixes = drCount > 0 || crCount > 0;
+  const hasBothTypes = (drCount > 0 && (totalNumeric - drCount) > 0) || 
+                       (crCount > 0 && (totalNumeric - crCount) > 0);
+  
+  const result = totalNumeric >= 3 && hasSuffixes && hasBothTypes;
+  
+  if (result) {
+    console.log(`[MergedColumnCheck] Detected merged column: ${totalNumeric} numeric, ${drCount} DR, ${crCount} CR`);
+  }
+  
+  return result;
 }
 
 /**
