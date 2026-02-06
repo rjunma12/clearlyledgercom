@@ -409,6 +409,23 @@ export default function TestConversion() {
           </div>
         )}
 
+        {/* Column Conflicts Panel */}
+        {result?.perTableMetrics && result.perTableMetrics.length > 0 && result?.columnBoundaries && (
+          <div className="mb-6">
+            <ColumnConflictsPanel 
+              perTableMetrics={result.perTableMetrics}
+              reconciledBoundaries={result.columnBoundaries}
+            />
+          </div>
+        )}
+
+        {/* Raw Transaction Preview Table */}
+        {transactions.length > 0 && (
+          <div className="mb-6">
+            <RawTransactionTable transactions={transactions} />
+          </div>
+        )}
+
         {/* Raw Data */}
         {result && (
           <Card>
