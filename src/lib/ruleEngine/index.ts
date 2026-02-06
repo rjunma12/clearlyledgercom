@@ -474,9 +474,13 @@ export async function processDocument(
       hasMultipleCurrencies = isMultiCurrencyDocument(allTx as any);
     }
     
-    // NEW: Extract statement header metadata from PDF header
+    // NEW: Extract statement header from PAGE 1 RAW TEXT ELEMENTS (not table rows)
+    // This ensures we capture bank name, account holder, currency from the header area
+    const page1Elements = textElements.filter(e => e.pageNumber === 1);
+    const page1Lines = groupTextElementsIntoHeaderLines(page1Elements);
+    
     const bankDetection = detectBank(textElements.map(e => e.text), fileName);
-    const headerInfo = extractStatementHeader(tableResult.allRows, bankDetection.profile);
+    const headerInfo = extractStatementHeader(page1Lines, bankDetection.profile);
     
     // Build extracted header for export
     const extractedHeader: ExtractedStatementHeader = {
@@ -499,6 +503,7 @@ export async function processDocument(
       hasAccountNumber: !!extractedHeader.accountNumberMasked,
       hasPeriod: !!(extractedHeader.statementPeriodFrom && extractedHeader.statementPeriodTo),
       bankName: extractedHeader.bankName,
+      currency: extractedHeader.currency,
     });
     
     // Create document with rawTransactions fallback for export
