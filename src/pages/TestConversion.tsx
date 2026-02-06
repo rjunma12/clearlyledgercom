@@ -309,12 +309,20 @@ export default function TestConversion() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>✓ Quality Analysis</span>
-                {result && (
-                  <Button variant="outline" size="sm" onClick={handleExportDebugData} className="gap-2">
-                    <Download className="w-4 h-4" />
-                    Export Debug Data
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {result && transactions.length > 0 && (
+                    <Button variant="default" size="sm" onClick={handleDownloadExcel} className="gap-2">
+                      <FileSpreadsheet className="w-4 h-4" />
+                      Download Excel
+                    </Button>
+                  )}
+                  {result && (
+                    <Button variant="outline" size="sm" onClick={handleExportDebugData} className="gap-2">
+                      <Download className="w-4 h-4" />
+                      Export Debug Data
+                    </Button>
+                  )}
+                </div>
               </CardTitle>
               <CardDescription>Document parsing quality and accuracy metrics</CardDescription>
             </CardHeader>
