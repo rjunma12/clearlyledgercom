@@ -29,6 +29,7 @@ export interface RowClassification {
   isFooter: boolean;
   isOpeningBalance: boolean;
   isClosingBalance: boolean;
+  recoveredDate: string | null;
 }
 
 const SKIP_PATTERNS = [
