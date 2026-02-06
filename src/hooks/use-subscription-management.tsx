@@ -10,6 +10,13 @@ interface UseSubscriptionManagementReturn {
   reactivateSubscription: () => Promise<boolean>;
 }
 
+/**
+ * Hook for managing subscription lifecycle
+ * 
+ * This hook provides a provider-agnostic interface for subscription management.
+ * It communicates with the manage-subscription edge function which handles
+ * both local database updates and provider API calls (when configured).
+ */
 export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
