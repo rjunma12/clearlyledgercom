@@ -219,6 +219,26 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
 
   // Check for skip patterns (headers/footers)
   const isSkip = SKIP_PATTERNS.some(p => p.test(fullText));
+  
+  // Check for address/disclaimer content (should be filtered out)
+  const hasAddressContent = isAddressContent(fullText) || 
+    ADDRESS_PATTERNS.some(p => p.test(row.description || ''));
+  
+  if (hasAddressContent) {
+    console.log(`[DynamicRowProcessor] Skipping address/disclaimer content: "${(row.description || '').substring(0, 50)}..."`);
+    return {
+      isTransaction: false,
+      isContinuation: false,
+      isHeader: false,
+      isFooter: true,  // Mark as footer to skip
+      isOpeningBalance: false,
+      isClosingBalance: false,
+      recoveredDate: null,
+      effectiveDebit: null,
+      effectiveCredit: null,
+      wasAmountSplit: false,
+    };
+  }
 
   // ULTRA-RELAXED DETECTION
   // 1. Try to validate date in date column

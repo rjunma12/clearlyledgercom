@@ -388,9 +388,9 @@ export function extractStatementHeader(
   bankProfile?: BankProfile
 ): ExtractedStatementHeader {
   // Convert line array to text array
-  // Use first 30 lines max (header area)
+  // Use first 50 lines max (header area) - expanded for better coverage
   const textLines = lines
-    .slice(0, 30)
+    .slice(0, 50)
     .map(line => {
       // Check for 'text' property first
       if ('text' in line && typeof line.text === 'string' && line.text.length > 0) {

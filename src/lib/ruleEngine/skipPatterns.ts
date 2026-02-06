@@ -333,6 +333,14 @@ export function isNoise(text: string): boolean {
 }
 
 /**
+ * Check if text is address/disclaimer content
+ */
+export function isAddressContent(text: string): boolean {
+  const trimmed = text.trim();
+  return ADDRESS_PATTERNS.some(pattern => pattern.test(trimmed));
+}
+
+/**
  * Filter an array of text strings, removing those that should be skipped
  */
 export function filterSkippableTexts(texts: string[]): string[] {
