@@ -1302,8 +1302,12 @@ export function detectAndExtractTables(
 }
 
 /**
- * Calculate weighted confidence score based on column importance
- * and bonus for having all required columns
+ * Calculate weighted confidence score based on required columns presence
+ * NEW: Uses component-based scoring for 100% target
+ * - 50% from required columns presence
+ * - 30% from column confidence average
+ * - 15% from row extraction success
+ * - 5% bonus for all required found
  */
 function calculateWeightedConfidence(
   boundaries: ColumnBoundary[],
@@ -1312,6 +1316,24 @@ function calculateWeightedConfidence(
 ): number {
   if (boundaries.length === 0) return 0;
   
+  // Check for required columns
+  const hasDate = boundaries.some(b => b.inferredType === 'date');
+  const hasBalance = boundaries.some(b => b.inferredType === 'balance');
+  const hasDescription = boundaries.some(b => b.inferredType === 'description');
+  const hasAmountColumn = boundaries.some(b => 
+    b.inferredType === 'debit' || b.inferredType === 'credit' || b.inferredType === 'amount'
+  );
+  
+  // Component 1: Required columns presence (50% of score)
+  let requiredScore = 0;
+  if (hasDate) requiredScore += 0.15;
+  if (hasBalance) requiredScore += 0.15;
+  if (hasDescription) requiredScore += 0.10;
+  if (hasAmountColumn) requiredScore += 0.10;
+  
+  console.log(`[Confidence] Required columns: date=${hasDate}, balance=${hasBalance}, desc=${hasDescription}, amount=${hasAmountColumn} (${(requiredScore * 100).toFixed(0)}%)`);
+  
+  // Component 2: Column confidence weighted average (30% of score)
   const weights: Record<string, number> = {
     date: 1.5,
     balance: 1.5,
@@ -1334,36 +1356,31 @@ function calculateWeightedConfidence(
     totalWeight += weight;
   }
   
-  let baseConfidence = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  const avgConfidence = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  const confidenceScore = avgConfidence * 0.30;
   
-  // Check for required columns
-  const hasDate = boundaries.some(b => b.inferredType === 'date');
-  const hasBalance = boundaries.some(b => b.inferredType === 'balance');
-  const hasDescription = boundaries.some(b => b.inferredType === 'description');
-  const hasAmountColumn = boundaries.some(b => 
-    b.inferredType === 'debit' || b.inferredType === 'credit' || b.inferredType === 'amount'
-  );
+  // Component 3: Row extraction bonus (15% of score)
+  let rowScore = 0;
+  if (rowCount > 0) rowScore += 0.10;
+  if (rowCount > 10) rowScore += 0.05;
   
-  // Bonus for having all required columns
+  // Component 4: All required found bonus (5%)
   const hasAllRequired = hasDate && hasBalance && hasDescription && hasAmountColumn;
-  if (hasAllRequired) {
-    baseConfidence += 0.15;
-    console.log('[Confidence] All required columns found (+15% bonus)');
-  }
+  const allRequiredBonus = hasAllRequired ? 0.05 : 0;
   
-  // Bonus for having rows extracted
-  if (rowCount >= 3) {
-    baseConfidence += 0.05;
-  }
+  // Calculate total
+  const totalScore = requiredScore + confidenceScore + rowScore + allRequiredBonus;
   
-  // Small penalty for excessive fragmentation (but less severe now with merging)
+  // Small penalty for excessive fragmentation
+  let penalty = 0;
   if (tableCount > 5) {
-    baseConfidence -= 0.02;
-    console.log(`[Confidence] Table fragmentation penalty: ${tableCount} tables (-2%)`);
+    penalty = 0.02;
   }
   
-  const finalConfidence = Math.min(Math.max(baseConfidence, 0), 1);
-  console.log(`[Confidence] Weighted calculation: ${(finalConfidence * 100).toFixed(0)}%`);
+  const finalConfidence = Math.min(Math.max(totalScore - penalty, 0), 1);
+  
+  console.log(`[Confidence] Components: required=${(requiredScore * 100).toFixed(0)}%, avgConf=${(confidenceScore * 100).toFixed(0)}%, rows=${(rowScore * 100).toFixed(0)}%, bonus=${(allRequiredBonus * 100).toFixed(0)}%, penalty=${(penalty * 100).toFixed(0)}%`);
+  console.log(`[Confidence] Final score: ${(finalConfidence * 100).toFixed(0)}%`);
   
   return finalConfidence;
 }
