@@ -31,8 +31,8 @@ export interface SimpleExcelOptions {
 const TRANSACTION_COLUMNS = [
   { header: 'Date', key: 'date', width: 14 },
   { header: 'Description', key: 'description', width: 50 },
-  { header: 'Debit', key: 'debit', width: 15 },
-  { header: 'Credit', key: 'credit', width: 15 },
+  { header: 'Withdrawal Amt.', key: 'debit', width: 15 },
+  { header: 'Deposit Amt.', key: 'credit', width: 15 },
   { header: 'Balance', key: 'balance', width: 15 },
 ];
 
