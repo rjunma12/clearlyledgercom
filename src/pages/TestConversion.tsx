@@ -134,6 +134,93 @@ export default function TestConversion() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadExcel = async () => {
+    if (!result || transactions.length === 0) return;
+
+    try {
+      // Build StatementMetadata from result
+      const metadata: StatementMetadata = {
+        bankName: result.document?.bankName || 'Unknown',
+        accountHolder: result.document?.accountHolder || '',
+        accountNumberMasked: result.document?.accountNumber || '',
+        statementPeriodFrom: result.document?.startDate || '',
+        statementPeriodTo: result.document?.endDate || '',
+        openingBalance: result.document?.segments?.[0]?.openingBalance,
+        closingBalance: result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
+        currency: 'USD',
+        pagesProcessed: qualityMetrics?.totalPages || 0,
+        pdfType: qualityMetrics?.pdfType || 'UNKNOWN',
+        ocrUsed: qualityMetrics?.hasScannedPages || false,
+        conversionTimestamp: new Date().toISOString(),
+        conversionConfidence: `${(qualityMetrics?.confidence || 0) * 100}%`,
+      };
+
+      // Build ValidationSummary
+      const validationSummary: ValidationSummary = {
+        openingBalanceFound: !!result.document?.segments?.[0]?.openingBalance,
+        closingBalanceFound: !!result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
+        balanceCheckPassed: result.document?.overallValidation === 'valid',
+        balanceDifference: null,
+        rowsExtracted: transactions.length,
+        rowsMerged: 0,
+        autoRepairApplied: false,
+        warnings: result.warnings || [],
+        averageConfidence: qualityMetrics?.confidence ? Math.round(qualityMetrics.confidence * 100) : null,
+        gradeDistribution: calculateGradeDistribution(transactions),
+        lowConfidenceCount: transactions.filter(t => (t as any).confidenceScore < 50).length,
+      };
+
+      // Convert transactions to StandardizedTransaction format
+      const standardizedTransactions: StandardizedTransaction[] = transactions.map(tx => ({
+        date: tx.date || '',
+        description: tx.description || '',
+        debit: tx.debit || '',
+        credit: tx.credit || '',
+        balance: tx.balance || '',
+        currency: 'USD',
+        reference: tx.reference || '',
+        validationStatus: tx.validationStatus as 'valid' | 'warning' | 'error' | undefined,
+        grade: (tx as any).grade,
+        confidenceScore: (tx as any).confidenceScore,
+      }));
+
+      // Generate Excel
+      const buffer = await generateStandardizedExcel({
+        transactions: standardizedTransactions,
+        metadata,
+        validationSummary,
+        filename: file?.name?.replace('.pdf', '.xlsx') || 'export.xlsx',
+      });
+
+      // Download
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file?.name?.replace('.pdf', '.xlsx') || 'export.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating Excel:', error);
+    }
+  };
+
+  function calculateGradeDistribution(txs: typeof transactions): string {
+    const grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    for (const tx of txs) {
+      const grade = (tx as any).grade;
+      if (grade && grades.hasOwnProperty(grade)) {
+        grades[grade as keyof typeof grades]++;
+      }
+    }
+    return Object.entries(grades)
+      .filter(([_, count]) => count > 0)
+      .map(([grade, count]) => `${grade}:${count}`)
+      .join(', ') || 'N/A';
+  }
+
   // Get transactions for summary
   const transactions = result?.document?.rawTransactions || 
     result?.document?.segments?.flatMap(s => s.transactions) || [];
