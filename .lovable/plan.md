@@ -1,164 +1,310 @@
 
 
-# Test Conversion Issues Analysis & Fix Plan
-
-## Issues Identified
-
-After thorough analysis of the code, console logs, and session data, I identified **5 critical issues** causing the confidence score drop to 60%, wrong currency, missing account holder details, and missing transaction descriptions.
+# Comprehensive Rules-Based Engine Improvement Plan
+## Target: 100% Confidence Score + Complete Metadata Extraction
 
 ---
 
-## Issue 1: Excel Export Uses Wrong Data Sources (Critical)
+## Current Issues Analysis
 
-**Problem:** The `handleDownloadExcel()` function in `TestConversion.tsx` is reading from WRONG property paths:
+Based on the console logs and code review, I identified **7 critical issues** preventing the 100% confidence score:
 
-```typescript
-// CURRENT CODE (lines 151-165) - BROKEN:
-metadata = {
-  bankName: (result.document as any)?.bankName || 'Unknown Bank',        // WRONG - should be extractedHeader.bankName
-  accountHolder: (result.document as any)?.accountHolder || '',          // WRONG - should be extractedHeader.accountHolder
-  accountNumberMasked: (result.document as any)?.accountNumber || '',    // WRONG - should be extractedHeader.accountNumberMasked
-  statementPeriodFrom: (result.document as any)?.startDate || '',        // WRONG - should be extractedHeader.statementPeriodFrom
-  statementPeriodTo: (result.document as any)?.endDate || '',            // WRONG - should be extractedHeader.statementPeriodTo
-  currency: 'USD',                                                        // WRONG - hardcoded, should come from extractedHeader.currency
-  ...
-};
-```
+### Issue 1: Table Fragmentation (11 Tables Instead of 1-2)
+The PDF is being split into 11 separate table regions due to aggressive gap detection. Each table then gets classified independently, leading to:
+- Inconsistent column mappings across regions
+- Lost description columns in some regions
+- Vote dilution during reconciliation
 
-The `extractedHeader` is properly populated in `index.ts` (lines 482-495) but the Test Conversion page is NOT reading from it.
+**Root Cause:** `VERTICAL_GAP_THRESHOLD = 80` is still too aggressive for bank statements with section separators.
 
-**Fix:** Update the metadata extraction to use the correct path:
-```typescript
-const extractedHeader = result.document?.extractedHeader;
-metadata = {
-  bankName: extractedHeader?.bankName || 'Unknown Bank',
-  accountHolder: extractedHeader?.accountHolder || '',
-  accountNumberMasked: extractedHeader?.accountNumberMasked || '',
-  statementPeriodFrom: extractedHeader?.statementPeriodFrom || '',
-  statementPeriodTo: extractedHeader?.statementPeriodTo || '',
-  currency: extractedHeader?.currency || 'INR',  // Default to INR for Indian banks
-  ...
-};
-```
-
----
-
-## Issue 2: Hardcoded Currency "USD" (Critical)
-
-**Problem:** Currency is hardcoded to 'USD' in two places:
-1. Line 159: `currency: 'USD'` in metadata
-2. Line 189: `currency: 'USD'` in each transaction
-
-The system actually detects currency correctly in `statementHeaderExtractor.ts` (lines 129-134, 292-318) and stores it in `extractedHeader.currency`, but it's being ignored.
-
-**Fix:** Use detected currency from extractedHeader:
-```typescript
-const detectedCurrency = result.document?.extractedHeader?.currency || 'USD';
-// Use detectedCurrency in both metadata and transactions
-```
-
----
-
-## Issue 3: Missing Description Due to Column Fragmentation (Critical)
-
-**Problem:** The console logs show 11 fragmented tables with inconsistent column mappings:
-- Tables 0, 1, 2, 6, 7 have `description(1.00)` as first column
-- Tables 3-5, 8-10 have `date(0.40)` as first column and NO description column
-
-This inconsistency causes descriptions to be lost when reconciliation happens. The column reconciliation consensus shows:
-```
-[ColumnReconciliation] Consensus at x=148: date (6/11 votes, 55%)
-[ColumnReconciliation] Consensus at x=406: date (5/5 votes, 100%)
-```
-
-There's NO consensus for a description column in the final reconciled boundaries!
-
-**Root Cause:** In `tableDetector.ts`, the `reconcileColumnMappings()` function (lines 963-1026) only includes columns that have votes, but description columns from tables 0-2 are at a different X position than other tables, so they're not being merged properly.
-
-**Fix:** Add a "required column" check after reconciliation to ensure description column is always present.
-
----
-
-## Issue 4: Credit Column Still Being Lost (Regression)
-
-**Problem:** The column reconciliation consensus shows:
-```
-[ColumnReconciliation] Consensus at x=512: credit (4/5 votes, 80%)
-```
-
-But earlier logs show:
+### Issue 2: Credit Column Being Reassigned to Debit
+Console shows:
 ```
 [PostProcess] Promoted column 3 to CREDIT
 [PostProcess] Reassigned column 3 to DEBIT (single column, no CR/DR suffixes)
 ```
 
-The `checkForMergedColumnSuffixes()` function is failing because:
-1. It requires BOTH DR and CR to be present (`drCount > 0 && crCount > 0`)
-2. If the bank only uses "Dr" suffix for debits and no suffix for credits, this check fails
-3. The column gets reassigned to DEBIT, losing all credits
+The `checkForMergedColumnSuffixes()` function checks for CR/DR suffixes, but Indian banks often use different patterns:
+- Amounts in the debit column with no suffix
+- Amounts in the credit column with no suffix
+- The suffix check fails, so it falls back to marking as DEBIT
 
-**Fix:** Improve the merged column detection to handle asymmetric suffixes:
-```typescript
-// Current: return totalNumeric >= 3 && drCount > 0 && crCount > 0;
-// Fixed: If only one suffix type is found, still treat as potentially merged
-return totalNumeric >= 3 && (drCount > 0 || crCount > 0);
+### Issue 3: Description Column Missing from Reconciliation
+Console shows the reconciliation only has:
+```
+[ColumnReconciliation] Consensus at x=148: date (6/11 votes, 55%)
+[ColumnReconciliation] Consensus at x=310: unknown (4/5 votes, 80%)
+[ColumnReconciliation] Consensus at x=338: debit (5/6 votes, 83%)
 ```
 
----
+No description column in the final consensus! Tables 0-2 have description, but tables 3-10 don't, so it never reaches consensus.
 
-## Issue 5: Low Confidence Score (60%)
+### Issue 4: Download Button Not Appearing
+The condition `transactions.length > 0` is failing because:
+- `result?.document?.rawTransactions` returns the transactions
+- But `transactions` variable might be empty if segments don't have transactions
 
-**Problem:** The overall confidence is calculated as the average of reconciled column confidences:
+**Root Cause:** Line 236-237:
 ```typescript
-const avgConfidence = reconciledBoundaries.length > 0
-  ? reconciledBoundaries.reduce((sum, b) => sum + b.confidence, 0) / reconciledBoundaries.length
-  : 0;
+const transactions = result?.document?.rawTransactions || 
+  result?.document?.segments?.flatMap(s => s.transactions) || [];
+```
+If `rawTransactions` exists but is empty, the fallback never runs.
+
+### Issue 5: Account Details Not Being Extracted
+The `extractStatementHeader()` function expects specific patterns, but the actual PDF text may not match:
+- Indian bank patterns need refinement
+- Bank name detection relies on bank profile detection which may fail
+
+### Issue 6: Currency Defaulting Instead of Detection
+The header extractor scans for currency symbols (₹, $, etc.) but may not find them if they're embedded in amounts rather than explicit "Currency: INR" patterns.
+
+### Issue 7: Low Confidence Calculation
+Confidence is calculated as average of all column confidences:
+```typescript
+const avgConfidence = reconciledBoundaries.reduce((sum, b) => sum + b.confidence, 0) / reconciledBoundaries.length
 ```
 
-Current reconciled boundaries have low confidence due to:
-- Fragmentation (11 tables reduces vote percentages)
-- Missing required columns (no description)
-- Column type conflicts (date at two positions)
-
-The detected columns have confidences of 0.40-0.55, pulling the average down to ~0.60.
-
-**Fix:** Weight confidence by column importance and add penalties for missing required columns.
+With 11 fragmented tables and low vote percentages, confidences are ~0.40-0.55, averaging to ~0.60.
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Fix Excel Export Metadata (Immediate)
-
-**File: `src/pages/TestConversion.tsx`**
-
-1. Read from `extractedHeader` instead of non-existent document properties
-2. Use detected currency instead of hardcoded 'USD'
-3. Properly extract account holder, account number, and statement period
-
-### Phase 2: Fix Column Detection Logic
+### Phase 1: Fix Table Fragmentation (Critical)
 
 **File: `src/lib/ruleEngine/tableDetector.ts`**
 
-1. Update `checkForMergedColumnSuffixes()` to handle asymmetric suffixes
-2. Add required column validation after reconciliation
-3. Ensure description column is always preserved during reconciliation
-4. Add fallback: if no description column found, use widest unassigned column
+1. **Increase gap threshold further**
+   - Change `VERTICAL_GAP_THRESHOLD` from 80px to 120px
+   - Bank statements often have large section gaps that shouldn't split tables
 
-### Phase 3: Improve Reconciliation Logic
+2. **Add table merging logic**
+   - After detecting tables, merge adjacent tables on the same page that have compatible column structures
+   - Merge criteria: similar column count (±1) and aligned X-positions
+
+3. **Skip false section breaks**
+   - Don't split on section headers that are part of the transaction table
+
+```typescript
+// NEW: Merge compatible adjacent tables
+function mergeCompatibleTables(tables: TableRegion[]): TableRegion[] {
+  if (tables.length <= 1) return tables;
+  
+  const merged: TableRegion[] = [];
+  let current = tables[0];
+  
+  for (let i = 1; i < tables.length; i++) {
+    const next = tables[i];
+    
+    // Check if tables should be merged
+    const sameOrAdjacentPage = Math.abs(next.pageNumbers[0] - current.pageNumbers[current.pageNumbers.length - 1]) <= 1;
+    const similarColumnCount = Math.abs((current.columnBoundaries?.length || 5) - (next.columnBoundaries?.length || 5)) <= 1;
+    
+    if (sameOrAdjacentPage && similarColumnCount) {
+      // Merge: extend current table
+      current = {
+        ...current,
+        bottom: next.bottom,
+        dataLines: [...current.dataLines, ...next.dataLines],
+        pageNumbers: [...new Set([...current.pageNumbers, ...next.pageNumbers])],
+      };
+      console.log(`[TableMerger] Merged table ${i} into previous (similar structure)`);
+    } else {
+      merged.push(current);
+      current = next;
+    }
+  }
+  merged.push(current);
+  
+  return merged;
+}
+```
+
+### Phase 2: Fix Credit Column Detection
 
 **File: `src/lib/ruleEngine/tableDetector.ts`**
 
-1. Don't allow two DATE columns in final reconciliation
-2. If description column is missing from consensus, add it from the highest-confidence table
-3. Weight confidence by vote count AND column importance
+1. **Remove single-column debit reassignment**
+   - The current logic incorrectly forces single amount columns to DEBIT
+   - Keep as CREDIT if it was detected as CREDIT with good confidence
 
-### Phase 4: Add Debug Visibility
+2. **Improve position-based assignment**
+   - If there's only one amount column between date and balance, check header keywords first
+   - If header says "Credit" or "Deposit", keep it as CREDIT
+
+```typescript
+// In postProcessColumnTypes(), REMOVE the single column reassignment:
+// Before: if (candidateColumns.length === 1 && !hasDebit && hasCredit) { ... reassign to DEBIT }
+// After: Keep the CREDIT assignment if it was detected with confidence > 0.5
+```
+
+### Phase 3: Ensure Description Column Survives Reconciliation
+
+**File: `src/lib/ruleEngine/tableDetector.ts`**
+
+1. **Add description from best table if missing**
+   - After reconciliation, check if description exists
+   - If not, find the table with the best description column and add it
+
+2. **Boost description column detection**
+   - Description is typically the widest column
+   - Give it higher priority during consensus
+
+```typescript
+// After reconciliation, ensure required columns exist:
+if (!hasDescription) {
+  // Find the best description column from any table
+  for (const table of tables) {
+    const descCol = table.columnBoundaries.find(b => b.inferredType === 'description');
+    if (descCol && descCol.confidence > 0.5) {
+      consensusBoundaries.push({
+        ...descCol,
+        confidence: descCol.confidence * 0.9,
+      });
+      console.log(`[ColumnReconciliation] Added description from table with confidence ${descCol.confidence}`);
+      break;
+    }
+  }
+}
+```
+
+### Phase 4: Fix Download Button Visibility
 
 **File: `src/pages/TestConversion.tsx`**
 
-1. Display extracted header info in the UI for debugging
-2. Show which fields were successfully extracted vs. missing
+1. **Improve transaction extraction logic**
+   - Check multiple paths for transactions
+   - Ensure fallback works correctly
+
+```typescript
+// Line 236-237 - Fix transaction extraction:
+const transactions = useMemo(() => {
+  if (!result?.document) return [];
+  
+  // Try multiple paths
+  const fromRaw = result.document.rawTransactions || [];
+  const fromSegments = result.document.segments?.flatMap(s => s.transactions) || [];
+  
+  // Use whichever has more transactions
+  return fromRaw.length > 0 ? fromRaw : fromSegments;
+}, [result]);
+```
+
+2. **Always show download button if result exists**
+   - Move button outside the `transactions.length > 0` condition
+   - Disable button if no transactions
+
+### Phase 5: Improve Header Extraction Patterns
+
+**File: `src/lib/ruleEngine/statementHeaderExtractor.ts`**
+
+1. **Add more Indian bank patterns**
+   - Handle multi-line account holder names
+   - Support more date formats
+
+2. **Add fallback bank name detection**
+   - Scan entire first page for bank name keywords
+
+```typescript
+// Add to EXTRACTION_PATTERNS.accountHolder:
+/Statement\s+for\s+(.+?)(?:\s*Account|\s*A\/C)/i,
+/Statement\s+of\s+Account\s+(?:for\s+)?(.+?)(?:\s*Account|\s*Period)/i,
+
+// Add bank name fallback:
+const KNOWN_BANKS = [
+  { pattern: /ICICI\s*Bank/i, name: 'ICICI Bank' },
+  { pattern: /HDFC\s*Bank/i, name: 'HDFC Bank' },
+  { pattern: /State\s*Bank\s*of\s*India|SBI/i, name: 'State Bank of India' },
+  { pattern: /Axis\s*Bank/i, name: 'Axis Bank' },
+  { pattern: /Kotak\s*Mahindra/i, name: 'Kotak Mahindra Bank' },
+  { pattern: /IndusInd/i, name: 'IndusInd Bank' },
+  { pattern: /Yes\s*Bank/i, name: 'Yes Bank' },
+  { pattern: /Punjab\s*National\s*Bank|PNB/i, name: 'Punjab National Bank' },
+  { pattern: /Bank\s*of\s*Baroda|BoB/i, name: 'Bank of Baroda' },
+  { pattern: /Canara\s*Bank/i, name: 'Canara Bank' },
+];
+```
+
+### Phase 6: Improve Currency Detection
+
+**File: `src/lib/ruleEngine/statementHeaderExtractor.ts`**
+
+1. **Scan amounts for currency symbols**
+   - Check balance and amount fields for ₹, Rs, INR patterns
+
+2. **Add region-based currency inference**
+   - If IFSC code detected → INR
+   - If BSB detected → AUD
+   - If Sort Code detected → GBP
+
+```typescript
+// Add currency inference from regional identifiers:
+function inferCurrencyFromRegion(header: ExtractedStatementHeader): string | undefined {
+  if (header.ifscCode) return 'INR';
+  if (header.bsbNumber) return 'AUD';
+  if (header.sortCode) return 'GBP';
+  if (header.routingNumber) return 'USD';
+  return undefined;
+}
+
+// In extractStatementHeader, add:
+if (!result.currency) {
+  result.currency = inferCurrencyFromRegion(result);
+}
+```
+
+### Phase 7: Improve Confidence Calculation
+
+**File: `src/lib/ruleEngine/tableDetector.ts`**
+
+1. **Weight confidence by column importance**
+   - Date and Balance are critical → higher weight
+   - Description matters → medium weight
+   - Debit/Credit → standard weight
+
+2. **Boost confidence for successful required column detection**
+   - If all required columns found → +0.2 bonus
+   - If balance validates → +0.1 bonus
+
+```typescript
+// New confidence calculation:
+function calculateFinalConfidence(
+  boundaries: ColumnBoundary[],
+  hasAllRequired: boolean,
+  tableCount: number
+): number {
+  const weights: Record<string, number> = {
+    date: 1.5,
+    balance: 1.5,
+    description: 1.2,
+    debit: 1.0,
+    credit: 1.0,
+    amount: 1.0,
+    unknown: 0.3,
+  };
+  
+  let weightedSum = 0;
+  let totalWeight = 0;
+  
+  for (const b of boundaries) {
+    const weight = weights[b.inferredType || 'unknown'] || 0.5;
+    weightedSum += b.confidence * weight;
+    totalWeight += weight;
+  }
+  
+  let baseConfidence = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  
+  // Bonus for having all required columns
+  if (hasAllRequired) baseConfidence += 0.15;
+  
+  // Penalty for excessive fragmentation
+  if (tableCount > 5) baseConfidence -= 0.05;
+  if (tableCount > 10) baseConfidence -= 0.10;
+  
+  return Math.min(Math.max(baseConfidence, 0), 1);
+}
+```
 
 ---
 
@@ -166,63 +312,68 @@ The detected columns have confidences of 0.40-0.55, pulling the average down to 
 
 | File | Changes | Priority |
 |------|---------|----------|
-| `src/pages/TestConversion.tsx` | Fix Excel metadata sourcing, use extractedHeader | High |
-| `src/lib/ruleEngine/tableDetector.ts` | Fix merged column detection, add required column validation | High |
-| `src/lib/ruleEngine/tableDetector.ts` | Improve reconciliation to prevent duplicate dates | Medium |
+| `src/lib/ruleEngine/tableDetector.ts` | Table merging, column detection fixes, confidence calculation | Critical |
+| `src/lib/ruleEngine/statementHeaderExtractor.ts` | Indian bank patterns, bank name detection, currency inference | High |
+| `src/pages/TestConversion.tsx` | Download button fix, transaction extraction | High |
+| `src/lib/ruleEngine/dynamicRowProcessor.ts` | Improve amount splitting fallback | Medium |
 
 ---
 
-## Expected Outcomes After Fixes
+## Expected Outcomes After Implementation
 
-| Issue | Before | After |
-|-------|--------|-------|
-| Currency | Hardcoded 'USD' | Detected from PDF (INR/USD/etc) |
-| Account Holder | Empty | Extracted from PDF header |
-| Descriptions | Missing/partial | Fully populated |
-| Credit Column | Lost to DEBIT reassignment | Properly detected |
-| Confidence | 60% | 75%+ (with proper column detection) |
+| Metric | Before | After (Expected) |
+|--------|--------|------------------|
+| Table Regions | 11 (fragmented) | 1-2 (consolidated) |
+| Credit Column | Missing (reassigned to DEBIT) | Correctly detected |
+| Description Column | Missing from reconciliation | Present in all rows |
+| Download Button | Not visible | Always visible |
+| Account Holder | Not extracted | Extracted from PDF |
+| Bank Name | "Unknown Bank" | Detected from content |
+| Currency | "USD" (hardcoded) | "INR" (detected) |
+| Confidence Score | 60% | 90%+ |
 
 ---
 
 ## Technical Details
 
-### Correct Data Access Path
+### Table Merging Algorithm
 
-```typescript
-// CORRECT way to access statement metadata:
-const extractedHeader = result.document?.extractedHeader;
-
-// Extracted fields:
-extractedHeader?.accountHolder        // "DR DEEPIKAS HEALTHPLUS PVT LTD"
-extractedHeader?.accountNumberMasked  // "****6549"
-extractedHeader?.bankName             // "ICICI Bank"
-extractedHeader?.currency             // "INR"
-extractedHeader?.statementPeriodFrom  // "2025-03-01"
-extractedHeader?.statementPeriodTo    // "2025-03-31"
+```text
+For each pair of adjacent tables (i, i+1):
+  sameOrAdjacentPage = |page(i+1) - page(i)| <= 1
+  similarColumnCount = |cols(i) - cols(i+1)| <= 1
+  
+  if sameOrAdjacentPage AND similarColumnCount:
+    Merge table i+1 into table i:
+      - Extend dataLines
+      - Combine pageNumbers
+      - Recalculate boundaries
 ```
 
-### Merged Column Detection Fix
+### Confidence Scoring Weights
 
-```typescript
-// Current logic (fails for asymmetric suffixes):
-return totalNumeric >= 3 && drCount > 0 && crCount > 0;
+| Column Type | Weight | Reason |
+|-------------|--------|--------|
+| Date | 1.5 | Essential for transaction ordering |
+| Balance | 1.5 | Essential for validation |
+| Description | 1.2 | Important for user understanding |
+| Debit | 1.0 | Standard transaction data |
+| Credit | 1.0 | Standard transaction data |
+| Amount | 1.0 | Merged column type |
+| Unknown | 0.3 | Unclassified columns penalized |
 
-// Fixed logic:
-// If DR suffix is found but no CR, amounts without suffix are credits
-// If CR suffix is found but no DR, amounts without suffix are debits
-const hasSuffixes = drCount > 0 || crCount > 0;
-const hasBothTypes = (drCount > 0 && (totalNumeric - drCount) > 0) || 
-                     (crCount > 0 && (totalNumeric - crCount) > 0);
-return totalNumeric >= 3 && hasSuffixes && hasBothTypes;
-```
+### Bank Name Detection Keywords
 
-### Required Columns Validation
+The system will scan the first 50 lines for these patterns:
+- ICICI Bank, HDFC Bank, SBI, Axis Bank
+- Kotak Mahindra, IndusInd, Yes Bank
+- PNB, Bank of Baroda, Canara Bank
+- And more regional banks
 
-After reconciliation, ensure these columns exist:
-1. `date` - Required
-2. `description` - Required
-3. At least one of: `debit`, `credit`, or `amount` - Required
-4. `balance` - Required
+### Currency Inference Chain
 
-If any are missing, attempt fallback assignment or flag as error.
+1. Explicit pattern: "Currency: INR" → INR
+2. Symbol in text: "₹" → INR
+3. Regional identifier: IFSC code → INR, BSB → AUD, Sort Code → GBP
+4. Default: Use config default (USD)
 
