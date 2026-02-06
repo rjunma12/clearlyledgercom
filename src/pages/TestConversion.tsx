@@ -148,6 +148,17 @@ export default function TestConversion() {
     try {
       // Extract header data
       const extractedHeader = (result.document as any)?.extractedHeader;
+      
+      // Get opening/closing balance from segments
+      const segments = result.document?.segments || [];
+      const openingBalance = segments[0]?.openingBalance;
+      const closingBalance = segments[segments.length - 1]?.closingBalance;
+      
+      // If no segment closing balance, try last transaction balance
+      const lastTxBalance = transactions[transactions.length - 1]?.balance;
+      const effectiveClosingBalance = closingBalance != null 
+        ? String(closingBalance) 
+        : (lastTxBalance != null ? String(lastTxBalance) : '');
 
       // Build simplified account info
       const accountInfo = {
@@ -158,6 +169,8 @@ export default function TestConversion() {
           extractedHeader?.statementPeriodFrom,
           extractedHeader?.statementPeriodTo
         ].filter(Boolean).join(' to ') || '',
+        openingBalance: openingBalance != null ? String(openingBalance) : '',
+        closingBalance: effectiveClosingBalance,
       };
 
       // Convert to simple transaction format (only 5 fields)
