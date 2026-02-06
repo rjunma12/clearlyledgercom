@@ -147,16 +147,20 @@ export default function TestConversion() {
       const pdfType: 'Text' | 'Scanned' = 
         qualityMetrics?.pdfType === 'SCANNED' ? 'Scanned' : 'Text';
 
-      // Build StatementMetadata from result
+      // Extract header data from the correct path
+      const extractedHeader = (result.document as any)?.extractedHeader;
+      const detectedCurrency = extractedHeader?.currency || 'USD';
+
+      // Build StatementMetadata from extractedHeader (correct path)
       const metadata: StatementMetadata = {
-        bankName: (result.document as any)?.bankName || 'Unknown Bank',
-        accountHolder: (result.document as any)?.accountHolder || '',
-        accountNumberMasked: (result.document as any)?.accountNumber || '',
-        statementPeriodFrom: (result.document as any)?.startDate || '',
-        statementPeriodTo: (result.document as any)?.endDate || '',
+        bankName: extractedHeader?.bankName || 'Unknown Bank',
+        accountHolder: extractedHeader?.accountHolder || '',
+        accountNumberMasked: extractedHeader?.accountNumberMasked || '',
+        statementPeriodFrom: extractedHeader?.statementPeriodFrom || '',
+        statementPeriodTo: extractedHeader?.statementPeriodTo || '',
         openingBalance: result.document?.segments?.[0]?.openingBalance,
         closingBalance: result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
-        currency: 'USD',
+        currency: detectedCurrency,
         pagesProcessed: qualityMetrics?.totalPages || 0,
         pdfType,
         ocrUsed: qualityMetrics?.hasScannedPages || false,
