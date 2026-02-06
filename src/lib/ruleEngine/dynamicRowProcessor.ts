@@ -302,6 +302,7 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
       isFooter: classResult.isFooter,
       isOpeningBalance: classResult.isOpeningBalance,
       isClosingBalance: classResult.isClosingBalance,
+      recoveredDate: classResult.recoveredDate,
     };
 
     if (classification.isTransaction || classification.isOpeningBalance || classification.isClosingBalance) {
@@ -319,6 +320,7 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
         effectiveDebit: classResult.effectiveDebit,
         effectiveCredit: classResult.effectiveCredit,
         wasAmountSplit: classResult.wasAmountSplit,
+        recoveredDate: classResult.recoveredDate,
       };
     } else if (classification.isContinuation && currentTransaction) {
       // Append to current transaction
