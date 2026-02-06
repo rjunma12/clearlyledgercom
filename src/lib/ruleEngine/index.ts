@@ -474,9 +474,13 @@ export async function processDocument(
       hasMultipleCurrencies = isMultiCurrencyDocument(allTx as any);
     }
     
-    // NEW: Extract statement header metadata from PDF header
+    // NEW: Extract statement header from PAGE 1 RAW TEXT ELEMENTS (not table rows)
+    // This ensures we capture bank name, account holder, currency from the header area
+    const page1Elements = textElements.filter(e => e.pageNumber === 1);
+    const page1Lines = groupTextElementsIntoHeaderLines(page1Elements);
+    
     const bankDetection = detectBank(textElements.map(e => e.text), fileName);
-    const headerInfo = extractStatementHeader(tableResult.allRows, bankDetection.profile);
+    const headerInfo = extractStatementHeader(page1Lines, bankDetection.profile);
     
     // Build extracted header for export
     const extractedHeader: ExtractedStatementHeader = {
@@ -499,6 +503,7 @@ export async function processDocument(
       hasAccountNumber: !!extractedHeader.accountNumberMasked,
       hasPeriod: !!(extractedHeader.statementPeriodFrom && extractedHeader.statementPeriodTo),
       bankName: extractedHeader.bankName,
+      currency: extractedHeader.currency,
     });
     
     // Create document with rawTransactions fallback for export
@@ -630,4 +635,55 @@ export function quickValidate(
 ): boolean {
   const expected = previousBalance + (credit ?? 0) - (debit ?? 0);
   return Math.abs(currentBalance - expected) < 0.01;
+}
+
+/**
+ * Helper: Group page 1 text elements into lines for header extraction
+ * This converts TextElements to the format expected by extractStatementHeader
+ */
+function groupTextElementsIntoHeaderLines(elements: TextElement[]): Array<{ date?: string; description?: string; debit?: string; credit?: string; balance?: string }> {
+  if (elements.length === 0) return [];
+  
+  // Sort by Y position
+  const sorted = [...elements].sort((a, b) => a.boundingBox.y - b.boundingBox.y);
+  
+  // Group into lines with 5px Y-tolerance
+  const lines: Array<{ text: string }> = [];
+  let currentLineElements: TextElement[] = [];
+  let currentY = sorted[0]?.boundingBox.y || 0;
+  
+  for (const el of sorted) {
+    if (Math.abs(el.boundingBox.y - currentY) > 5) {
+      // New line
+      if (currentLineElements.length > 0) {
+        const lineText = currentLineElements
+          .sort((a, b) => a.boundingBox.x - b.boundingBox.x)
+          .map(e => e.text)
+          .join(' ');
+        lines.push({ text: lineText });
+      }
+      currentLineElements = [el];
+      currentY = el.boundingBox.y;
+    } else {
+      currentLineElements.push(el);
+    }
+  }
+  
+  // Add final line
+  if (currentLineElements.length > 0) {
+    const lineText = currentLineElements
+      .sort((a, b) => a.boundingBox.x - b.boundingBox.x)
+      .map(e => e.text)
+      .join(' ');
+    lines.push({ text: lineText });
+  }
+  
+  // Limit to first 50 lines (header area only)
+  const headerLines = lines.slice(0, 50);
+  
+  // Convert to ExtractedRow-like format for extractStatementHeader
+  // The function expects objects with optional description field
+  return headerLines.map(line => ({
+    description: line.text,
+  }));
 }

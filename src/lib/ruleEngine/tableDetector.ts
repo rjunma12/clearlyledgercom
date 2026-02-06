@@ -750,17 +750,76 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[], lines: PdfLine[]):
     }
   }
 
+  // NEW: Position-based date detection - leftmost column with date-like content
   if (!hasDate && boundaries.length > 0) {
-    // Assign leftmost column as date if none found
-    boundaries[0] = { ...boundaries[0], inferredType: 'date', confidence: 0.4 };
-    hasDate = true;
+    // Check first column for date patterns
+    const firstCol = boundaries[0];
+    const datePatterns = [
+      /^\d{1,2}[\/\-\.]\d{1,2}/,      // DD/MM or MM/DD format
+      /^\d{1,2}\s+[A-Za-z]{3}/,       // 15 Jan format
+      /^[A-Za-z]{3}\s+\d{1,2}/,       // Jan 15 format
+    ];
+    
+    // Sample content from first column
+    const hasDateContent = lines.slice(0, 20).some(line => {
+      const wordsInCol = line.words.filter(w => {
+        const center = (w.x0 + w.x1) / 2;
+        return center >= firstCol.x0 && center <= firstCol.x1;
+      });
+      if (wordsInCol.length > 0) {
+        const text = wordsInCol.map(w => w.text).join(' ').trim();
+        return datePatterns.some(p => p.test(text));
+      }
+      return false;
+    });
+    
+    if (hasDateContent) {
+      boundaries[0] = { ...boundaries[0], inferredType: 'date', confidence: 0.9 };
+      console.log('[PostProcess] Assigned leftmost column as DATE (position heuristic)');
+      hasDate = true;
+    } else {
+      // Fallback: assign leftmost as date anyway
+      boundaries[0] = { ...boundaries[0], inferredType: 'date', confidence: 0.5 };
+      hasDate = true;
+    }
   }
 
+  // NEW: Position-based balance detection - rightmost numeric column
   if (!hasBalance && boundaries.length > 1) {
-    // Assign rightmost column as balance
-    const last = boundaries.length - 1;
-    boundaries[last] = { ...boundaries[last], inferredType: 'balance', confidence: 0.4 };
-    hasBalance = true;
+    // Find rightmost column with numeric content
+    const numericColumns = boundaries
+      .map((b, i) => ({ boundary: b, index: i }))
+      .filter(({ boundary }) => {
+        const hasNumeric = lines.slice(0, 20).some(line => {
+          const wordsInCol = line.words.filter(w => {
+            const center = (w.x0 + w.x1) / 2;
+            return center >= boundary.x0 && center <= boundary.x1;
+          });
+          if (wordsInCol.length > 0) {
+            const text = wordsInCol.map(w => w.text).join(' ').trim();
+            return hasNumericContent(text);
+          }
+          return false;
+        });
+        return hasNumeric;
+      })
+      .sort((a, b) => b.boundary.centerX - a.boundary.centerX); // Rightmost first
+    
+    if (numericColumns.length > 0) {
+      const rightmost = numericColumns[0];
+      boundaries[rightmost.index] = { 
+        ...boundaries[rightmost.index], 
+        inferredType: 'balance', 
+        confidence: 0.85 
+      };
+      console.log(`[PostProcess] Assigned rightmost numeric column ${rightmost.index} as BALANCE`);
+      hasBalance = true;
+    } else {
+      // Fallback: assign rightmost column as balance
+      const last = boundaries.length - 1;
+      boundaries[last] = { ...boundaries[last], inferredType: 'balance', confidence: 0.5 };
+      hasBalance = true;
+    }
   }
 
   if (!hasDescription && boundaries.length > 2) {
@@ -777,10 +836,14 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[], lines: PdfLine[]):
       }
     });
     if (widestIdx >= 0) {
-      boundaries[widestIdx] = { ...boundaries[widestIdx], inferredType: 'description', confidence: 0.4 };
+      boundaries[widestIdx] = { ...boundaries[widestIdx], inferredType: 'description', confidence: 0.6 };
+      console.log(`[PostProcess] Assigned widest column ${widestIdx} as DESCRIPTION`);
       hasDescription = true;
     }
   }
+  
+  // NEW: Prevent duplicate debit/credit columns
+  ensureUniqueAmountColumns(boundaries);
 
   // NEW: Handle merged amount column - no need to assign debit/credit separately
   // The dynamicRowProcessor will split based on CR/DR suffixes
@@ -859,6 +922,40 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[], lines: PdfLine[]):
   }
 
   return boundaries;
+}
+
+/**
+ * Ensure only one debit and one credit column exists
+ * Prevents duplicate amount columns that cause confusion
+ */
+function ensureUniqueAmountColumns(boundaries: ColumnBoundary[]): void {
+  const debits = boundaries
+    .map((b, i) => ({ boundary: b, index: i }))
+    .filter(({ boundary }) => boundary.inferredType === 'debit');
+  
+  const credits = boundaries
+    .map((b, i) => ({ boundary: b, index: i }))
+    .filter(({ boundary }) => boundary.inferredType === 'credit');
+  
+  // If multiple debits, keep leftmost as debit, mark others as unknown
+  if (debits.length > 1) {
+    debits.sort((a, b) => a.boundary.centerX - b.boundary.centerX);
+    for (let i = 1; i < debits.length; i++) {
+      boundaries[debits[i].index].inferredType = 'unknown';
+      boundaries[debits[i].index].confidence = 0.3;
+      console.log(`[PostProcess] Removed duplicate debit at x=${debits[i].boundary.centerX.toFixed(0)}`);
+    }
+  }
+  
+  // If multiple credits, keep rightmost (before balance) as credit
+  if (credits.length > 1) {
+    credits.sort((a, b) => b.boundary.centerX - a.boundary.centerX);
+    for (let i = 1; i < credits.length; i++) {
+      boundaries[credits[i].index].inferredType = 'unknown';
+      boundaries[credits[i].index].confidence = 0.3;
+      console.log(`[PostProcess] Removed duplicate credit at x=${credits[i].boundary.centerX.toFixed(0)}`);
+    }
+  }
 }
 
 // =============================================================================
@@ -1302,8 +1399,12 @@ export function detectAndExtractTables(
 }
 
 /**
- * Calculate weighted confidence score based on column importance
- * and bonus for having all required columns
+ * Calculate weighted confidence score based on required columns presence
+ * NEW: Uses component-based scoring for 100% target
+ * - 50% from required columns presence
+ * - 30% from column confidence average
+ * - 15% from row extraction success
+ * - 5% bonus for all required found
  */
 function calculateWeightedConfidence(
   boundaries: ColumnBoundary[],
@@ -1312,6 +1413,24 @@ function calculateWeightedConfidence(
 ): number {
   if (boundaries.length === 0) return 0;
   
+  // Check for required columns
+  const hasDate = boundaries.some(b => b.inferredType === 'date');
+  const hasBalance = boundaries.some(b => b.inferredType === 'balance');
+  const hasDescription = boundaries.some(b => b.inferredType === 'description');
+  const hasAmountColumn = boundaries.some(b => 
+    b.inferredType === 'debit' || b.inferredType === 'credit' || b.inferredType === 'amount'
+  );
+  
+  // Component 1: Required columns presence (50% of score)
+  let requiredScore = 0;
+  if (hasDate) requiredScore += 0.15;
+  if (hasBalance) requiredScore += 0.15;
+  if (hasDescription) requiredScore += 0.10;
+  if (hasAmountColumn) requiredScore += 0.10;
+  
+  console.log(`[Confidence] Required columns: date=${hasDate}, balance=${hasBalance}, desc=${hasDescription}, amount=${hasAmountColumn} (${(requiredScore * 100).toFixed(0)}%)`);
+  
+  // Component 2: Column confidence weighted average (30% of score)
   const weights: Record<string, number> = {
     date: 1.5,
     balance: 1.5,
@@ -1334,36 +1453,31 @@ function calculateWeightedConfidence(
     totalWeight += weight;
   }
   
-  let baseConfidence = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  const avgConfidence = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  const confidenceScore = avgConfidence * 0.30;
   
-  // Check for required columns
-  const hasDate = boundaries.some(b => b.inferredType === 'date');
-  const hasBalance = boundaries.some(b => b.inferredType === 'balance');
-  const hasDescription = boundaries.some(b => b.inferredType === 'description');
-  const hasAmountColumn = boundaries.some(b => 
-    b.inferredType === 'debit' || b.inferredType === 'credit' || b.inferredType === 'amount'
-  );
+  // Component 3: Row extraction bonus (15% of score)
+  let rowScore = 0;
+  if (rowCount > 0) rowScore += 0.10;
+  if (rowCount > 10) rowScore += 0.05;
   
-  // Bonus for having all required columns
+  // Component 4: All required found bonus (5%)
   const hasAllRequired = hasDate && hasBalance && hasDescription && hasAmountColumn;
-  if (hasAllRequired) {
-    baseConfidence += 0.15;
-    console.log('[Confidence] All required columns found (+15% bonus)');
-  }
+  const allRequiredBonus = hasAllRequired ? 0.05 : 0;
   
-  // Bonus for having rows extracted
-  if (rowCount >= 3) {
-    baseConfidence += 0.05;
-  }
+  // Calculate total
+  const totalScore = requiredScore + confidenceScore + rowScore + allRequiredBonus;
   
-  // Small penalty for excessive fragmentation (but less severe now with merging)
+  // Small penalty for excessive fragmentation
+  let penalty = 0;
   if (tableCount > 5) {
-    baseConfidence -= 0.02;
-    console.log(`[Confidence] Table fragmentation penalty: ${tableCount} tables (-2%)`);
+    penalty = 0.02;
   }
   
-  const finalConfidence = Math.min(Math.max(baseConfidence, 0), 1);
-  console.log(`[Confidence] Weighted calculation: ${(finalConfidence * 100).toFixed(0)}%`);
+  const finalConfidence = Math.min(Math.max(totalScore - penalty, 0), 1);
+  
+  console.log(`[Confidence] Components: required=${(requiredScore * 100).toFixed(0)}%, avgConf=${(confidenceScore * 100).toFixed(0)}%, rows=${(rowScore * 100).toFixed(0)}%, bonus=${(allRequiredBonus * 100).toFixed(0)}%, penalty=${(penalty * 100).toFixed(0)}%`);
+  console.log(`[Confidence] Final score: ${(finalConfidence * 100).toFixed(0)}%`);
   
   return finalConfidence;
 }
