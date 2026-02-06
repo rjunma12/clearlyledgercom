@@ -108,12 +108,14 @@ export async function generateSimpleExcel(options: SimpleExcelOptions): Promise<
   sheet.getColumn(1).width = 18;
   sheet.getColumn(2).width = 50;
   
-  // Add account details
+  // Add account details (with Opening/Closing Balance)
   const headerData = [
     ['Bank Name', accountInfo.bankName || 'Unknown Bank'],
     ['Account Holder', accountInfo.accountHolder || ''],
     ['Account Number', accountInfo.accountNumber || ''],
     ['Statement Period', accountInfo.statementPeriod || ''],
+    ['Opening Balance', accountInfo.openingBalance || ''],
+    ['Closing Balance', accountInfo.closingBalance || ''],
   ];
   
   headerData.forEach((row, index) => {
