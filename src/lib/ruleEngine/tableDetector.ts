@@ -1285,16 +1285,85 @@ export function detectAndExtractTables(
     console.log('[TableDetector] Detected merged debit/credit column with DR/CR suffixes in rows');
   }
 
-  // Calculate overall confidence
-  const avgConfidence = reconciledBoundaries.length > 0
-    ? reconciledBoundaries.reduce((sum, b) => sum + b.confidence, 0) / reconciledBoundaries.length
-    : 0;
+  // Calculate overall confidence using weighted scoring
+  const confidence = calculateWeightedConfidence(
+    reconciledBoundaries, 
+    tables.length,
+    allRows.length
+  );
 
   return {
     tables,
     allRows,
     columnBoundaries: reconciledBoundaries,
-    confidence: avgConfidence,
+    confidence,
     perTableMetrics,
   };
+}
+
+/**
+ * Calculate weighted confidence score based on column importance
+ * and bonus for having all required columns
+ */
+function calculateWeightedConfidence(
+  boundaries: ColumnBoundary[],
+  tableCount: number,
+  rowCount: number
+): number {
+  if (boundaries.length === 0) return 0;
+  
+  const weights: Record<string, number> = {
+    date: 1.5,
+    balance: 1.5,
+    description: 1.2,
+    debit: 1.0,
+    credit: 1.0,
+    amount: 1.0,
+    reference: 0.5,
+    value_date: 0.5,
+    unknown: 0.3,
+  };
+  
+  let weightedSum = 0;
+  let totalWeight = 0;
+  
+  for (const b of boundaries) {
+    const type = b.inferredType || 'unknown';
+    const weight = weights[type] || 0.5;
+    weightedSum += b.confidence * weight;
+    totalWeight += weight;
+  }
+  
+  let baseConfidence = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  
+  // Check for required columns
+  const hasDate = boundaries.some(b => b.inferredType === 'date');
+  const hasBalance = boundaries.some(b => b.inferredType === 'balance');
+  const hasDescription = boundaries.some(b => b.inferredType === 'description');
+  const hasAmountColumn = boundaries.some(b => 
+    b.inferredType === 'debit' || b.inferredType === 'credit' || b.inferredType === 'amount'
+  );
+  
+  // Bonus for having all required columns
+  const hasAllRequired = hasDate && hasBalance && hasDescription && hasAmountColumn;
+  if (hasAllRequired) {
+    baseConfidence += 0.15;
+    console.log('[Confidence] All required columns found (+15% bonus)');
+  }
+  
+  // Bonus for having rows extracted
+  if (rowCount >= 3) {
+    baseConfidence += 0.05;
+  }
+  
+  // Small penalty for excessive fragmentation (but less severe now with merging)
+  if (tableCount > 5) {
+    baseConfidence -= 0.02;
+    console.log(`[Confidence] Table fragmentation penalty: ${tableCount} tables (-2%)`);
+  }
+  
+  const finalConfidence = Math.min(Math.max(baseConfidence, 0), 1);
+  console.log(`[Confidence] Weighted calculation: ${(finalConfidence * 100).toFixed(0)}%`);
+  
+  return finalConfidence;
 }

@@ -314,10 +314,16 @@ export default function TestConversion() {
               <CardTitle className="flex items-center justify-between">
                 <span>✓ Quality Analysis</span>
                 <div className="flex gap-2">
-                  {result && transactions.length > 0 && (
-                    <Button variant="default" size="sm" onClick={handleDownloadExcel} className="gap-2">
+                  {result && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={handleDownloadExcel} 
+                      className="gap-2"
+                      disabled={transactions.length === 0}
+                    >
                       <FileSpreadsheet className="w-4 h-4" />
-                      Download Excel
+                      Download Excel {transactions.length > 0 ? `(${transactions.length})` : '(No Data)'}
                     </Button>
                   )}
                   {result && (

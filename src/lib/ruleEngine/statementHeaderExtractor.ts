@@ -471,6 +471,45 @@ export function extractStatementHeader(
 }
 
 /**
+ * Detect bank name from text content using known bank patterns
+ */
+function detectBankNameFromText(lines: string[]): string | undefined {
+  const allText = lines.slice(0, 50).join(' '); // Search first 50 lines
+  
+  for (const { pattern, name } of KNOWN_BANKS) {
+    if (pattern.test(allText)) {
+      console.log(`[StatementHeaderExtractor] Detected bank name from text: ${name}`);
+      return name;
+    }
+  }
+  
+  return undefined;
+}
+
+/**
+ * Infer currency from regional identifiers
+ */
+function inferCurrencyFromRegion(header: ExtractedStatementHeader): string | undefined {
+  if (header.ifscCode) {
+    console.log('[StatementHeaderExtractor] Inferred currency INR from IFSC code');
+    return 'INR';
+  }
+  if (header.bsbNumber) {
+    console.log('[StatementHeaderExtractor] Inferred currency AUD from BSB number');
+    return 'AUD';
+  }
+  if (header.sortCode) {
+    console.log('[StatementHeaderExtractor] Inferred currency GBP from Sort Code');
+    return 'GBP';
+  }
+  if (header.routingNumber) {
+    console.log('[StatementHeaderExtractor] Inferred currency USD from Routing Number');
+    return 'USD';
+  }
+  return undefined;
+}
+
+/**
  * Extracts statement header from raw text content
  * Alternative entry point for when line objects aren't available
  */
