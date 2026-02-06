@@ -774,15 +774,34 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
         console.log(`[PostProcess] Promoted column ${candidateColumns[1].index} to DEBIT`);
       }
       
-      // If only 1 unknown column, assign as debit (more common for single amount column)
+      // If only 1 unknown column, check if it's a merged amount column with CR/DR suffixes
       if (candidateColumns.length === 1 && !hasDebit && hasCredit) {
-        // Already assigned as credit above, reassign as debit
-        boundaries[candidateColumns[0].index] = {
-          ...boundaries[candidateColumns[0].index],
-          inferredType: 'debit',
-          confidence: 0.5,
-        };
-        console.log(`[PostProcess] Reassigned column ${candidateColumns[0].index} to DEBIT (single column)`);
+        const colIdx = candidateColumns[0].index;
+        const colBoundary = boundaries[colIdx];
+        
+        // Check column content for mixed CR/DR suffixes
+        const hasMixedSuffixes = checkForMergedColumnSuffixes(
+          lines.slice(0, Math.min(50, lines.length)), // Sample first 50 lines
+          colBoundary
+        );
+        
+        if (hasMixedSuffixes) {
+          // Keep as merged amount column - will be split in row processor
+          boundaries[colIdx] = {
+            ...colBoundary,
+            inferredType: 'amount',
+            confidence: 0.7,
+          };
+          console.log(`[PostProcess] Column ${colIdx} is merged amount (CR/DR suffixes detected)`);
+        } else {
+          // Actually a single debit column
+          boundaries[colIdx] = {
+            ...colBoundary,
+            inferredType: 'debit',
+            confidence: 0.5,
+          };
+          console.log(`[PostProcess] Reassigned column ${colIdx} to DEBIT (single column, no CR/DR suffixes)`);
+        }
       }
     }
   }
