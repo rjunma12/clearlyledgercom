@@ -1018,10 +1018,17 @@ export function extractRowsFromTable(
       rawLine: line,
     };
 
-    // Extract text for each column using STRICT boundary matching
+    // HYBRID EXTRACTION: strict for text columns, flexible for numeric columns
+    // Numeric columns get ±8px padding to catch near-edge values
+    const NUMERIC_PADDING = 8;
+    const numericTypes: (ColumnType | null)[] = ['debit', 'credit', 'balance', 'amount'];
+    
     for (const boundary of boundaries) {
-      // Use strict mode to prevent cascade on sparse rows
-      const wordsInColumn = line.words.filter(w => isWordInColumn(w, boundary, true));
+      const isNumericColumn = numericTypes.includes(boundary.inferredType);
+      const padding = isNumericColumn ? NUMERIC_PADDING : 0;
+      
+      // Use strict mode with optional padding for numeric columns
+      const wordsInColumn = line.words.filter(w => isWordInColumn(w, boundary, true, padding));
       const text = wordsInColumn.map(w => w.text).join(' ').trim();
 
       if (text && boundary.inferredType) {

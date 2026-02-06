@@ -139,16 +139,16 @@ export async function generateSimpleExcel(options: SimpleExcelOptions): Promise<
   });
   
   // ==========================================================================
-  // SECTION 2: Empty Row (Row 6)
+  // SECTION 2: Empty Row (Row 8)
   // ==========================================================================
   
-  // Leave row 6 empty as separator
+  // Leave row 8 empty as separator (after 6 header rows)
   
   // ==========================================================================
-  // SECTION 3: Transaction Table Header (Row 7)
+  // SECTION 3: Transaction Table Header (Row 9)
   // ==========================================================================
   
-  const tableStartRow = 7;
+  const tableStartRow = 9;
   
   // Set column widths for transaction table
   TRANSACTION_COLUMNS.forEach((col, index) => {

@@ -432,10 +432,85 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
 }
 
 function finalizeStitchedTransaction(tx: StitchedTransaction): StitchedTransaction {
+  // NEW: Merge amounts from numeric continuation rows into primary transaction
+  let finalDebit = tx.effectiveDebit;
+  let finalCredit = tx.effectiveCredit;
+  let finalBalance = tx.primaryRow.balance;
+  
+  for (const numRow of tx.numericContinuationRows) {
+    // Fill missing debit
+    if (!finalDebit && numRow.debit) {
+      finalDebit = numRow.debit;
+    }
+    // Fill missing credit  
+    if (!finalCredit && numRow.credit) {
+      finalCredit = numRow.credit;
+    }
+    // Fill missing balance (prefer last one)
+    if (numRow.balance) {
+      finalBalance = numRow.balance;
+    }
+    // Handle merged amount column
+    if (numRow.amount && !finalDebit && !finalCredit) {
+      const { debit, credit } = splitMergedAmount(numRow.amount);
+      if (debit) finalDebit = debit;
+      if (credit) finalCredit = credit;
+    }
+  }
+  
+  // Track if we still have missing amounts
+  if (!finalDebit && !finalCredit) {
+    _missingAmountCount++;
+  }
+  
   return {
     ...tx,
     fullDescription: cleanDescription(tx.fullDescription),
+    effectiveDebit: finalDebit,
+    effectiveCredit: finalCredit,
+    primaryRow: {
+      ...tx.primaryRow,
+      balance: finalBalance || tx.primaryRow.balance,
+    },
   };
+}
+
+// Helper for finalize (also used in splitMergedAmount)
+const DEBIT_SUFFIX_FINALIZE = /([\d,.\s]+)\s*[(\[]?\s*(dr|debit|d)\s*[)\]]?\s*$/i;
+const CREDIT_SUFFIX_FINALIZE = /([\d,.\s]+)\s*[(\[]?\s*(cr|credit|c)\s*[)\]]?\s*$/i;
+
+function splitMergedAmount(amountText: string): { debit: string | null; credit: string | null; wasClassified: boolean } {
+  if (!amountText) return { debit: null, credit: null, wasClassified: false };
+  
+  const trimmed = amountText.trim();
+  
+  // Check for DR/Debit suffix
+  const debitMatch = trimmed.match(DEBIT_SUFFIX_FINALIZE);
+  if (debitMatch) {
+    return { debit: debitMatch[1].trim(), credit: null, wasClassified: true };
+  }
+  
+  // Check for CR/Credit suffix
+  const creditMatch = trimmed.match(CREDIT_SUFFIX_FINALIZE);
+  if (creditMatch) {
+    return { debit: null, credit: creditMatch[1].trim(), wasClassified: true };
+  }
+  
+  // Check for negative prefix (common in some banks for debit)
+  const negativeMatch = trimmed.match(/^\s*-\s*([\d,.]+)\s*$/);
+  if (negativeMatch) {
+    return { debit: negativeMatch[1].trim(), credit: null, wasClassified: true };
+  }
+  
+  // Check for explicit positive prefix (less common, but indicates credit)
+  if (trimmed.startsWith('+')) {
+    const positiveMatch = trimmed.match(/^\s*\+\s*([\d,.]+)\s*$/);
+    if (positiveMatch) {
+      return { debit: null, credit: positiveMatch[1].trim(), wasClassified: true };
+    }
+  }
+  
+  return { debit: null, credit: null, wasClassified: false };
 }
 
 /**
