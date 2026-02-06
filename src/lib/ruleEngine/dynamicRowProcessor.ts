@@ -303,27 +303,24 @@ function cleanDescription(description: string): string {
 
 /**
  * Convert stitched transactions to RawTransaction format for downstream processing
- * Handles merged amount columns by splitting based on CR/DR suffixes
+ * Handles merged amount columns by using pre-split effective values
  * Extracts reference numbers (UTR, NEFT, cheque, etc.) to separate field
  */
 export function convertToRawTransactions(
   stitchedTransactions: StitchedTransaction[]
 ): RawTransaction[] {
-  return stitchedTransactions.map((tx, index) => {
+  let splitCount = 0;
+  
+  const result = stitchedTransactions.map((tx, index) => {
     const row = tx.primaryRow;
     
-    // Handle merged amount column
-    let effectiveDebit = row.debit;
-    let effectiveCredit = row.credit;
+    // Use pre-computed effective debit/credit from classification
+    const effectiveDebit = tx.effectiveDebit ?? row.debit;
+    const effectiveCredit = tx.effectiveCredit ?? row.credit;
     
-    if (row.amount && !row.debit && !row.credit) {
-      const { debit, credit } = splitMergedAmount(row.amount);
-      effectiveDebit = debit;
-      effectiveCredit = credit;
-      
-      if (debit || credit) {
-        console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${debit}, credit: ${credit}`);
-      }
+    if (tx.wasAmountSplit) {
+      splitCount++;
+      console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${effectiveDebit}, credit: ${effectiveCredit}`);
     }
     
     // Extract reference from description
@@ -366,6 +363,12 @@ export function convertToRawTransactions(
       referenceType: referenceType || undefined,
     };
   });
+
+  if (splitCount > 0) {
+    console.log(`[DynamicRowProcessor] Split ${splitCount} merged amount values into debit/credit`);
+  }
+
+  return result;
 }
 
 // =============================================================================
