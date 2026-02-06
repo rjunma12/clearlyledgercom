@@ -176,6 +176,7 @@ export const ALL_SKIP_PATTERNS: RegExp[] = [
   ...SECTION_HEADER_PATTERNS,
   ...INSTRUCTION_PATTERNS,
   ...NOISE_PATTERNS,
+  ...ADDRESS_PATTERNS,
 ];
 
 // =============================================================================
