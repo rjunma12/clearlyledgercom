@@ -189,7 +189,7 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
     
     // Check for section header - always creates a new table region
     if (isTableSectionHeader(line)) {
-      if (consistentColumnCount >= 3) {
+      if (consistentColumnCount >= 2) {
         tables.push(createTableRegion(lines, tableStartIndex, i - 1));
       }
       tableStartIndex = -1;
@@ -203,7 +203,7 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
       const verticalGap = line.top - prevLineBottom;
       if (verticalGap > VERTICAL_GAP_THRESHOLD) {
         // This is a table break
-        if (consistentColumnCount >= 3) {
+        if (consistentColumnCount >= 2) {
           tables.push(createTableRegion(lines, tableStartIndex, i - 1));
           console.log(`[TableDetector] Table break detected at line ${i} (gap: ${verticalGap.toFixed(0)}px)`);
         }
@@ -212,8 +212,8 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
       }
     }
 
-    // A table row typically has 3+ columns
-    if (wordCount >= 3) {
+    // RELAXED: A table row needs only 2+ words (was 3+)
+    if (wordCount >= 2) {
       if (tableStartIndex === -1) {
         // Start potential table region
         tableStartIndex = i;
@@ -223,17 +223,17 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
         consistentColumnCount++;
       } else {
         // Structure broke - check if we had a valid table
-        if (consistentColumnCount >= 3) {
+        if (consistentColumnCount >= 2) {
           tables.push(createTableRegion(lines, tableStartIndex, i - 1));
         }
         // Reset and check if current line starts new table
-        tableStartIndex = wordCount >= 3 ? i : -1;
+        tableStartIndex = wordCount >= 2 ? i : -1;
         consistentColumnCount = 1;
         prevWordCount = wordCount;
       }
     } else {
-      // Less than 3 words - end current table if exists
-      if (consistentColumnCount >= 3) {
+      // Less than 2 words - end current table if exists
+      if (consistentColumnCount >= 2) {
         tables.push(createTableRegion(lines, tableStartIndex, i - 1));
       }
       tableStartIndex = -1;
