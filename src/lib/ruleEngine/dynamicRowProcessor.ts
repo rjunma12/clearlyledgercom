@@ -183,15 +183,26 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
   // Check for skip patterns (headers/footers)
   const isSkip = SKIP_PATTERNS.some(p => p.test(fullText));
 
-  // Check if it's a valid transaction (has date and at least one amount)
+  // Check if it's a valid transaction
+  // RELAXED: Allow transactions even if date is misclassified, as long as we have amount + balance
   const hasValidDate = row.date !== null && 
     DATE_VALIDATION_PATTERNS.some(p => p.test(row.date!));
-  const hasAmount = effectiveDebit !== null || effectiveCredit !== null || row.balance !== null || row.amount !== null;
-  const isTransaction = hasValidDate && hasAmount && !isSkip;
+  const hasBalance = row.balance !== null;
+  const hasAmount = effectiveDebit !== null || effectiveCredit !== null || row.amount !== null;
+  
+  // A row is a transaction if it has:
+  // 1. Valid date + any amount/balance, OR
+  // 2. Balance + any amount (even without validated date)
+  // 3. Has valid date and balance (even without explicit debit/credit)
+  const isTransaction = (
+    (hasValidDate && (hasAmount || hasBalance)) || 
+    (hasBalance && hasAmount) ||
+    (hasValidDate && hasBalance)
+  ) && !isSkip;
 
-  // Continuation row: has description but no date or amounts
+  // Continuation row: has description but no date AND no balance AND no amounts
   const hasDescription = row.description !== null && row.description.trim().length > 2;
-  const isContinuation = hasDescription && !hasValidDate && !hasAmount && !isSkip;
+  const isContinuation = hasDescription && !hasValidDate && !hasBalance && !hasAmount && !isSkip;
 
   return {
     isTransaction,

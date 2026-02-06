@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { processPDF } from '@/lib/pdfProcessor';
-import type { ProcessingResult, StatementMetadata, ValidationSummary, StandardizedTransaction } from '@/lib/ruleEngine/types';
+import type { ProcessingResult } from '@/lib/ruleEngine/types';
 import type { TableMetrics, ColumnBoundary } from '@/lib/ruleEngine/tableDetector';
-import { Loader2, Download, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { Loader2, Download, FileSpreadsheet } from 'lucide-react';
 import { TableMetricsPanel } from '@/components/test/TableMetricsPanel';
 import { TransactionSummaryPanel } from '@/components/test/TransactionSummaryPanel';
 import { ColumnVisualization } from '@/components/test/ColumnVisualization';
 import { RawTransactionTable } from '@/components/test/RawTransactionTable';
 import { ColumnConflictsPanel } from '@/components/test/ColumnConflictsPanel';
-import { generateStandardizedExcel } from '@/lib/excelGenerator';
+import { generateSimpleExcel } from '@/lib/simpleExcelGenerator';
+import { toast } from 'sonner';
 
 interface ExtendedResult extends ProcessingResult {
   perTableMetrics?: TableMetrics[];
@@ -137,69 +138,41 @@ export default function TestConversion() {
   const handleDownloadExcel = async () => {
     if (!result) return;
 
+    // Validate we have transaction data
+    if (transactions.length === 0) {
+      console.error('No transactions to export');
+      toast.error('No transactions found in document');
+      return;
+    }
+
     try {
-      // Determine confidence level
-      const confScore = qualityMetrics?.confidence || 0;
-      const confidenceLevel: 'High' | 'Medium' | 'Low' = 
-        confScore >= 0.9 ? 'High' : confScore >= 0.7 ? 'Medium' : 'Low';
-
-      // Determine PDF type
-      const pdfType: 'Text' | 'Scanned' = 
-        qualityMetrics?.pdfType === 'SCANNED' ? 'Scanned' : 'Text';
-
-      // Extract header data from the correct path
+      // Extract header data
       const extractedHeader = (result.document as any)?.extractedHeader;
-      const detectedCurrency = extractedHeader?.currency || 'USD';
 
-      // Build StatementMetadata from extractedHeader (correct path)
-      const metadata: StatementMetadata = {
+      // Build simplified account info
+      const accountInfo = {
         bankName: extractedHeader?.bankName || 'Unknown Bank',
         accountHolder: extractedHeader?.accountHolder || '',
-        accountNumberMasked: extractedHeader?.accountNumberMasked || '',
-        statementPeriodFrom: extractedHeader?.statementPeriodFrom || '',
-        statementPeriodTo: extractedHeader?.statementPeriodTo || '',
-        openingBalance: result.document?.segments?.[0]?.openingBalance,
-        closingBalance: result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
-        currency: detectedCurrency,
-        pagesProcessed: qualityMetrics?.totalPages || 0,
-        pdfType,
-        ocrUsed: qualityMetrics?.hasScannedPages || false,
-        conversionTimestamp: new Date().toISOString(),
-        conversionConfidence: confidenceLevel,
+        accountNumber: extractedHeader?.accountNumberMasked || '',
+        statementPeriod: [
+          extractedHeader?.statementPeriodFrom,
+          extractedHeader?.statementPeriodTo
+        ].filter(Boolean).join(' to ') || '',
       };
 
-      // Build ValidationSummary
-      const validationSummary: ValidationSummary = {
-        openingBalanceFound: !!result.document?.segments?.[0]?.openingBalance,
-        closingBalanceFound: !!result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
-        balanceCheckPassed: result.document?.overallValidation === 'valid',
-        balanceDifference: undefined,
-        rowsExtracted: transactions.length,
-        rowsMerged: 0,
-        autoRepairApplied: false,
-        warnings: result.warnings || [],
-        averageConfidence: qualityMetrics?.confidence ? Math.round(qualityMetrics.confidence * 100) : undefined,
-        gradeDistribution: calculateGradeDistribution(transactions),
-        lowConfidenceCount: transactions.filter(t => (t as any).confidenceScore < 50).length,
-      };
-
-      // Convert transactions to StandardizedTransaction format
-      const standardizedTransactions: StandardizedTransaction[] = transactions.map(tx => ({
+      // Convert to simple transaction format (only 5 fields)
+      const simpleTransactions = transactions.map(tx => ({
         date: tx.date || '',
         description: tx.description || '',
         debit: tx.debit != null ? String(tx.debit) : '',
         credit: tx.credit != null ? String(tx.credit) : '',
         balance: tx.balance != null ? String(tx.balance) : '',
-        currency: detectedCurrency,
-        reference: tx.reference || '',
-        validationStatus: tx.validationStatus as 'valid' | 'warning' | 'error' | undefined,
       }));
 
-      // Generate Excel
-      const buffer = await generateStandardizedExcel({
-        transactions: standardizedTransactions,
-        metadata,
-        validationSummary,
+      // Generate simplified Excel
+      const buffer = await generateSimpleExcel({
+        accountInfo,
+        transactions: simpleTransactions,
         filename: file?.name?.replace('.pdf', '.xlsx') || 'export.xlsx',
       });
 
@@ -213,24 +186,13 @@ export default function TestConversion() {
       a.download = file?.name?.replace('.pdf', '.xlsx') || 'export.xlsx';
       a.click();
       URL.revokeObjectURL(url);
+      
+      toast.success(`Exported ${transactions.length} transactions`);
     } catch (error) {
       console.error('Error generating Excel:', error);
+      toast.error('Failed to generate Excel file');
     }
   };
-
-  function calculateGradeDistribution(txs: typeof transactions): string {
-    const grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-    for (const tx of txs) {
-      const grade = (tx as any).grade;
-      if (grade && grades.hasOwnProperty(grade)) {
-        grades[grade as keyof typeof grades]++;
-      }
-    }
-    return Object.entries(grades)
-      .filter(([_, count]) => count > 0)
-      .map(([grade, count]) => `${grade}:${count}`)
-      .join(', ') || 'N/A';
-  }
 
   // Get transactions for summary - improved extraction logic
   const transactions = (() => {
