@@ -1,213 +1,190 @@
 
-# Fix: Complete Transaction Extraction from PDF
 
-## Problem Analysis
+# Fix: Missing Account Holder Name & Address/Non-Transaction Content Being Included
 
-Based on debug logs showing **42 transactions exported** while the PDF contains more:
+## Problem Summary
 
-| Stage | Issue |
-|-------|-------|
-| **Table Detection** | Lines with < 3 words are excluded from tables |
-| **Table Merging** | Tables with inconsistent word counts are fragmented |
-| **Structure Check** | ±3 word variance may still exclude valid rows |
-| **Row Extraction** | Only lines inside detected table regions are processed |
+Based on my analysis:
 
-### Root Cause: Lines Outside Tables Are Lost
+### Issue 1: Account Holder Name Missing in Excel
+The `extractStatementHeader` function searches the first 30 lines but may not find the account holder because:
+- The pattern matching is too restrictive
+- The account holder line may be in a different format than expected
+- Need to expand search area and add more fallback patterns
 
-The current flow:
-```
-PDF Lines → detectTableRegions() → only 3+ word lines → tables → extractRowsFromTable()
-                ↑
-        Lines with 1-2 words LOST
-```
+### Issue 2: 198 Error Transactions (Balance Validation Failures)
+The "error transactions" are rows that fail the balance equation check:
+`balance[n-1] + credit[n] - debit[n] = balance[n]`
 
-When a bank statement has transactions with wrapped descriptions across multiple lines:
-- Line 1: "01/04/2025" (1 word) - LOST
-- Line 2: "UPI/PAYMENT" (1 word) - LOST  
-- Line 3: "5000.00 45000.00" (2 words) - LOST
+This happens because:
+- Non-transaction content (address, disclaimers, footers) is being captured as transactions
+- These rows don't have valid amounts but are included in the transaction list
+- They break the balance chain, causing cascading validation errors
 
-These lines don't reach 3 words and are excluded from table detection entirely.
+### Issue 3: Address/Disclaimer Content After Transactions
+The PDF likely has content at the end (bank address, terms, disclaimers) that passes the relaxed row filters because:
+- They may have date-like numbers or numeric content
+- No specific patterns exist to filter out address-like content
 
 ---
 
-## Solution Plan
+## Implementation Plan
 
-### Phase 1: Lower Minimum Words Threshold for Table Lines
+### Phase 1: Add Address/Disclaimer Skip Patterns
 
-**File: `src/lib/ruleEngine/tableDetector.ts`**
+**File: `src/lib/ruleEngine/skipPatterns.ts`**
 
-Change the minimum words requirement from 3 to 2:
-
-**Location**: `detectTableRegions()` function (line ~216)
+Add new patterns to detect and skip non-transaction content:
 
 ```typescript
-// CURRENT (line 216)
-if (wordCount >= 3) {
-
-// FIXED
-if (wordCount >= 2) {
+/** Address and disclaimer patterns */
+export const ADDRESS_PATTERNS: RegExp[] = [
+  /\b(toll\s*free|helpline|customer\s*care)\b/i,
+  /\b(phone|tel|fax|email)\s*[:.]?\s*[\d\-\(\)]+/i,
+  /\b(registered\s+)?office\s*:/i,
+  /\b(pin\s*code|postal\s*code|zip)\s*[:\-]?\s*\d+/i,
+  /\b(address|location)\s*:/i,
+  /\bwww\.\w+\.(com|in|org|net|co)/i,
+  /\b(city|state|district)\s*:/i,
+  /\bterms\s+(and|&)\s+conditions/i,
+  /\bdisclaimer\b/i,
+  /\b(head|corporate|main)\s+office/i,
+  /\bregd\.?\s*(office|address)/i,
+  /\bcin\s*[:.-]?\s*[A-Z0-9]+/i,  // Corporate ID Number
+  /\b(gstin|gst\s*no\.?)\s*[:.-]?\s*\w+/i,  // GST Number
+  /\bfor\s+(any|your)\s+(queries?|complaints?|assistance)/i,
+  /\bthis\s+is\s+an?\s+(electronic|computer|system)\s+generated/i,
+];
 ```
 
-Also update the consistency threshold (line 206/226):
-```typescript
-// CURRENT (line 226)
-if (consistentColumnCount >= 3) {
+### Phase 2: Improve Account Holder Extraction
 
-// FIXED - Allow smaller tables
-if (consistentColumnCount >= 2) {
-```
+**File: `src/lib/ruleEngine/statementHeaderExtractor.ts`**
 
-### Phase 2: Include All Lines in Fallback Processing
-
-**File: `src/lib/ruleEngine/tableDetector.ts`**
-
-When no tables are detected OR when we have lines outside detected tables, include them in a fallback table:
-
-**Location**: `detectAndExtractTables()` function (line ~1313-1326)
+1. Increase search area from 30 to 50 lines
+2. Add more flexible patterns for Indian banks:
 
 ```typescript
-// CURRENT: Only creates fallback if tables.length === 0
-
-// FIXED: Also capture orphan lines (lines not in any table)
-const tableLineCoverage = new Set<number>();
-for (const table of tables) {
-  table.dataLines.forEach((_, idx) => tableLineCoverage.add(idx));
-}
-
-// Find lines not covered by any table
-const orphanLines = lines.filter((_, idx) => !tableLineCoverage.has(idx));
-if (orphanLines.length > 0) {
-  console.log(`[TableDetector] Found ${orphanLines.length} orphan lines outside tables`);
-  // Add orphan lines to tables or process separately
-}
-```
-
-### Phase 3: Increase Structure Tolerance
-
-**File: `src/lib/ruleEngine/tableDetector.ts`**
-
-Make structure consistency check more lenient:
-
-**Location**: `isConsistentStructure()` function (line ~260)
-
-```typescript
-// CURRENT
-function isConsistentStructure(count1: number, count2: number): boolean {
-  return Math.abs(count1 - count2) <= 3;
-}
-
-// FIXED - More tolerant (±50% or ±4 words, whichever is larger)
-function isConsistentStructure(count1: number, count2: number): boolean {
-  const maxCount = Math.max(count1, count2);
-  const tolerance = Math.max(4, Math.floor(maxCount * 0.5));
-  return Math.abs(count1 - count2) <= tolerance;
-}
-```
-
-### Phase 4: Capture All Lines Regardless of Table Membership
-
-**File: `src/lib/ruleEngine/tableDetector.ts`**
-
-Add a "catch-all" mechanism to ensure no lines are lost:
-
-**Location**: After table extraction in `detectAndExtractTables()` (line ~1377)
-
-```typescript
-// After normal table extraction, add ALL remaining lines that weren't included
-const includedLineIndices = new Set<number>();
-for (const table of tables) {
-  for (let i = 0; i < table.dataLines.length; i++) {
-    // Track which lines were included
-    const lineTop = table.dataLines[i].top;
-    lines.forEach((l, idx) => {
-      if (Math.abs(l.top - lineTop) < 3) {
-        includedLineIndices.add(idx);
-      }
-    });
-  }
-}
-
-// Find missing lines
-const missingLines = lines.filter((_, idx) => !includedLineIndices.has(idx));
-if (missingLines.length > 0) {
-  console.log(`[TableDetector] Capturing ${missingLines.length} lines missed by table detection`);
+accountHolder: [
+  // EXISTING patterns...
   
-  // Create a supplementary table for these lines
-  const supplementaryTable: TableRegion = {
-    top: Math.min(...missingLines.map(l => l.top)),
-    bottom: Math.max(...missingLines.map(l => l.bottom)),
-    left: Math.min(...missingLines.map(l => l.left)),
-    right: Math.max(...missingLines.map(l => l.right)),
-    headerLine: null,
-    dataLines: missingLines,
-    columnBoundaries: reconciledBoundaries, // Use existing boundaries
-    pageNumbers: [...new Set(missingLines.map(l => l.pageNumber))],
-  };
+  // NEW: Line starting with customer name label
+  /(?:Name|Account\s*Name)\s*[:\-]+\s*(.+)/i,
   
-  const supplementaryRows = extractRowsFromTable(supplementaryTable, reconciledBoundaries);
-  allRows = allRows.concat(supplementaryRows);
-}
+  // NEW: Pattern for multi-part names (e.g., "DR DEEPIKAS HEALTHPLUS PVT LTD")
+  /Name\s*[:\-]+\s*([A-Z][A-Z\s]+(?:PVT|LTD|LIMITED|PRIVATE|COMPANY|CORP|INC)?[\.\s]*(?:PVT|LTD|LIMITED)?)/i,
+  
+  // NEW: Fallback - line containing all caps words after "Name"
+  /Name\s*[:\-]+\s*([A-Z]{2,}(?:\s+[A-Z]{2,})*)/i,
+]
 ```
 
-### Phase 5: Process All Rows Without Strict Classification
+3. Add fallback extraction: If no account holder found, scan for lines with company/person name patterns
+
+### Phase 3: Filter Non-Transaction Rows Before Export
 
 **File: `src/lib/ruleEngine/dynamicRowProcessor.ts`**
 
-Update `processExtractedRows()` to be more inclusive:
-
-**Location**: (line ~513-518)
+Update `classifyRow()` to check for skip patterns:
 
 ```typescript
-// CURRENT: Filter to only classified transactions
-const transactions = stitched.filter(t => 
-  t.classification.isTransaction && 
-  !t.classification.isOpeningBalance && 
-  !t.classification.isClosingBalance
-);
+export function classifyRow(row: ExtractedRow): RowClassification {
+  // ... existing code ...
+  
+  // NEW: Check if row contains address/disclaimer content
+  const isAddressContent = ADDRESS_PATTERNS.some(p => p.test(fullText));
+  if (isAddressContent) {
+    return {
+      isTransaction: false,
+      isContinuation: false,
+      isHeader: false,
+      isFooter: true,  // Mark as footer to skip
+      isOpeningBalance: false,
+      isClosingBalance: false,
+      recoveredDate: null,
+      // ... other fields
+    };
+  }
+  
+  // ... rest of existing logic
+}
+```
 
-// FIXED: Include ALL stitched rows except explicit opening/closing balance
-// Let the Excel generator filter truly empty rows
-const transactions = stitched.filter(t => 
-  !t.classification.isOpeningBalance && 
-  !t.classification.isClosingBalance
-);
+### Phase 4: Add Transaction Content Validation
+
+**File: `src/lib/simpleExcelGenerator.ts`**
+
+Add smarter filtering that checks for valid transaction content:
+
+```typescript
+// Enhanced filtering - skip rows that look like address/footer content
+const transactions = rawTransactions.filter(tx => {
+  // Skip completely empty rows
+  if (!tx.date && !tx.description && !tx.debit && !tx.credit && !tx.balance) {
+    return false;
+  }
+  
+  // Skip rows that look like address/disclaimer content
+  const descLower = (tx.description || '').toLowerCase();
+  const addressPatterns = [
+    /toll\s*free/i,
+    /customer\s*care/i,
+    /phone|tel|fax/i,
+    /office\s*:/i,
+    /www\./i,
+    /disclaimer/i,
+    /terms\s+and/i,
+    /regd\.?\s*office/i,
+    /cin\s*:/i,
+    /gstin/i,
+  ];
+  
+  if (addressPatterns.some(p => p.test(descLower))) {
+    console.log('[SimpleExcelGenerator] Skipping address/footer row:', tx.description?.substring(0, 50));
+    return false;
+  }
+  
+  return true;
+});
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Priority | Changes |
-|------|----------|---------|
-| `src/lib/ruleEngine/tableDetector.ts` | Critical | Lower word threshold, improve structure tolerance, capture missing lines |
-| `src/lib/ruleEngine/dynamicRowProcessor.ts` | High | Remove strict transaction filter |
+| File | Changes |
+|------|---------|
+| `src/lib/ruleEngine/skipPatterns.ts` | Add ADDRESS_PATTERNS array and `isAddressContent()` function |
+| `src/lib/ruleEngine/statementHeaderExtractor.ts` | Expand search area, add flexible name patterns |
+| `src/lib/ruleEngine/dynamicRowProcessor.ts` | Import and use address pattern checking in `classifyRow()` |
+| `src/lib/simpleExcelGenerator.ts` | Add address content filtering before Excel generation |
 
 ---
 
 ## Expected Results
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Lines processed | Only 3+ word lines | All 2+ word lines |
-| Orphan lines | Lost | Captured in supplementary table |
-| Structure tolerance | ±3 words | ±50% or ±4 words |
-| Classification filter | Strict | Inclusive (filter at output) |
-| Transaction count | 42 (partial) | Full PDF count |
+| Issue | Before | After |
+|-------|--------|-------|
+| Account Holder | Not extracted | Extracted from header area |
+| Address rows | Included as transactions | Filtered out as footer content |
+| Error count | 198 errors | Significantly reduced (only valid transaction balance errors) |
+| Excel output | Contains address/disclaimer rows | Clean transaction list only |
 
 ---
 
-## Technical Summary
+## Technical Details
 
-The core issue is **lines being excluded before they reach classification**:
+### Why Address Content Causes Balance Errors
 
-1. **Table Detection Threshold**: Lines with < 3 words don't form tables
-2. **Consistency Check**: Lines with different word counts break table continuity
-3. **Orphan Lines**: Lines outside detected tables are never processed
+When address content is treated as a transaction:
+1. It has no valid debit/credit/balance amounts (or garbage values)
+2. The balance chain is broken: `prev_balance + credit - debit ≠ current_balance`
+3. All subsequent transactions inherit the error, causing a cascade
 
-The fix ensures:
-1. Lower threshold (2 words) to include sparse lines
-2. More tolerant structure checking
-3. Catch-all mechanism for lines missed by table detection
-4. Inclusive final output (let Excel generator filter empties)
+### Account Holder Pattern Matching
 
-This should capture **all** transactions from the PDF regardless of formatting variations.
+The current patterns may miss the format in this PDF. Adding patterns like:
+- `Name :- DR DEEPIKAS HEALTHPLUS PVT LTD` (colon-dash separator)
+- `Name: COMPANY NAME PVT LTD` (with company suffixes)
+- Scanning for all-caps lines that look like business names
+
