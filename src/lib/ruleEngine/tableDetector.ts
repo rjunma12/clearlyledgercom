@@ -612,18 +612,28 @@ function analyzeColumn(lines: PdfLine[], boundary: ColumnBoundary): ColumnAnalys
 /**
  * Check if a word belongs to a column
  * @param strict - If true, word center MUST be within boundary (prevents cascade)
+ * @param numericPadding - Extra padding for numeric columns (±px tolerance)
  */
-function isWordInColumn(word: PdfWord, boundary: ColumnBoundary, strict: boolean = false): boolean {
+function isWordInColumn(
+  word: PdfWord, 
+  boundary: ColumnBoundary, 
+  strict: boolean = false,
+  numericPadding: number = 0
+): boolean {
   const wordCenter = (word.x0 + word.x1) / 2;
   
+  // Apply padding for numeric columns
+  const effectiveX0 = boundary.x0 - numericPadding;
+  const effectiveX1 = boundary.x1 + numericPadding;
+  
   if (strict) {
-    // Strict mode: word center MUST be within boundary
-    return wordCenter >= boundary.x0 && wordCenter <= boundary.x1;
+    // Strict mode: word center MUST be within (padded) boundary
+    return wordCenter >= effectiveX0 && wordCenter <= effectiveX1;
   }
   
   // Flexible mode: word center within bounds, or significant overlap
-  const overlap = Math.min(word.x1, boundary.x1) - Math.max(word.x0, boundary.x0);
-  return wordCenter >= boundary.x0 && wordCenter <= boundary.x1 ||
+  const overlap = Math.min(word.x1, effectiveX1) - Math.max(word.x0, effectiveX0);
+  return wordCenter >= effectiveX0 && wordCenter <= effectiveX1 ||
          overlap > word.width * 0.5;
 }
 
