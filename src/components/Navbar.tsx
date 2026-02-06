@@ -154,10 +154,6 @@ const Navbar = forwardRef<HTMLElement>((_, ref) => {
                <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                  {t('nav.security')}
                </Link>
-               <Link to="/test-conversion" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                 <TestTube className="w-4 h-4" />
-                 Test Conversion
-               </Link>
                <div className="flex flex-col gap-2 pt-4 border-t border-glass-border">
                 <LanguageSelector variant="full" className="justify-start w-full" />
                 <Button
