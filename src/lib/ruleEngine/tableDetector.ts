@@ -502,7 +502,7 @@ export function classifyColumns(
   });
 
   // Post-processing: ensure we have required columns
-  return postProcessColumnTypes(classifiedBoundaries);
+  return postProcessColumnTypes(classifiedBoundaries, lines);
 }
 
 function analyzeColumn(lines: PdfLine[], boundary: ColumnBoundary): ColumnAnalysis {
