@@ -18,6 +18,8 @@ export interface SimpleAccountInfo {
   accountHolder: string;
   accountNumber: string;
   statementPeriod: string;
+  openingBalance?: string;
+  closingBalance?: string;
 }
 
 export interface SimpleExcelOptions {
