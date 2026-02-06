@@ -14,6 +14,7 @@ import { loadPdfDocument, extractTextFromPage, renderPageToCanvas, analyzePdfTyp
 import { processImage, terminateWorker, getTesseractLanguages } from './ocrService';
 import { correctOCRElements } from './ruleEngine/ocrCorrection';
 import { processDocument } from './ruleEngine';
+import { extractStatementHeaderFromText } from './ruleEngine/statementHeaderExtractor';
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 
 // Maximum pages for client-side OCR (scanned PDFs only)
