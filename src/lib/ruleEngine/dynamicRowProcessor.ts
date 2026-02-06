@@ -154,15 +154,21 @@ function splitMergedAmount(amountText: string): { debit: string | null; credit: 
 /**
  * Classify a row to determine its type
  */
-export function classifyRow(row: ExtractedRow): RowClassification {
+export function classifyRow(row: ExtractedRow): RowClassification & { 
+  effectiveDebit: string | null; 
+  effectiveCredit: string | null;
+  wasAmountSplit: boolean;
+} {
   // Handle merged amount column by splitting into debit/credit
   let effectiveDebit = row.debit;
   let effectiveCredit = row.credit;
+  let wasAmountSplit = false;
   
   if (row.amount && !row.debit && !row.credit) {
-    const { debit, credit } = splitMergedAmount(row.amount);
+    const { debit, credit, wasClassified } = splitMergedAmount(row.amount);
     effectiveDebit = debit;
     effectiveCredit = credit;
+    wasAmountSplit = wasClassified;
   }
   
   const fullText = [row.date, row.description, effectiveDebit, effectiveCredit, row.balance]
@@ -194,6 +200,9 @@ export function classifyRow(row: ExtractedRow): RowClassification {
     isFooter: isSkip && !isOpeningBalance && !isClosingBalance,
     isOpeningBalance,
     isClosingBalance,
+    effectiveDebit,
+    effectiveCredit,
+    wasAmountSplit,
   };
 }
 

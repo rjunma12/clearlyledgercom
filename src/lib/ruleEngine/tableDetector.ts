@@ -887,6 +887,80 @@ export interface TableDetectionResult {
   allRows: ExtractedRow[];
   columnBoundaries: ColumnBoundary[];
   confidence: number;
+  perTableMetrics: TableMetrics[];  // NEW: Per-table diagnostics
+}
+
+export interface TableMetrics {
+  tableIndex: number;
+  pageNumbers: number[];
+  lineCount: number;
+  columns: ColumnBoundary[];
+  columnTypes: string[];
+  rowsExtracted: number;
+}
+
+/**
+ * Reconcile column mappings across tables to ensure consistency
+ * Uses the highest-confidence table as the reference and applies to others
+ */
+function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
+  if (tables.length === 0) return [];
+  if (tables.length === 1) return tables[0].columnBoundaries;
+  
+  // Find the table with highest average confidence
+  let bestTable = tables[0];
+  let bestConfidence = 0;
+  
+  for (const table of tables) {
+    const avgConf = table.columnBoundaries.reduce((s, b) => s + b.confidence, 0) / 
+                    Math.max(table.columnBoundaries.length, 1);
+    if (avgConf > bestConfidence && table.columnBoundaries.length >= 3) {
+      bestConfidence = avgConf;
+      bestTable = table;
+    }
+  }
+  
+  const referenceBoundaries = bestTable.columnBoundaries;
+  console.log(`[ColumnReconciliation] Using table with ${referenceBoundaries.length} columns as reference (confidence: ${bestConfidence.toFixed(2)})`);
+  
+  // Apply reference column types to other tables using position matching
+  for (const table of tables) {
+    if (table === bestTable) continue;
+    
+    for (const boundary of table.columnBoundaries) {
+      // Find matching reference column by X-position (15px drift tolerance)
+      const match = referenceBoundaries.find(ref => 
+        Math.abs(ref.centerX - boundary.centerX) < 15
+      );
+      
+      if (match && match.inferredType && boundary.inferredType !== match.inferredType) {
+        console.log(`[ColumnReconciliation] Reconciled column at x=${boundary.centerX.toFixed(0)}: ${boundary.inferredType} -> ${match.inferredType}`);
+        boundary.inferredType = match.inferredType;
+        boundary.confidence = Math.max(boundary.confidence * 0.8, match.confidence * 0.6);
+      }
+    }
+  }
+  
+  return referenceBoundaries;
+}
+
+/**
+ * Check if document likely has a merged debit/credit column based on content
+ */
+function detectMergedColumnFromRows(rows: ExtractedRow[]): boolean {
+  if (rows.length < 3) return false;
+  
+  let drCount = 0;
+  let crCount = 0;
+  
+  for (const row of rows) {
+    const amountText = row.amount || row.debit || row.credit || '';
+    if (/\b(dr|debit)\b/i.test(amountText) || /-\s*$/.test(amountText)) drCount++;
+    if (/\b(cr|credit)\b/i.test(amountText) || /\+\s*$/.test(amountText)) crCount++;
+  }
+  
+  // Must have both types present
+  return drCount > 0 && crCount > 0;
 }
 
 /**
@@ -921,37 +995,71 @@ export function detectAndExtractTables(
 
   // Step 3: For each table, detect column boundaries and classify
   let allRows: ExtractedRow[] = [];
-  let primaryBoundaries: ColumnBoundary[] = [];
+  const perTableMetrics: TableMetrics[] = [];
 
-  for (const table of tables) {
+  for (let tableIdx = 0; tableIdx < tables.length; tableIdx++) {
+    const table = tables[tableIdx];
     const boundaries = detectColumnBoundaries(table.dataLines);
-    console.log('[TableDetector] Column boundaries:', boundaries.length);
+    console.log(`[TableDetector] Table ${tableIdx}: Column boundaries: ${boundaries.length}`);
 
     const classifiedBoundaries = classifyColumns(table.dataLines, boundaries);
-    console.log('[TableDetector] Classified columns:', 
+    console.log(`[TableDetector] Table ${tableIdx}: Classified columns:`, 
       classifiedBoundaries.map(b => `${b.inferredType}(${b.confidence.toFixed(2)})`));
 
     table.columnBoundaries = classifiedBoundaries;
 
     // Extract rows
     const tableRows = extractRowsFromTable(table, classifiedBoundaries);
+    
+    // Collect metrics
+    perTableMetrics.push({
+      tableIndex: tableIdx,
+      pageNumbers: table.pageNumbers,
+      lineCount: table.dataLines.length,
+      columns: classifiedBoundaries,
+      columnTypes: classifiedBoundaries.map(b => b.inferredType || 'unknown'),
+      rowsExtracted: tableRows.length,
+    });
+    
     allRows = allRows.concat(tableRows);
+  }
 
-    // Use first table's boundaries as primary
-    if (primaryBoundaries.length === 0) {
-      primaryBoundaries = classifiedBoundaries;
+  // Step 4: NEW - Cross-table column reconciliation
+  const reconciledBoundaries = reconcileColumnMappings(tables);
+  
+  // Step 5: Re-extract rows using reconciled boundaries for consistency
+  if (tables.length > 1) {
+    allRows = [];
+    for (const table of tables) {
+      // Use reconciled boundaries with position matching
+      const alignedBoundaries = table.columnBoundaries.map(b => {
+        const match = reconciledBoundaries.find(ref => 
+          Math.abs(ref.centerX - b.centerX) < 15
+        );
+        return match ? { ...b, inferredType: match.inferredType } : b;
+      });
+      
+      const tableRows = extractRowsFromTable(table, alignedBoundaries);
+      allRows = allRows.concat(tableRows);
     }
   }
 
+  // Step 6: Check for merged amount column pattern in extracted rows
+  const hasMergedColumn = detectMergedColumnFromRows(allRows);
+  if (hasMergedColumn) {
+    console.log('[TableDetector] Detected merged debit/credit column with DR/CR suffixes in rows');
+  }
+
   // Calculate overall confidence
-  const avgConfidence = primaryBoundaries.length > 0
-    ? primaryBoundaries.reduce((sum, b) => sum + b.confidence, 0) / primaryBoundaries.length
+  const avgConfidence = reconciledBoundaries.length > 0
+    ? reconciledBoundaries.reduce((sum, b) => sum + b.confidence, 0) / reconciledBoundaries.length
     : 0;
 
   return {
     tables,
     allRows,
-    columnBoundaries: primaryBoundaries,
+    columnBoundaries: reconciledBoundaries,
     confidence: avgConfidence,
+    perTableMetrics,
   };
 }
