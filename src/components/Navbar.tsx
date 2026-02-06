@@ -1,6 +1,6 @@
 import { useState, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Menu, X, Sun, Moon, LayoutDashboard, LogOut, TestTube } from "lucide-react";
+import { FileSpreadsheet, Menu, X, Sun, Moon, LayoutDashboard, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
