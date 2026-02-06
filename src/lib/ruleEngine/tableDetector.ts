@@ -148,7 +148,8 @@ function createLineFromWords(words: PdfWord[]): PdfLine {
 // =============================================================================
 
 // Threshold for vertical gap that indicates a table break
-const VERTICAL_GAP_THRESHOLD = 50;
+// Increased from 50px to 80px to reduce over-fragmentation on bank statements
+const VERTICAL_GAP_THRESHOLD = 80;
 
 /**
  * Section header patterns that indicate a new table region
@@ -501,7 +502,7 @@ export function classifyColumns(
   });
 
   // Post-processing: ensure we have required columns
-  return postProcessColumnTypes(classifiedBoundaries);
+  return postProcessColumnTypes(classifiedBoundaries, lines);
 }
 
 function analyzeColumn(lines: PdfLine[], boundary: ColumnBoundary): ColumnAnalysis {
@@ -671,7 +672,7 @@ function inferColumnType(
   return { type: 'unknown', confidence: 0.3 };
 }
 
-function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] {
+function postProcessColumnTypes(boundaries: ColumnBoundary[], lines: PdfLine[]): ColumnBoundary[] {
   // Ensure we have at least a date and balance column
   let hasDate = boundaries.some(b => b.inferredType === 'date');
   let hasBalance = boundaries.some(b => b.inferredType === 'balance');
@@ -773,15 +774,34 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[]): ColumnBoundary[] 
         console.log(`[PostProcess] Promoted column ${candidateColumns[1].index} to DEBIT`);
       }
       
-      // If only 1 unknown column, assign as debit (more common for single amount column)
+      // If only 1 unknown column, check if it's a merged amount column with CR/DR suffixes
       if (candidateColumns.length === 1 && !hasDebit && hasCredit) {
-        // Already assigned as credit above, reassign as debit
-        boundaries[candidateColumns[0].index] = {
-          ...boundaries[candidateColumns[0].index],
-          inferredType: 'debit',
-          confidence: 0.5,
-        };
-        console.log(`[PostProcess] Reassigned column ${candidateColumns[0].index} to DEBIT (single column)`);
+        const colIdx = candidateColumns[0].index;
+        const colBoundary = boundaries[colIdx];
+        
+        // Check column content for mixed CR/DR suffixes
+        const hasMixedSuffixes = checkForMergedColumnSuffixes(
+          lines.slice(0, Math.min(50, lines.length)), // Sample first 50 lines
+          colBoundary
+        );
+        
+        if (hasMixedSuffixes) {
+          // Keep as merged amount column - will be split in row processor
+          boundaries[colIdx] = {
+            ...colBoundary,
+            inferredType: 'amount',
+            confidence: 0.7,
+          };
+          console.log(`[PostProcess] Column ${colIdx} is merged amount (CR/DR suffixes detected)`);
+        } else {
+          // Actually a single debit column
+          boundaries[colIdx] = {
+            ...colBoundary,
+            inferredType: 'debit',
+            confidence: 0.5,
+          };
+          console.log(`[PostProcess] Reassigned column ${colIdx} to DEBIT (single column, no CR/DR suffixes)`);
+        }
       }
     }
   }
@@ -901,47 +921,145 @@ export interface TableMetrics {
 
 /**
  * Reconcile column mappings across tables to ensure consistency
- * Uses the highest-confidence table as the reference and applies to others
+ * Uses consensus voting across tables rather than just the "best" table
  */
 function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
   if (tables.length === 0) return [];
   if (tables.length === 1) return tables[0].columnBoundaries;
   
-  // Find the table with highest average confidence
-  let bestTable = tables[0];
-  let bestConfidence = 0;
+  // Build consensus map: for each X-position, collect all type votes
+  const positionVotes = new Map<number, { type: string; confidence: number; count: number }[]>();
+  const positionTolerance = 15;
   
   for (const table of tables) {
-    const avgConf = table.columnBoundaries.reduce((s, b) => s + b.confidence, 0) / 
-                    Math.max(table.columnBoundaries.length, 1);
-    if (avgConf > bestConfidence && table.columnBoundaries.length >= 3) {
-      bestConfidence = avgConf;
-      bestTable = table;
-    }
-  }
-  
-  const referenceBoundaries = bestTable.columnBoundaries;
-  console.log(`[ColumnReconciliation] Using table with ${referenceBoundaries.length} columns as reference (confidence: ${bestConfidence.toFixed(2)})`);
-  
-  // Apply reference column types to other tables using position matching
-  for (const table of tables) {
-    if (table === bestTable) continue;
-    
     for (const boundary of table.columnBoundaries) {
-      // Find matching reference column by X-position (15px drift tolerance)
-      const match = referenceBoundaries.find(ref => 
-        Math.abs(ref.centerX - boundary.centerX) < 15
-      );
-      
-      if (match && match.inferredType && boundary.inferredType !== match.inferredType) {
-        console.log(`[ColumnReconciliation] Reconciled column at x=${boundary.centerX.toFixed(0)}: ${boundary.inferredType} -> ${match.inferredType}`);
-        boundary.inferredType = match.inferredType;
-        boundary.confidence = Math.max(boundary.confidence * 0.8, match.confidence * 0.6);
+      // Find existing position group or create new one
+      let foundGroup = false;
+      for (const [groupX, votes] of positionVotes) {
+        if (Math.abs(groupX - boundary.centerX) < positionTolerance) {
+          const existingVote = votes.find(v => v.type === boundary.inferredType);
+          if (existingVote) {
+            existingVote.count++;
+            existingVote.confidence = Math.max(existingVote.confidence, boundary.confidence);
+          } else {
+            votes.push({ 
+              type: boundary.inferredType || 'unknown', 
+              confidence: boundary.confidence,
+              count: 1 
+            });
+          }
+          foundGroup = true;
+          break;
+        }
+      }
+      if (!foundGroup) {
+        positionVotes.set(boundary.centerX, [{
+          type: boundary.inferredType || 'unknown',
+          confidence: boundary.confidence,
+          count: 1
+        }]);
       }
     }
   }
   
-  return referenceBoundaries;
+  // Determine consensus type for each position
+  const consensusBoundaries: ColumnBoundary[] = [];
+  
+  for (const [x, votes] of positionVotes) {
+    // Sort by count, then by confidence
+    votes.sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return b.confidence - a.confidence;
+    });
+    
+    const winner = votes[0];
+    const totalVotes = votes.reduce((sum, v) => sum + v.count, 0);
+    const votePercentage = winner.count / totalVotes;
+    
+    // For amount column types (debit/credit/balance), require higher confidence for changes
+    let finalType = winner.type;
+    const amountTypes = ['debit', 'credit', 'balance', 'amount'];
+    
+    if (votes.length > 1) {
+      const secondPlace = votes[1];
+      const bothAreAmountTypes = amountTypes.includes(winner.type) && amountTypes.includes(secondPlace.type);
+      
+      // Prevent debit<->credit swaps unless overwhelming evidence (>80%)
+      if (bothAreAmountTypes && votePercentage < 0.8) {
+        // Keep the type with highest confidence instead
+        const highestConf = votes.reduce((max, v) => v.confidence > max.confidence ? v : max, votes[0]);
+        finalType = highestConf.type;
+        console.log(`[ColumnReconciliation] Kept ${finalType} at x=${x.toFixed(0)} (low consensus: ${(votePercentage * 100).toFixed(0)}%)`);
+      }
+    }
+    
+    consensusBoundaries.push({
+      x0: x - 50, // Approximate
+      x1: x + 50,
+      centerX: x,
+      inferredType: finalType as any,
+      confidence: winner.confidence * votePercentage,
+    });
+    
+    console.log(`[ColumnReconciliation] Consensus at x=${x.toFixed(0)}: ${finalType} (${winner.count}/${totalVotes} votes, ${(votePercentage * 100).toFixed(0)}%)`);
+  }
+  
+  // Sort by X position
+  consensusBoundaries.sort((a, b) => a.centerX - b.centerX);
+  
+  // Apply consensus to all tables
+  for (const table of tables) {
+    for (const boundary of table.columnBoundaries) {
+      const consensus = consensusBoundaries.find(c => 
+        Math.abs(c.centerX - boundary.centerX) < positionTolerance
+      );
+      
+      if (consensus && consensus.inferredType && boundary.inferredType !== consensus.inferredType) {
+        const oldType = boundary.inferredType;
+        boundary.inferredType = consensus.inferredType;
+        boundary.confidence = consensus.confidence;
+        console.log(`[ColumnReconciliation] Applied consensus at x=${boundary.centerX.toFixed(0)}: ${oldType} -> ${consensus.inferredType}`);
+      }
+    }
+  }
+  
+  return consensusBoundaries;
+}
+
+/**
+ * Check if a column contains mixed CR/DR suffixes indicating a merged amount column
+ */
+function checkForMergedColumnSuffixes(lines: PdfLine[], boundary: ColumnBoundary): boolean {
+  let drCount = 0;
+  let crCount = 0;
+  let totalNumeric = 0;
+  
+  for (const line of lines) {
+    const wordsInColumn = line.words.filter(w => {
+      const wordCenter = (w.x0 + w.x1) / 2;
+      return wordCenter >= boundary.x0 && wordCenter <= boundary.x1;
+    });
+    
+    if (wordsInColumn.length === 0) continue;
+    
+    const text = wordsInColumn.map(w => w.text).join(' ').trim();
+    
+    // Check if it's numeric
+    if (hasNumericContent(text)) {
+      totalNumeric++;
+      
+      // Check for DR/CR suffixes or prefixes
+      if (/\b(dr|debit)\b/i.test(text) || /^-/.test(text.replace(/[₹$£€¥\s,]/g, ''))) {
+        drCount++;
+      }
+      if (/\b(cr|credit)\b/i.test(text) || /\+/.test(text)) {
+        crCount++;
+      }
+    }
+  }
+  
+  // Must have at least 3 numeric values and both DR and CR present
+  return totalNumeric >= 3 && drCount > 0 && crCount > 0;
 }
 
 /**

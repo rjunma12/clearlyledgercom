@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { processPDF } from '@/lib/pdfProcessor';
-import type { ProcessingResult } from '@/lib/ruleEngine/types';
+import type { ProcessingResult, StatementMetadata, ValidationSummary, StandardizedTransaction } from '@/lib/ruleEngine/types';
 import type { TableMetrics, ColumnBoundary } from '@/lib/ruleEngine/tableDetector';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2, Download, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 import { TableMetricsPanel } from '@/components/test/TableMetricsPanel';
 import { TransactionSummaryPanel } from '@/components/test/TransactionSummaryPanel';
 import { ColumnVisualization } from '@/components/test/ColumnVisualization';
+import { RawTransactionTable } from '@/components/test/RawTransactionTable';
+import { ColumnConflictsPanel } from '@/components/test/ColumnConflictsPanel';
+import { generateStandardizedExcel } from '@/lib/excelGenerator';
 
 interface ExtendedResult extends ProcessingResult {
   perTableMetrics?: TableMetrics[];
@@ -131,6 +134,100 @@ export default function TestConversion() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadExcel = async () => {
+    if (!result || transactions.length === 0) return;
+
+    try {
+      // Determine confidence level
+      const confScore = qualityMetrics?.confidence || 0;
+      const confidenceLevel: 'High' | 'Medium' | 'Low' = 
+        confScore >= 0.9 ? 'High' : confScore >= 0.7 ? 'Medium' : 'Low';
+
+      // Determine PDF type
+      const pdfType: 'Text' | 'Scanned' = 
+        qualityMetrics?.pdfType === 'SCANNED' ? 'Scanned' : 'Text';
+
+      // Build StatementMetadata from result
+      const metadata: StatementMetadata = {
+        bankName: (result.document as any)?.bankName || 'Unknown Bank',
+        accountHolder: (result.document as any)?.accountHolder || '',
+        accountNumberMasked: (result.document as any)?.accountNumber || '',
+        statementPeriodFrom: (result.document as any)?.startDate || '',
+        statementPeriodTo: (result.document as any)?.endDate || '',
+        openingBalance: result.document?.segments?.[0]?.openingBalance,
+        closingBalance: result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
+        currency: 'USD',
+        pagesProcessed: qualityMetrics?.totalPages || 0,
+        pdfType,
+        ocrUsed: qualityMetrics?.hasScannedPages || false,
+        conversionTimestamp: new Date().toISOString(),
+        conversionConfidence: confidenceLevel,
+      };
+
+      // Build ValidationSummary
+      const validationSummary: ValidationSummary = {
+        openingBalanceFound: !!result.document?.segments?.[0]?.openingBalance,
+        closingBalanceFound: !!result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
+        balanceCheckPassed: result.document?.overallValidation === 'valid',
+        balanceDifference: undefined,
+        rowsExtracted: transactions.length,
+        rowsMerged: 0,
+        autoRepairApplied: false,
+        warnings: result.warnings || [],
+        averageConfidence: qualityMetrics?.confidence ? Math.round(qualityMetrics.confidence * 100) : undefined,
+        gradeDistribution: calculateGradeDistribution(transactions),
+        lowConfidenceCount: transactions.filter(t => (t as any).confidenceScore < 50).length,
+      };
+
+      // Convert transactions to StandardizedTransaction format
+      const standardizedTransactions: StandardizedTransaction[] = transactions.map(tx => ({
+        date: tx.date || '',
+        description: tx.description || '',
+        debit: tx.debit != null ? String(tx.debit) : '',
+        credit: tx.credit != null ? String(tx.credit) : '',
+        balance: tx.balance != null ? String(tx.balance) : '',
+        currency: 'USD',
+        reference: tx.reference || '',
+        validationStatus: tx.validationStatus as 'valid' | 'warning' | 'error' | undefined,
+      }));
+
+      // Generate Excel
+      const buffer = await generateStandardizedExcel({
+        transactions: standardizedTransactions,
+        metadata,
+        validationSummary,
+        filename: file?.name?.replace('.pdf', '.xlsx') || 'export.xlsx',
+      });
+
+      // Download
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file?.name?.replace('.pdf', '.xlsx') || 'export.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating Excel:', error);
+    }
+  };
+
+  function calculateGradeDistribution(txs: typeof transactions): string {
+    const grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    for (const tx of txs) {
+      const grade = (tx as any).grade;
+      if (grade && grades.hasOwnProperty(grade)) {
+        grades[grade as keyof typeof grades]++;
+      }
+    }
+    return Object.entries(grades)
+      .filter(([_, count]) => count > 0)
+      .map(([grade, count]) => `${grade}:${count}`)
+      .join(', ') || 'N/A';
+  }
+
   // Get transactions for summary
   const transactions = result?.document?.rawTransactions || 
     result?.document?.segments?.flatMap(s => s.transactions) || [];
@@ -212,12 +309,20 @@ export default function TestConversion() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>✓ Quality Analysis</span>
-                {result && (
-                  <Button variant="outline" size="sm" onClick={handleExportDebugData} className="gap-2">
-                    <Download className="w-4 h-4" />
-                    Export Debug Data
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {result && transactions.length > 0 && (
+                    <Button variant="default" size="sm" onClick={handleDownloadExcel} className="gap-2">
+                      <FileSpreadsheet className="w-4 h-4" />
+                      Download Excel
+                    </Button>
+                  )}
+                  {result && (
+                    <Button variant="outline" size="sm" onClick={handleExportDebugData} className="gap-2">
+                      <Download className="w-4 h-4" />
+                      Export Debug Data
+                    </Button>
+                  )}
+                </div>
               </CardTitle>
               <CardDescription>Document parsing quality and accuracy metrics</CardDescription>
             </CardHeader>
@@ -301,6 +406,23 @@ export default function TestConversion() {
               openingBalance={result?.document?.segments?.[0]?.openingBalance}
               closingBalance={result?.document?.segments?.[result.document.segments.length - 1]?.closingBalance}
             />
+          </div>
+        )}
+
+        {/* Column Conflicts Panel */}
+        {result?.perTableMetrics && result.perTableMetrics.length > 0 && result?.columnBoundaries && (
+          <div className="mb-6">
+            <ColumnConflictsPanel 
+              perTableMetrics={result.perTableMetrics}
+              reconciledBoundaries={result.columnBoundaries}
+            />
+          </div>
+        )}
+
+        {/* Raw Transaction Preview Table */}
+        {transactions.length > 0 && (
+          <div className="mb-6">
+            <RawTransactionTable transactions={transactions} />
           </div>
         )}
 
