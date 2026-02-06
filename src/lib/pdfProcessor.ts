@@ -14,6 +14,7 @@ import { loadPdfDocument, extractTextFromPage, renderPageToCanvas, analyzePdfTyp
 import { processImage, terminateWorker, getTesseractLanguages } from './ocrService';
 import { correctOCRElements } from './ruleEngine/ocrCorrection';
 import { processDocument } from './ruleEngine';
+import { extractStatementHeaderFromText } from './ruleEngine/statementHeaderExtractor';
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 
 // Maximum pages for client-side OCR (scanned PDFs only)
@@ -312,6 +313,42 @@ export async function processPDF(
       result.warnings.push(
         `Document was processed using OCR (scanned/image-based PDF detected)`
       );
+    }
+    
+    // ==========================================================
+    // HEADER-ONLY OCR FALLBACK: If account holder is missing, OCR page 1
+    // ==========================================================
+    if (result.document && !result.document.extractedHeader?.accountHolder) {
+      console.log('[PDF Processor] Account holder missing, trying OCR fallback on page 1...');
+      
+      try {
+        const page = await document.getPage(1);
+        const canvas = await renderPageToCanvas(page, 2.0); // Lower DPI for header
+        const languages = fullOptions.ocrLanguages || getTesseractLanguages(fullOptions.locale || 'auto');
+        
+        const ocrResult = await processImage(canvas, 1, {
+          languages,
+          preprocess: true,
+          confidenceThreshold: 0.5,
+        });
+        
+        // Extract header from OCR text
+        const ocrText = ocrResult.textElements.map(el => el.text).join('\n');
+        const ocrHeader = extractStatementHeaderFromText(ocrText);
+        
+        if (ocrHeader.accountHolder) {
+          console.log(`[PDF Processor] OCR recovered account holder: ${ocrHeader.accountHolder}`);
+          (result.document as any).extractedHeader = {
+            ...(result.document as any).extractedHeader,
+            accountHolder: ocrHeader.accountHolder,
+          };
+          result.warnings.push('Account holder name recovered via OCR from page 1');
+        }
+        
+        await terminateWorker();
+      } catch (ocrError) {
+        console.warn('[PDF Processor] Header OCR fallback failed:', ocrError);
+      }
     }
     
     return result;

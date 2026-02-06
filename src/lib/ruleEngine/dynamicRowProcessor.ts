@@ -189,12 +189,13 @@ function hasNumericContent(row: ExtractedRow): boolean {
 
 /**
  * Classify a row to determine its type
- * ULTRA-RELAXED: Include rows with ANY meaningful content
+ * ENHANCED: Uses full rawLine text for address detection + numeric continuation support
  */
 export function classifyRow(row: ExtractedRow): RowClassification & { 
   effectiveDebit: string | null; 
   effectiveCredit: string | null;
   wasAmountSplit: boolean;
+  isNumericContinuation: boolean;
 } {
   // Handle merged amount column by splitting into debit/credit
   let effectiveDebit = row.debit;
@@ -208,10 +209,14 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
     wasAmountSplit = wasClassified;
   }
   
+  // Build fullText from classified columns
   const fullText = [row.date, row.description, effectiveDebit, effectiveCredit, row.balance]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
+  
+  // NEW: Build rawLineText from actual PDF line for robust footer detection
+  const rawLineText = row.rawLine.words.map(w => w.text).join(' ');
 
   // Check for opening/closing balance
   const isOpeningBalance = OPENING_BALANCE_PATTERNS.some(p => p.test(fullText));
@@ -220,12 +225,15 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
   // Check for skip patterns (headers/footers)
   const isSkip = SKIP_PATTERNS.some(p => p.test(fullText));
   
-  // Check for address/disclaimer content (should be filtered out)
+  // ENHANCED: Check for address/disclaimer content using BOTH fullText AND rawLineText
+  // This catches footers even if they land in reference/valueDate/amount columns
   const hasAddressContent = isAddressContent(fullText) || 
-    ADDRESS_PATTERNS.some(p => p.test(row.description || ''));
+    isAddressContent(rawLineText) ||
+    ADDRESS_PATTERNS.some(p => p.test(row.description || '')) ||
+    ADDRESS_PATTERNS.some(p => p.test(rawLineText));
   
   if (hasAddressContent) {
-    console.log(`[DynamicRowProcessor] Skipping address/disclaimer content: "${(row.description || '').substring(0, 50)}..."`);
+    console.log(`[DynamicRowProcessor] Skipping address/disclaimer content: "${rawLineText.substring(0, 60)}..."`);
     return {
       isTransaction: false,
       isContinuation: false,
@@ -237,10 +245,10 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
       effectiveDebit: null,
       effectiveCredit: null,
       wasAmountSplit: false,
+      isNumericContinuation: false,
     };
   }
 
-  // ULTRA-RELAXED DETECTION
   // 1. Try to validate date in date column
   const hasValidDate = row.date !== null && 
     DATE_VALIDATION_PATTERNS.some(p => p.test(row.date!));
@@ -259,7 +267,16 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
   // 5. Check for meaningful description
   const hasDescription = row.description !== null && row.description.trim().length > 2;
   
-  // RELAXED: A row is a transaction if:
+  // NEW: Detect numeric-only continuation rows (amount/balance but no date/description)
+  // These are wrapped lines that contain only the amount values
+  const isNumericContinuation = !hasRecoveredDate && 
+    !hasDescription && 
+    (hasAmount || hasBalance || hasNumeric) && 
+    !isSkip && 
+    !isOpeningBalance && 
+    !isClosingBalance;
+  
+  // A row is a transaction if:
   // - Has ANY date (validated or recovered) + any other content, OR
   // - Has balance + any amount, OR  
   // - Has numeric content + description (likely a transaction row), OR
@@ -267,7 +284,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
   // - Has at least 2 of: date, description, amount, balance
   const contentCount = [hasRecoveredDate, hasDescription, hasAmount || hasNumeric, hasBalance].filter(Boolean).length;
   
-  const isTransaction = !isSkip && !isOpeningBalance && !isClosingBalance && (
+  const isTransaction = !isSkip && !isOpeningBalance && !isClosingBalance && !isNumericContinuation && (
     (hasRecoveredDate && (hasAmount || hasBalance || hasDescription)) ||
     (hasBalance && hasAmount) ||
     (hasNumeric && hasDescription) ||
@@ -275,7 +292,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
     contentCount >= 2
   );
 
-  // Continuation row: has ONLY description (no date anywhere, no balance, no amounts)
+  // Description-only continuation row: has ONLY description (no date anywhere, no balance, no amounts)
   const isContinuation = hasDescription && !hasRecoveredDate && !hasBalance && !hasAmount && !hasNumeric && !isSkip;
 
   return {
@@ -289,6 +306,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
     effectiveDebit,
     effectiveCredit,
     wasAmountSplit,
+    isNumericContinuation,
   };
 }
 
@@ -299,6 +317,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
 export interface StitchedTransaction {
   primaryRow: ExtractedRow;
   continuationRows: ExtractedRow[];
+  numericContinuationRows: ExtractedRow[];  // NEW: rows with only amounts
   fullDescription: string;
   classification: RowClassification;
   effectiveDebit: string | null;
@@ -307,12 +326,42 @@ export interface StitchedTransaction {
   recoveredDate: string | null;  // Date recovered from any column
 }
 
+// Debug counters
+let _footerSkipCount = 0;
+let _numericStitchCount = 0;
+let _missingAmountCount = 0;
+
+/**
+ * Get debug stats (call after processing)
+ */
+export function getStitchingStats() {
+  return {
+    footerSkipCount: _footerSkipCount,
+    numericStitchCount: _numericStitchCount,
+    missingAmountCount: _missingAmountCount,
+  };
+}
+
+/**
+ * Reset debug stats
+ */
+export function resetStitchingStats() {
+  _footerSkipCount = 0;
+  _numericStitchCount = 0;
+  _missingAmountCount = 0;
+}
+
 /**
  * Apply look-back stitching to merge continuation lines with parent transactions
+ * ENHANCED: Also stitches numeric-only continuation rows
  */
 export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransaction[] {
+  resetStitchingStats();
+  
   const stitched: StitchedTransaction[] = [];
   let currentTransaction: StitchedTransaction | null = null;
+  let consecutiveFooterCount = 0;
+  const FOOTER_CUTOFF_THRESHOLD = 3; // Stop after 3 consecutive footer lines
 
   for (const row of rows) {
     const classResult = classifyRow(row);
@@ -326,6 +375,19 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
       recoveredDate: classResult.recoveredDate,
     };
 
+    // Footer cutoff: after 3 consecutive footer lines, stop processing
+    if (classification.isFooter) {
+      consecutiveFooterCount++;
+      _footerSkipCount++;
+      if (consecutiveFooterCount >= FOOTER_CUTOFF_THRESHOLD) {
+        console.log(`[DynamicRowProcessor] Footer cutoff: stopping after ${consecutiveFooterCount} consecutive footer lines`);
+        break;
+      }
+      continue;
+    } else {
+      consecutiveFooterCount = 0;
+    }
+
     if (classification.isTransaction || classification.isOpeningBalance || classification.isClosingBalance) {
       // Save previous transaction
       if (currentTransaction) {
@@ -336,6 +398,7 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
       currentTransaction = {
         primaryRow: row,
         continuationRows: [],
+        numericContinuationRows: [],
         fullDescription: row.description || '',
         classification,
         effectiveDebit: classResult.effectiveDebit,
@@ -343,14 +406,19 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
         wasAmountSplit: classResult.wasAmountSplit,
         recoveredDate: classResult.recoveredDate,
       };
+    } else if (classResult.isNumericContinuation && currentTransaction) {
+      // NEW: Numeric continuation - stitch amounts into current transaction
+      currentTransaction.numericContinuationRows.push(row);
+      _numericStitchCount++;
+      console.log(`[DynamicRowProcessor] Stitched numeric continuation: debit=${row.debit}, credit=${row.credit}, balance=${row.balance}`);
     } else if (classification.isContinuation && currentTransaction) {
-      // Append to current transaction
+      // Description continuation
       currentTransaction.continuationRows.push(row);
       if (row.description) {
         currentTransaction.fullDescription += ' ' + row.description;
       }
     }
-    // Skip headers/footers
+    // Skip headers
   }
 
   // Don't forget the last transaction
@@ -358,15 +426,56 @@ export function stitchContinuationRows(rows: ExtractedRow[]): StitchedTransactio
     stitched.push(finalizeStitchedTransaction(currentTransaction));
   }
 
+  console.log(`[DynamicRowProcessor] Stitching stats: footers skipped=${_footerSkipCount}, numeric stitched=${_numericStitchCount}`);
+  
   return stitched;
 }
 
 function finalizeStitchedTransaction(tx: StitchedTransaction): StitchedTransaction {
+  // NEW: Merge amounts from numeric continuation rows into primary transaction
+  let finalDebit = tx.effectiveDebit;
+  let finalCredit = tx.effectiveCredit;
+  let finalBalance = tx.primaryRow.balance;
+  
+  for (const numRow of tx.numericContinuationRows) {
+    // Fill missing debit
+    if (!finalDebit && numRow.debit) {
+      finalDebit = numRow.debit;
+    }
+    // Fill missing credit  
+    if (!finalCredit && numRow.credit) {
+      finalCredit = numRow.credit;
+    }
+    // Fill missing balance (prefer last one)
+    if (numRow.balance) {
+      finalBalance = numRow.balance;
+    }
+    // Handle merged amount column
+    if (numRow.amount && !finalDebit && !finalCredit) {
+      const { debit, credit } = splitMergedAmount(numRow.amount);
+      if (debit) finalDebit = debit;
+      if (credit) finalCredit = credit;
+    }
+  }
+  
+  // Track if we still have missing amounts
+  if (!finalDebit && !finalCredit) {
+    _missingAmountCount++;
+  }
+  
   return {
     ...tx,
     fullDescription: cleanDescription(tx.fullDescription),
+    effectiveDebit: finalDebit,
+    effectiveCredit: finalCredit,
+    primaryRow: {
+      ...tx.primaryRow,
+      balance: finalBalance || tx.primaryRow.balance,
+    },
   };
 }
+
+// Note: splitMergedAmount is defined earlier in the file (line 123)
 
 /**
  * Clean and normalize a description string

@@ -493,8 +493,9 @@ function detectMergedAmountColumn(samples: string[]): boolean {
 }
 
 // Header keywords for explicit column type detection
-const HEADER_DEBIT_PATTERNS = /^(debit|withdrawal|dr|out|withdrawals)$/i;
-const HEADER_CREDIT_PATTERNS = /^(credit|deposit|cr|in|deposits)$/i;
+// EXPANDED: Handle "Withdrawal Amt.", "Withdrawal Amount", multi-word patterns
+const HEADER_DEBIT_PATTERNS = /^(debit|withdrawal|dr|out|withdrawals?)(\s*(amt\.?|amount))?$/i;
+const HEADER_CREDIT_PATTERNS = /^(credit|deposit|cr|in|deposits?)(\s*(amt\.?|amount))?$/i;
 
 /**
  * Flexible numeric content detection that handles:
@@ -611,18 +612,28 @@ function analyzeColumn(lines: PdfLine[], boundary: ColumnBoundary): ColumnAnalys
 /**
  * Check if a word belongs to a column
  * @param strict - If true, word center MUST be within boundary (prevents cascade)
+ * @param numericPadding - Extra padding for numeric columns (±px tolerance)
  */
-function isWordInColumn(word: PdfWord, boundary: ColumnBoundary, strict: boolean = false): boolean {
+function isWordInColumn(
+  word: PdfWord, 
+  boundary: ColumnBoundary, 
+  strict: boolean = false,
+  numericPadding: number = 0
+): boolean {
   const wordCenter = (word.x0 + word.x1) / 2;
   
+  // Apply padding for numeric columns
+  const effectiveX0 = boundary.x0 - numericPadding;
+  const effectiveX1 = boundary.x1 + numericPadding;
+  
   if (strict) {
-    // Strict mode: word center MUST be within boundary
-    return wordCenter >= boundary.x0 && wordCenter <= boundary.x1;
+    // Strict mode: word center MUST be within (padded) boundary
+    return wordCenter >= effectiveX0 && wordCenter <= effectiveX1;
   }
   
   // Flexible mode: word center within bounds, or significant overlap
-  const overlap = Math.min(word.x1, boundary.x1) - Math.max(word.x0, boundary.x0);
-  return wordCenter >= boundary.x0 && wordCenter <= boundary.x1 ||
+  const overlap = Math.min(word.x1, effectiveX1) - Math.max(word.x0, effectiveX0);
+  return wordCenter >= effectiveX0 && wordCenter <= effectiveX1 ||
          overlap > word.width * 0.5;
 }
 
@@ -1007,10 +1018,17 @@ export function extractRowsFromTable(
       rawLine: line,
     };
 
-    // Extract text for each column using STRICT boundary matching
+    // HYBRID EXTRACTION: strict for text columns, flexible for numeric columns
+    // Numeric columns get ±8px padding to catch near-edge values
+    const NUMERIC_PADDING = 8;
+    const numericTypes: (ColumnType | null)[] = ['debit', 'credit', 'balance', 'amount'];
+    
     for (const boundary of boundaries) {
-      // Use strict mode to prevent cascade on sparse rows
-      const wordsInColumn = line.words.filter(w => isWordInColumn(w, boundary, true));
+      const isNumericColumn = numericTypes.includes(boundary.inferredType);
+      const padding = isNumericColumn ? NUMERIC_PADDING : 0;
+      
+      // Use strict mode with optional padding for numeric columns
+      const wordsInColumn = line.words.filter(w => isWordInColumn(w, boundary, true, padding));
       const text = wordsInColumn.map(w => w.text).join(' ').trim();
 
       if (text && boundary.inferredType) {

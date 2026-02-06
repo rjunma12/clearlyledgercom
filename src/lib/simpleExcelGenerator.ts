@@ -18,6 +18,8 @@ export interface SimpleAccountInfo {
   accountHolder: string;
   accountNumber: string;
   statementPeriod: string;
+  openingBalance?: string;
+  closingBalance?: string;
 }
 
 export interface SimpleExcelOptions {
@@ -29,8 +31,8 @@ export interface SimpleExcelOptions {
 const TRANSACTION_COLUMNS = [
   { header: 'Date', key: 'date', width: 14 },
   { header: 'Description', key: 'description', width: 50 },
-  { header: 'Debit', key: 'debit', width: 15 },
-  { header: 'Credit', key: 'credit', width: 15 },
+  { header: 'Withdrawal Amt.', key: 'debit', width: 15 },
+  { header: 'Deposit Amt.', key: 'credit', width: 15 },
   { header: 'Balance', key: 'balance', width: 15 },
 ];
 
@@ -106,12 +108,14 @@ export async function generateSimpleExcel(options: SimpleExcelOptions): Promise<
   sheet.getColumn(1).width = 18;
   sheet.getColumn(2).width = 50;
   
-  // Add account details
+  // Add account details (with Opening/Closing Balance)
   const headerData = [
     ['Bank Name', accountInfo.bankName || 'Unknown Bank'],
     ['Account Holder', accountInfo.accountHolder || ''],
     ['Account Number', accountInfo.accountNumber || ''],
     ['Statement Period', accountInfo.statementPeriod || ''],
+    ['Opening Balance', accountInfo.openingBalance || ''],
+    ['Closing Balance', accountInfo.closingBalance || ''],
   ];
   
   headerData.forEach((row, index) => {
@@ -135,16 +139,16 @@ export async function generateSimpleExcel(options: SimpleExcelOptions): Promise<
   });
   
   // ==========================================================================
-  // SECTION 2: Empty Row (Row 6)
+  // SECTION 2: Empty Row (Row 8)
   // ==========================================================================
   
-  // Leave row 6 empty as separator
+  // Leave row 8 empty as separator (after 6 header rows)
   
   // ==========================================================================
-  // SECTION 3: Transaction Table Header (Row 7)
+  // SECTION 3: Transaction Table Header (Row 9)
   // ==========================================================================
   
-  const tableStartRow = 7;
+  const tableStartRow = 9;
   
   // Set column widths for transaction table
   TRANSACTION_COLUMNS.forEach((col, index) => {
