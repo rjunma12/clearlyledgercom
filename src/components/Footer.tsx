@@ -95,7 +95,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
           </p>
           <div className="flex items-center gap-6">
             <span className="text-sm text-muted-foreground">
-              Secure payments by Dodo
+              Secure payments
             </span>
           </div>
         </div>
