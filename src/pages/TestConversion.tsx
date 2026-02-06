@@ -328,10 +328,9 @@ export default function TestConversion() {
                       size="sm" 
                       onClick={handleDownloadExcel} 
                       className="gap-2"
-                      disabled={transactions.length === 0}
                     >
                       <FileSpreadsheet className="w-4 h-4" />
-                      Download Excel {transactions.length > 0 ? `(${transactions.length})` : '(No Data)'}
+                      Download Excel {transactions.length > 0 ? `(${transactions.length})` : '(Debug)'}
                     </Button>
                   )}
                   {result && (

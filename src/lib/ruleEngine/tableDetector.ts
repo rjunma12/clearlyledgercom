@@ -924,6 +924,40 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[], lines: PdfLine[]):
   return boundaries;
 }
 
+/**
+ * Ensure only one debit and one credit column exists
+ * Prevents duplicate amount columns that cause confusion
+ */
+function ensureUniqueAmountColumns(boundaries: ColumnBoundary[]): void {
+  const debits = boundaries
+    .map((b, i) => ({ boundary: b, index: i }))
+    .filter(({ boundary }) => boundary.inferredType === 'debit');
+  
+  const credits = boundaries
+    .map((b, i) => ({ boundary: b, index: i }))
+    .filter(({ boundary }) => boundary.inferredType === 'credit');
+  
+  // If multiple debits, keep leftmost as debit, mark others as unknown
+  if (debits.length > 1) {
+    debits.sort((a, b) => a.boundary.centerX - b.boundary.centerX);
+    for (let i = 1; i < debits.length; i++) {
+      boundaries[debits[i].index].inferredType = 'unknown';
+      boundaries[debits[i].index].confidence = 0.3;
+      console.log(`[PostProcess] Removed duplicate debit at x=${debits[i].boundary.centerX.toFixed(0)}`);
+    }
+  }
+  
+  // If multiple credits, keep rightmost (before balance) as credit
+  if (credits.length > 1) {
+    credits.sort((a, b) => b.boundary.centerX - a.boundary.centerX);
+    for (let i = 1; i < credits.length; i++) {
+      boundaries[credits[i].index].inferredType = 'unknown';
+      boundaries[credits[i].index].confidence = 0.3;
+      console.log(`[PostProcess] Removed duplicate credit at x=${credits[i].boundary.centerX.toFixed(0)}`);
+    }
+  }
+}
+
 // =============================================================================
 // ROW EXTRACTION USING DETECTED COLUMNS
 // =============================================================================
