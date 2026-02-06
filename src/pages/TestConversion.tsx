@@ -138,21 +138,30 @@ export default function TestConversion() {
     if (!result || transactions.length === 0) return;
 
     try {
+      // Determine confidence level
+      const confScore = qualityMetrics?.confidence || 0;
+      const confidenceLevel: 'High' | 'Medium' | 'Low' = 
+        confScore >= 0.9 ? 'High' : confScore >= 0.7 ? 'Medium' : 'Low';
+
+      // Determine PDF type
+      const pdfType: 'Text' | 'Scanned' = 
+        qualityMetrics?.pdfType === 'SCANNED' ? 'Scanned' : 'Text';
+
       // Build StatementMetadata from result
       const metadata: StatementMetadata = {
-        bankName: result.document?.bankName || 'Unknown',
-        accountHolder: result.document?.accountHolder || '',
-        accountNumberMasked: result.document?.accountNumber || '',
-        statementPeriodFrom: result.document?.startDate || '',
-        statementPeriodTo: result.document?.endDate || '',
+        bankName: (result.document as any)?.bankName || 'Unknown Bank',
+        accountHolder: (result.document as any)?.accountHolder || '',
+        accountNumberMasked: (result.document as any)?.accountNumber || '',
+        statementPeriodFrom: (result.document as any)?.startDate || '',
+        statementPeriodTo: (result.document as any)?.endDate || '',
         openingBalance: result.document?.segments?.[0]?.openingBalance,
         closingBalance: result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
         currency: 'USD',
         pagesProcessed: qualityMetrics?.totalPages || 0,
-        pdfType: qualityMetrics?.pdfType || 'UNKNOWN',
+        pdfType,
         ocrUsed: qualityMetrics?.hasScannedPages || false,
         conversionTimestamp: new Date().toISOString(),
-        conversionConfidence: `${(qualityMetrics?.confidence || 0) * 100}%`,
+        conversionConfidence: confidenceLevel,
       };
 
       // Build ValidationSummary
@@ -160,12 +169,12 @@ export default function TestConversion() {
         openingBalanceFound: !!result.document?.segments?.[0]?.openingBalance,
         closingBalanceFound: !!result.document?.segments?.[result.document.segments.length - 1]?.closingBalance,
         balanceCheckPassed: result.document?.overallValidation === 'valid',
-        balanceDifference: null,
+        balanceDifference: undefined,
         rowsExtracted: transactions.length,
         rowsMerged: 0,
         autoRepairApplied: false,
         warnings: result.warnings || [],
-        averageConfidence: qualityMetrics?.confidence ? Math.round(qualityMetrics.confidence * 100) : null,
+        averageConfidence: qualityMetrics?.confidence ? Math.round(qualityMetrics.confidence * 100) : undefined,
         gradeDistribution: calculateGradeDistribution(transactions),
         lowConfidenceCount: transactions.filter(t => (t as any).confidenceScore < 50).length,
       };
@@ -174,14 +183,12 @@ export default function TestConversion() {
       const standardizedTransactions: StandardizedTransaction[] = transactions.map(tx => ({
         date: tx.date || '',
         description: tx.description || '',
-        debit: tx.debit || '',
-        credit: tx.credit || '',
-        balance: tx.balance || '',
+        debit: tx.debit != null ? String(tx.debit) : '',
+        credit: tx.credit != null ? String(tx.credit) : '',
+        balance: tx.balance != null ? String(tx.balance) : '',
         currency: 'USD',
         reference: tx.reference || '',
         validationStatus: tx.validationStatus as 'valid' | 'warning' | 'error' | undefined,
-        grade: (tx as any).grade,
-        confidenceScore: (tx as any).confidenceScore,
       }));
 
       // Generate Excel
