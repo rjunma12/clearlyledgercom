@@ -1,220 +1,228 @@
 
-# Test Lab Improvements: Rule Engine Fixes & Excel Download
 
-## Current Issues Identified
+# Test Conversion Issues Analysis & Fix Plan
 
-Based on the console logs from your bank statement conversion, I identified these critical problems:
+## Issues Identified
 
-### Issue 1: Fragmented Table Detection (11 tables instead of 1-2)
-The statement was split into 11 separate table regions, causing:
-- Inconsistent column mappings across regions
-- Loss of context between sections
-- Different column classifications per table
+After thorough analysis of the code, console logs, and session data, I identified **5 critical issues** causing the confidence score drop to 60%, wrong currency, missing account holder details, and missing transaction descriptions.
 
-### Issue 2: Credit Column Misclassification
+---
+
+## Issue 1: Excel Export Uses Wrong Data Sources (Critical)
+
+**Problem:** The `handleDownloadExcel()` function in `TestConversion.tsx` is reading from WRONG property paths:
+
+```typescript
+// CURRENT CODE (lines 151-165) - BROKEN:
+metadata = {
+  bankName: (result.document as any)?.bankName || 'Unknown Bank',        // WRONG - should be extractedHeader.bankName
+  accountHolder: (result.document as any)?.accountHolder || '',          // WRONG - should be extractedHeader.accountHolder
+  accountNumberMasked: (result.document as any)?.accountNumber || '',    // WRONG - should be extractedHeader.accountNumberMasked
+  statementPeriodFrom: (result.document as any)?.startDate || '',        // WRONG - should be extractedHeader.statementPeriodFrom
+  statementPeriodTo: (result.document as any)?.endDate || '',            // WRONG - should be extractedHeader.statementPeriodTo
+  currency: 'USD',                                                        // WRONG - hardcoded, should come from extractedHeader.currency
+  ...
+};
+```
+
+The `extractedHeader` is properly populated in `index.ts` (lines 482-495) but the Test Conversion page is NOT reading from it.
+
+**Fix:** Update the metadata extraction to use the correct path:
+```typescript
+const extractedHeader = result.document?.extractedHeader;
+metadata = {
+  bankName: extractedHeader?.bankName || 'Unknown Bank',
+  accountHolder: extractedHeader?.accountHolder || '',
+  accountNumberMasked: extractedHeader?.accountNumberMasked || '',
+  statementPeriodFrom: extractedHeader?.statementPeriodFrom || '',
+  statementPeriodTo: extractedHeader?.statementPeriodTo || '',
+  currency: extractedHeader?.currency || 'INR',  // Default to INR for Indian banks
+  ...
+};
+```
+
+---
+
+## Issue 2: Hardcoded Currency "USD" (Critical)
+
+**Problem:** Currency is hardcoded to 'USD' in two places:
+1. Line 159: `currency: 'USD'` in metadata
+2. Line 189: `currency: 'USD'` in each transaction
+
+The system actually detects currency correctly in `statementHeaderExtractor.ts` (lines 129-134, 292-318) and stores it in `extractedHeader.currency`, but it's being ignored.
+
+**Fix:** Use detected currency from extractedHeader:
+```typescript
+const detectedCurrency = result.document?.extractedHeader?.currency || 'USD';
+// Use detectedCurrency in both metadata and transactions
+```
+
+---
+
+## Issue 3: Missing Description Due to Column Fragmentation (Critical)
+
+**Problem:** The console logs show 11 fragmented tables with inconsistent column mappings:
+- Tables 0, 1, 2, 6, 7 have `description(1.00)` as first column
+- Tables 3-5, 8-10 have `date(0.40)` as first column and NO description column
+
+This inconsistency causes descriptions to be lost when reconciliation happens. The column reconciliation consensus shows:
+```
+[ColumnReconciliation] Consensus at x=148: date (6/11 votes, 55%)
+[ColumnReconciliation] Consensus at x=406: date (5/5 votes, 100%)
+```
+
+There's NO consensus for a description column in the final reconciled boundaries!
+
+**Root Cause:** In `tableDetector.ts`, the `reconcileColumnMappings()` function (lines 963-1026) only includes columns that have votes, but description columns from tables 0-2 are at a different X position than other tables, so they're not being merged properly.
+
+**Fix:** Add a "required column" check after reconciliation to ensure description column is always present.
+
+---
+
+## Issue 4: Credit Column Still Being Lost (Regression)
+
+**Problem:** The column reconciliation consensus shows:
+```
+[ColumnReconciliation] Consensus at x=512: credit (4/5 votes, 80%)
+```
+
+But earlier logs show:
 ```
 [PostProcess] Promoted column 3 to CREDIT
-[PostProcess] Reassigned column 3 to DEBIT (single column)
+[PostProcess] Reassigned column 3 to DEBIT (single column, no CR/DR suffixes)
 ```
-The engine promoted a column to CREDIT, then immediately reassigned it to DEBIT because it detected only a single amount column. This loses all credit transactions.
 
-### Issue 3: Column Reconciliation Errors
-```
-[ColumnReconciliation] Reconciled column at x=512: debit -> credit
-```
-The cross-table reconciliation is changing column types incorrectly, causing debit columns to become credit columns.
+The `checkForMergedColumnSuffixes()` function is failing because:
+1. It requires BOTH DR and CR to be present (`drCount > 0 && crCount > 0`)
+2. If the bank only uses "Dr" suffix for debits and no suffix for credits, this check fails
+3. The column gets reassigned to DEBIT, losing all credits
 
-### Issue 4: No Excel Download in Test Lab
-Currently the test page only exports debug JSON data, not the actual Excel file that users would receive.
+**Fix:** Improve the merged column detection to handle asymmetric suffixes:
+```typescript
+// Current: return totalNumeric >= 3 && drCount > 0 && crCount > 0;
+// Fixed: If only one suffix type is found, still treat as potentially merged
+return totalNumeric >= 3 && (drCount > 0 || crCount > 0);
+```
+
+---
+
+## Issue 5: Low Confidence Score (60%)
+
+**Problem:** The overall confidence is calculated as the average of reconciled column confidences:
+```typescript
+const avgConfidence = reconciledBoundaries.length > 0
+  ? reconciledBoundaries.reduce((sum, b) => sum + b.confidence, 0) / reconciledBoundaries.length
+  : 0;
+```
+
+Current reconciled boundaries have low confidence due to:
+- Fragmentation (11 tables reduces vote percentages)
+- Missing required columns (no description)
+- Column type conflicts (date at two positions)
+
+The detected columns have confidences of 0.40-0.55, pulling the average down to ~0.60.
+
+**Fix:** Weight confidence by column importance and add penalties for missing required columns.
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Add Excel Download to Test Lab
+### Phase 1: Fix Excel Export Metadata (Immediate)
 
 **File: `src/pages/TestConversion.tsx`**
 
-Add a new "Download Excel" button that:
-1. Generates the standardized 3-sheet Excel file using `generateStandardizedExcel()`
-2. Downloads directly in the browser
-3. Shows the same format users would receive in production
+1. Read from `extractedHeader` instead of non-existent document properties
+2. Use detected currency instead of hardcoded 'USD'
+3. Properly extract account holder, account number, and statement period
 
-Changes:
-- Import `generateStandardizedExcel` and `arrayBufferToBase64` from `src/lib/excelGenerator.ts`
-- Add function to build `StatementMetadata` from processing result
-- Add function to build `ValidationSummary` from processing result  
-- Add function to convert parsed transactions to `StandardizedTransaction[]`
-- Add "Download Excel" button next to existing "Export Debug Data" button
-
-### Phase 2: Fix Single Amount Column Detection
+### Phase 2: Fix Column Detection Logic
 
 **File: `src/lib/ruleEngine/tableDetector.ts`**
 
-The current logic in `postProcessColumnTypes()` (lines 774-786) incorrectly reassigns CREDIT to DEBIT when only one amount column is found. 
+1. Update `checkForMergedColumnSuffixes()` to handle asymmetric suffixes
+2. Add required column validation after reconciliation
+3. Ensure description column is always preserved during reconciliation
+4. Add fallback: if no description column found, use widest unassigned column
 
-Fix: Before reassigning, check if the column content contains CR/DR suffixes. If it does, keep it as `amount` type (merged column) rather than forcing it to `debit`.
-
-```typescript
-// Before reassigning to DEBIT, check if it's actually a merged amount column
-if (candidateColumns.length === 1 && !hasDebit && hasCredit) {
-  // Check column content for CR/DR suffixes
-  const colBoundary = boundaries[candidateColumns[0].index];
-  const hasMixedSuffixes = checkForMergedColumnSuffixes(lines, colBoundary);
-  
-  if (hasMixedSuffixes) {
-    // Keep as merged amount column - will be split in row processor
-    boundaries[candidateColumns[0].index] = {
-      ...boundaries[candidateColumns[0].index],
-      inferredType: 'amount',
-      confidence: 0.7,
-    };
-    console.log(`[PostProcess] Column ${candidateColumns[0].index} is merged amount (CR/DR suffixes detected)`);
-  } else {
-    // Actually a single debit column
-    boundaries[candidateColumns[0].index] = {
-      ...boundaries[candidateColumns[0].index],
-      inferredType: 'debit',
-      confidence: 0.5,
-    };
-  }
-}
-```
-
-### Phase 3: Improve Table Fragmentation Handling
+### Phase 3: Improve Reconciliation Logic
 
 **File: `src/lib/ruleEngine/tableDetector.ts`**
 
-The current `VERTICAL_GAP_THRESHOLD = 50` is too aggressive. Bank statements often have section breaks that shouldn't create new tables.
+1. Don't allow two DATE columns in final reconciliation
+2. If description column is missing from consensus, add it from the highest-confidence table
+3. Weight confidence by vote count AND column importance
 
-Fixes:
-1. Increase `VERTICAL_GAP_THRESHOLD` from 50px to 80px
-2. Add page-boundary awareness: don't split tables just because of a page break
-3. Merge tables that have compatible column structures
-
-Add new function:
-```typescript
-function shouldMergeTables(table1: TableRegion, table2: TableRegion): boolean {
-  // Merge if:
-  // 1. Same page or consecutive pages
-  // 2. Similar column count (within 1)
-  // 3. Column X-positions align within tolerance
-}
-
-function mergeCompatibleTables(tables: TableRegion[]): TableRegion[] {
-  // Reduce fragmentation by merging tables with compatible structures
-}
-```
-
-### Phase 4: Fix Column Reconciliation Logic
-
-**File: `src/lib/ruleEngine/tableDetector.ts`**
-
-The current reconciliation (lines 906-944) uses position matching but doesn't account for column type conflicts properly.
-
-Fix: When reconciling, prioritize:
-1. Keep explicit header-detected types (confidence >= 0.9)
-2. Use consensus voting across tables rather than just using the "best" table
-3. Don't override a debit with credit or vice versa without strong evidence
-
-```typescript
-function reconcileColumnMappings(tables: TableRegion[]): ColumnBoundary[] {
-  // For amount columns (debit/credit/balance), use voting across all tables
-  // Only change a column type if >60% of tables agree
-  
-  // Prevent debit<->credit swaps unless there's overwhelming evidence
-  if ((fromType === 'debit' && toType === 'credit') || 
-      (fromType === 'credit' && toType === 'debit')) {
-    // Require higher confidence threshold for this swap
-    if (votePercentage < 0.8) continue;
-  }
-}
-```
-
-### Phase 5: Enhanced Error Display in Test Lab
+### Phase 4: Add Debug Visibility
 
 **File: `src/pages/TestConversion.tsx`**
 
-Add new panels to surface the exact issues:
-1. **Column Conflicts Panel**: Show when tables have conflicting column classifications
-2. **Fragmentation Warning**: Alert when >5 tables are detected
-3. **Missing Column Alert**: Warn when required columns (date, debit, credit, balance) are missing
-
-### Phase 6: Raw Transaction Preview Table
-
-**File: `src/pages/TestConversion.tsx`**
-
-Add a paginated table showing the first 50 extracted transactions with:
-- Date, Description, Debit, Credit, Balance columns
-- Row highlighting for validation errors
-- Color-coded confidence grades
-- Clickable rows to show raw PDF line data
+1. Display extracted header info in the UI for debugging
+2. Show which fields were successfully extracted vs. missing
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/pages/TestConversion.tsx` | Add Excel download, error panels, transaction preview |
-| `src/lib/ruleEngine/tableDetector.ts` | Fix single column logic, reduce fragmentation, improve reconciliation |
-| `src/components/test/TransactionSummaryPanel.tsx` | Add missing column warnings |
-
-## New Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/test/RawTransactionTable.tsx` | Paginated preview of extracted transactions |
-| `src/components/test/ColumnConflictsPanel.tsx` | Display column classification conflicts across tables |
+| File | Changes | Priority |
+|------|---------|----------|
+| `src/pages/TestConversion.tsx` | Fix Excel metadata sourcing, use extractedHeader | High |
+| `src/lib/ruleEngine/tableDetector.ts` | Fix merged column detection, add required column validation | High |
+| `src/lib/ruleEngine/tableDetector.ts` | Improve reconciliation to prevent duplicate dates | Medium |
 
 ---
 
-## Expected Outcomes
+## Expected Outcomes After Fixes
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Table Regions | 11 (fragmented) | 2-3 (consolidated) |
-| Credit Detection | Missing | Correctly classified |
-| Column Conflicts | Undetected | Visible in UI |
-| Excel Export | Not available | Full 3-sheet download |
-| Confidence Score | 61% | 75%+ |
+| Issue | Before | After |
+|-------|--------|-------|
+| Currency | Hardcoded 'USD' | Detected from PDF (INR/USD/etc) |
+| Account Holder | Empty | Extracted from PDF header |
+| Descriptions | Missing/partial | Fully populated |
+| Credit Column | Lost to DEBIT reassignment | Properly detected |
+| Confidence | 60% | 75%+ (with proper column detection) |
 
 ---
 
 ## Technical Details
 
-### Excel Generation for Test Lab
+### Correct Data Access Path
 
-The Excel download will use the existing `generateStandardizedExcel()` function which creates:
-- **Sheet 1: Transactions** - Date, Description, Debit, Credit, Balance, Currency, Reference, Grade, Confidence
-- **Sheet 2: Statement_Info** - Bank name, account holder, period, opening/closing balance, PDF type
-- **Sheet 3: Validation** - Balance check results, row counts, warnings, confidence summary
+```typescript
+// CORRECT way to access statement metadata:
+const extractedHeader = result.document?.extractedHeader;
 
-### Column Detection Algorithm Fix
-
-Current problematic flow:
-1. Detect columns with numeric content
-2. Assign rightmost as Balance
-3. Assign next as Credit
-4. If only 1 remaining, reassign Credit to Debit ← **This is wrong**
-
-Fixed flow:
-1. Detect columns with numeric content
-2. Check for CR/DR suffixes in numeric columns
-3. If suffixes found → mark as `amount` (merged column)
-4. If no suffixes → apply standard right-to-left assignment (Balance, Credit, Debit)
-5. If only 1 amount column with no suffixes → assign as Debit
-
-### Table Merging Algorithm
-
-```text
-For each pair of adjacent tables:
-  If table2.pageNumber == table1.pageNumber OR 
-     table2.pageNumber == table1.lastPage + 1:
-    
-    If abs(table1.columnCount - table2.columnCount) <= 1:
-      alignedColumns = countAlignedColumns(table1, table2, tolerance=15px)
-      
-      If alignedColumns >= min(table1.columnCount, table2.columnCount) - 1:
-        Merge table2 into table1
+// Extracted fields:
+extractedHeader?.accountHolder        // "DR DEEPIKAS HEALTHPLUS PVT LTD"
+extractedHeader?.accountNumberMasked  // "****6549"
+extractedHeader?.bankName             // "ICICI Bank"
+extractedHeader?.currency             // "INR"
+extractedHeader?.statementPeriodFrom  // "2025-03-01"
+extractedHeader?.statementPeriodTo    // "2025-03-31"
 ```
+
+### Merged Column Detection Fix
+
+```typescript
+// Current logic (fails for asymmetric suffixes):
+return totalNumeric >= 3 && drCount > 0 && crCount > 0;
+
+// Fixed logic:
+// If DR suffix is found but no CR, amounts without suffix are credits
+// If CR suffix is found but no DR, amounts without suffix are debits
+const hasSuffixes = drCount > 0 || crCount > 0;
+const hasBothTypes = (drCount > 0 && (totalNumeric - drCount) > 0) || 
+                     (crCount > 0 && (totalNumeric - crCount) > 0);
+return totalNumeric >= 3 && hasSuffixes && hasBothTypes;
+```
+
+### Required Columns Validation
+
+After reconciliation, ensure these columns exist:
+1. `date` - Required
+2. `description` - Required
+3. At least one of: `debit`, `credit`, or `amount` - Required
+4. `balance` - Required
+
+If any are missing, attempt fallback assignment or flag as error.
+
