@@ -135,7 +135,7 @@ export default function TestConversion() {
   };
 
   const handleDownloadExcel = async () => {
-    if (!result || transactions.length === 0) return;
+    if (!result) return;
 
     try {
       // Determine confidence level
