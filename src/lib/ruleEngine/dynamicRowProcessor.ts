@@ -391,8 +391,23 @@ export function convertToRawTransactions(
       console.log(`[DynamicRowProcessor] Split merged amount: "${row.amount}" -> debit: ${effectiveDebit}, credit: ${effectiveCredit}`);
     }
     
+    // Use recovered date if original date is empty
+    let rawDate = row.date;
+    if (!rawDate && tx.recoveredDate) {
+      rawDate = tx.recoveredDate;
+      console.log(`[DynamicRowProcessor] Recovered date "${tx.recoveredDate}" from another column`);
+    }
+    
     // Extract reference from description
-    const { reference, referenceType, cleanedDescription } = extractReference(tx.fullDescription);
+    let description = tx.fullDescription;
+    const { reference, referenceType, cleanedDescription } = extractReference(description);
+    
+    // If date was recovered from description, remove it from description
+    if (tx.recoveredDate && cleanedDescription.includes(tx.recoveredDate)) {
+      description = cleanedDescription.replace(tx.recoveredDate, '').replace(/\s+/g, ' ').trim();
+    } else {
+      description = cleanedDescription;
+    }
     
     // Collect all text elements from primary and continuation rows
     const allElements: TextElement[] = [];
@@ -422,8 +437,8 @@ export function convertToRawTransactions(
       rowIndex: index,
       pageNumber: row.pageNumber,
       elements: allElements,
-      rawDate: row.date || undefined,
-      rawDescription: cleanedDescription,  // Use cleaned description (reference removed)
+      rawDate: rawDate || undefined,
+      rawDescription: description,  // Use cleaned description (reference and recovered date removed)
       rawDebit: effectiveDebit || undefined,
       rawCredit: effectiveCredit || undefined,
       rawBalance: row.balance || undefined,
