@@ -280,9 +280,10 @@ export interface StitchedTransaction {
   continuationRows: ExtractedRow[];
   fullDescription: string;
   classification: RowClassification;
-  effectiveDebit: string | null;   // NEW: Resolved debit (from split or original)
-  effectiveCredit: string | null;  // NEW: Resolved credit (from split or original)
-  wasAmountSplit: boolean;         // NEW: Track if amount was split from merged column
+  effectiveDebit: string | null;
+  effectiveCredit: string | null;
+  wasAmountSplit: boolean;
+  recoveredDate: string | null;  // Date recovered from any column
 }
 
 /**
