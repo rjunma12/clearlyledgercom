@@ -1,6 +1,6 @@
 import { useState, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Menu, X, Sun, Moon, LayoutDashboard, LogOut, TestTube } from "lucide-react";
+import { FileSpreadsheet, Menu, X, Sun, Moon, LayoutDashboard, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,10 +51,6 @@ const Navbar = forwardRef<HTMLElement>((_, ref) => {
             </Link>
             <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               {t('nav.security')}
-            </Link>
-            <Link to="/test-conversion" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-              <TestTube className="w-4 h-4" />
-              Test
             </Link>
           </div>
 
@@ -157,10 +153,6 @@ const Navbar = forwardRef<HTMLElement>((_, ref) => {
               </Link>
                <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                  {t('nav.security')}
-               </Link>
-               <Link to="/test-conversion" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                 <TestTube className="w-4 h-4" />
-                 Test Conversion
                </Link>
                <div className="flex flex-col gap-2 pt-4 border-t border-glass-border">
                 <LanguageSelector variant="full" className="justify-start w-full" />
