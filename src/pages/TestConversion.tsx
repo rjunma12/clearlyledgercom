@@ -190,7 +190,7 @@ export default function TestConversion() {
         debit: tx.debit != null ? String(tx.debit) : '',
         credit: tx.credit != null ? String(tx.credit) : '',
         balance: tx.balance != null ? String(tx.balance) : '',
-        currency: 'USD',
+        currency: detectedCurrency,
         reference: tx.reference || '',
         validationStatus: tx.validationStatus as 'valid' | 'warning' | 'error' | undefined,
       }));
