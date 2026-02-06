@@ -750,17 +750,76 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[], lines: PdfLine[]):
     }
   }
 
+  // NEW: Position-based date detection - leftmost column with date-like content
   if (!hasDate && boundaries.length > 0) {
-    // Assign leftmost column as date if none found
-    boundaries[0] = { ...boundaries[0], inferredType: 'date', confidence: 0.4 };
-    hasDate = true;
+    // Check first column for date patterns
+    const firstCol = boundaries[0];
+    const datePatterns = [
+      /^\d{1,2}[\/\-\.]\d{1,2}/,      // DD/MM or MM/DD format
+      /^\d{1,2}\s+[A-Za-z]{3}/,       // 15 Jan format
+      /^[A-Za-z]{3}\s+\d{1,2}/,       // Jan 15 format
+    ];
+    
+    // Sample content from first column
+    const hasDateContent = lines.slice(0, 20).some(line => {
+      const wordsInCol = line.words.filter(w => {
+        const center = (w.x0 + w.x1) / 2;
+        return center >= firstCol.x0 && center <= firstCol.x1;
+      });
+      if (wordsInCol.length > 0) {
+        const text = wordsInCol.map(w => w.text).join(' ').trim();
+        return datePatterns.some(p => p.test(text));
+      }
+      return false;
+    });
+    
+    if (hasDateContent) {
+      boundaries[0] = { ...boundaries[0], inferredType: 'date', confidence: 0.9 };
+      console.log('[PostProcess] Assigned leftmost column as DATE (position heuristic)');
+      hasDate = true;
+    } else {
+      // Fallback: assign leftmost as date anyway
+      boundaries[0] = { ...boundaries[0], inferredType: 'date', confidence: 0.5 };
+      hasDate = true;
+    }
   }
 
+  // NEW: Position-based balance detection - rightmost numeric column
   if (!hasBalance && boundaries.length > 1) {
-    // Assign rightmost column as balance
-    const last = boundaries.length - 1;
-    boundaries[last] = { ...boundaries[last], inferredType: 'balance', confidence: 0.4 };
-    hasBalance = true;
+    // Find rightmost column with numeric content
+    const numericColumns = boundaries
+      .map((b, i) => ({ boundary: b, index: i }))
+      .filter(({ boundary }) => {
+        const hasNumeric = lines.slice(0, 20).some(line => {
+          const wordsInCol = line.words.filter(w => {
+            const center = (w.x0 + w.x1) / 2;
+            return center >= boundary.x0 && center <= boundary.x1;
+          });
+          if (wordsInCol.length > 0) {
+            const text = wordsInCol.map(w => w.text).join(' ').trim();
+            return hasNumericContent(text);
+          }
+          return false;
+        });
+        return hasNumeric;
+      })
+      .sort((a, b) => b.boundary.centerX - a.boundary.centerX); // Rightmost first
+    
+    if (numericColumns.length > 0) {
+      const rightmost = numericColumns[0];
+      boundaries[rightmost.index] = { 
+        ...boundaries[rightmost.index], 
+        inferredType: 'balance', 
+        confidence: 0.85 
+      };
+      console.log(`[PostProcess] Assigned rightmost numeric column ${rightmost.index} as BALANCE`);
+      hasBalance = true;
+    } else {
+      // Fallback: assign rightmost column as balance
+      const last = boundaries.length - 1;
+      boundaries[last] = { ...boundaries[last], inferredType: 'balance', confidence: 0.5 };
+      hasBalance = true;
+    }
   }
 
   if (!hasDescription && boundaries.length > 2) {
@@ -777,10 +836,14 @@ function postProcessColumnTypes(boundaries: ColumnBoundary[], lines: PdfLine[]):
       }
     });
     if (widestIdx >= 0) {
-      boundaries[widestIdx] = { ...boundaries[widestIdx], inferredType: 'description', confidence: 0.4 };
+      boundaries[widestIdx] = { ...boundaries[widestIdx], inferredType: 'description', confidence: 0.6 };
+      console.log(`[PostProcess] Assigned widest column ${widestIdx} as DESCRIPTION`);
       hasDescription = true;
     }
   }
+  
+  // NEW: Prevent duplicate debit/credit columns
+  ensureUniqueAmountColumns(boundaries);
 
   // NEW: Handle merged amount column - no need to assign debit/credit separately
   // The dynamicRowProcessor will split based on CR/DR suffixes
