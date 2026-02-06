@@ -18,6 +18,13 @@ interface SubscriptionInfo {
   expiresAt: string | null;
 }
 
+/**
+ * Checkout Success Page
+ * 
+ * This page handles the redirect after a successful payment.
+ * It verifies the subscription status by polling the database
+ * (webhooks may take a moment to process).
+ */
 const CheckoutSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -30,48 +37,90 @@ const CheckoutSuccess = () => {
   const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
-    const verifyPayment = async () => {
+    const verifySubscription = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
-          // User not logged in - redirect to login
           logError({
             errorType: ErrorTypes.AUTH,
             errorMessage: 'User not authenticated for payment verification',
             component: 'CheckoutSuccess',
-            action: 'verifyPayment',
+            action: 'verifySubscription',
             metadata: { planName, sessionId }
           });
           navigate('/login');
           return;
         }
 
-        const { data, error } = await supabase.functions.invoke('verify-payment', {
-          body: { sessionId, planName }
-        });
+        // Query the database directly for the user's subscription
+        const { data: subscriptionData, error } = await supabase
+          .from('user_subscriptions')
+          .select(`
+            status,
+            expires_at,
+            plans (
+              name,
+              display_name
+            )
+          `)
+          .eq('user_id', session.user.id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
         if (error) {
-          console.error('Verification error:', error);
+          console.error('Subscription query error:', error);
           logError({
             errorType: ErrorTypes.CHECKOUT,
-            errorMessage: error.message || 'Payment verification failed',
+            errorMessage: error.message || 'Failed to verify subscription',
             component: 'CheckoutSuccess',
-            action: 'verifyPayment',
+            action: 'verifySubscription',
             metadata: { planName, sessionId }
           });
-          setStatus('error');
+          
+          if (attempts < maxAttempts) {
+            setAttempts(prev => prev + 1);
+            setTimeout(verifySubscription, 2000);
+          } else {
+            setStatus('error');
+          }
           return;
         }
 
-        if (data.verified) {
-          setSubscription(data.subscription);
-          setStatus('success');
-          toast.success(`Welcome to ${data.subscription.displayName}!`);
+        if (subscriptionData && subscriptionData.plans) {
+          const planData = subscriptionData.plans as { name: string; display_name: string };
+          
+          // Check if the subscription matches the expected plan (if specified)
+          if (!planName || planData.name === planName || planData.name.startsWith(planName.replace('_annual', ''))) {
+            setSubscription({
+              planName: planData.name,
+              displayName: planData.display_name,
+              status: subscriptionData.status,
+              expiresAt: subscriptionData.expires_at
+            });
+            setStatus('success');
+            toast.success(`Welcome to ${planData.display_name}!`);
+          } else if (attempts < maxAttempts) {
+            // Subscription exists but might be for a different plan, keep waiting
+            setAttempts(prev => prev + 1);
+            setTimeout(verifySubscription, 2000);
+          } else {
+            // After max attempts, show what we found
+            setSubscription({
+              planName: planData.name,
+              displayName: planData.display_name,
+              status: subscriptionData.status,
+              expiresAt: subscriptionData.expires_at
+            });
+            setStatus('success');
+            toast.success(`Welcome to ${planData.display_name}!`);
+          }
         } else if (attempts < maxAttempts) {
-          // Webhook might not have processed yet - retry
+          // No subscription yet - webhook might not have processed
           setAttempts(prev => prev + 1);
-          setTimeout(verifyPayment, 2000);
+          setTimeout(verifySubscription, 2000);
         } else {
           setStatus('pending');
         }
@@ -81,14 +130,14 @@ const CheckoutSuccess = () => {
           errorType: ErrorTypes.CHECKOUT,
           errorMessage: error instanceof Error ? error.message : 'Payment verification failed',
           component: 'CheckoutSuccess',
-          action: 'verifyPayment',
+          action: 'verifySubscription',
           metadata: { planName, sessionId }
         });
         setStatus('error');
       }
     };
 
-    verifyPayment();
+    verifySubscription();
   }, [planName, sessionId, navigate, attempts]);
 
   const handleGoToDashboard = () => {

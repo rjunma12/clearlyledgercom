@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logError, ErrorTypes } from "@/lib/errorLogger";
+import { PaymentErrorCode } from "@/lib/payments";
 
 export type PlanName = 
   | 'starter' | 'starter_annual'
@@ -16,6 +17,13 @@ interface UseCheckoutReturn {
   initiateCheckout: (planName: PlanName) => Promise<void>;
 }
 
+/**
+ * Hook for initiating payment checkout
+ * 
+ * This hook provides a provider-agnostic interface for starting the checkout process.
+ * When a payment provider is configured, it will create a checkout session and
+ * redirect the user to the payment page.
+ */
 export function useCheckout(): UseCheckoutReturn {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -30,14 +38,13 @@ export function useCheckout(): UseCheckoutReturn {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // Redirect to login - redirect param is unused by Login component
         toast.info("Please log in to subscribe");
         navigate('/login');
         return;
       }
 
-      // Call create-checkout edge function
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      // Call create-checkout-session edge function
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           planName,
           successUrl: window.location.origin + '/checkout/success',
@@ -47,20 +54,37 @@ export function useCheckout(): UseCheckoutReturn {
 
       if (error) {
         console.error('Checkout error:', error);
-        toast.error(error.message || 'Failed to start checkout. Please try again.');
+        
+        // Check for specific error codes
+        if (data?.code === PaymentErrorCode.PROVIDER_NOT_CONFIGURED || 
+            error.message?.includes('not configured')) {
+          toast.error('Payment system is being set up. Please try again later.');
+        } else {
+          toast.error(error.message || 'Failed to start checkout. Please try again.');
+        }
+        
         logError({
           errorType: ErrorTypes.CHECKOUT,
           errorMessage: error.message || 'Failed to create checkout session',
           component: 'useCheckout',
           action: 'createCheckout',
-          metadata: { planName }
+          metadata: { planName, errorCode: data?.code }
         });
         return;
       }
 
       if (data?.checkoutUrl) {
-        // Redirect to Dodo hosted checkout
+        // Redirect to payment provider's checkout
         window.location.href = data.checkoutUrl;
+      } else if (data?.code === 'PAYMENT_PROVIDER_NOT_CONFIGURED') {
+        toast.error('Payment system is being set up. Please try again later.');
+        logError({
+          errorType: ErrorTypes.CHECKOUT,
+          errorMessage: 'Payment provider not configured',
+          component: 'useCheckout',
+          action: 'createCheckout',
+          metadata: { planName }
+        });
       } else {
         toast.error('Failed to start checkout. Please try again.');
         logError({

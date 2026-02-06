@@ -505,9 +505,9 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
 
         {/* Trust footer */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+        <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
             <Shield className="w-4 h-4 text-primary" />
-            Secure payment via Dodo • Cancel anytime • No hidden fees
+            Secure payments • Cancel anytime • No hidden fees
           </p>
         </div>
       </div>
