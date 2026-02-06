@@ -26,14 +26,61 @@ import type {
 const TRANSACTION_COLUMNS = [
   { header: 'Date', key: 'date', width: 12 },
   { header: 'Description', key: 'description', width: 50 },
-  { header: 'Debit', key: 'debit', width: 15 },
-  { header: 'Credit', key: 'credit', width: 15 },
+  { header: 'Withdrawal Amt.', key: 'debit', width: 15 },
+  { header: 'Deposit Amt.', key: 'credit', width: 15 },
   { header: 'Balance', key: 'balance', width: 15 },
   { header: 'Currency', key: 'currency', width: 10 },
   { header: 'Reference', key: 'reference', width: 20 },
-  { header: 'Grade', key: 'grade', width: 8 },           // NEW: Confidence grade (A-F)
-  { header: 'Confidence', key: 'confidence', width: 12 }, // NEW: Confidence score (0-100)
+  { header: 'Grade', key: 'grade', width: 8 },
+  { header: 'Confidence', key: 'confidence', width: 12 },
 ];
+
+// Address/disclaimer patterns to filter out non-transaction content
+const ADDRESS_FILTER_PATTERNS = [
+  /toll\s*free/i,
+  /customer\s*care/i,
+  /customer\s*service/i,
+  /phone|tel|fax/i,
+  /office\s*:/i,
+  /www\./i,
+  /disclaimer/i,
+  /terms\s+(and|&)/i,
+  /regd\.?\s*office/i,
+  /cin\s*[:.-]/i,
+  /gstin/i,
+  /gst\s*no/i,
+  /email\s*id/i,
+  /contact\s*us/i,
+  /helpline/i,
+  /pincode/i,
+  /authorised\s*signator/i,
+  /does\s+not\s+require/i,
+  /bank\s+address/i,
+  /branch\s+address/i,
+  /floor,?\s*no/i,
+  /building\s*no/i,
+  /plot\s*no/i,
+];
+
+/**
+ * Filter out address/disclaimer content from transactions
+ */
+function filterAddressContent(transactions: StandardizedTransaction[]): StandardizedTransaction[] {
+  return transactions.filter(tx => {
+    const hasContent = tx.date || tx.description || tx.debit || tx.credit || tx.balance;
+    if (!hasContent) return false;
+    
+    const descLower = (tx.description || '').toLowerCase();
+    const isAddressRow = ADDRESS_FILTER_PATTERNS.some(p => p.test(descLower));
+    
+    if (isAddressRow) {
+      console.log('[ExcelGenerator] Filtering address/footer row:', tx.description?.substring(0, 60));
+      return false;
+    }
+    
+    return true;
+  });
+}
 
 // =============================================================================
 // SHEET GENERATORS
