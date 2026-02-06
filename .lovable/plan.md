@@ -1,147 +1,161 @@
 
-# Backend PDF Processing Test Infrastructure
+# Test Conversion Issues Analysis & Improvement Plan
 
-## Current Situation
+## Current State Analysis
 
-The ClearlyLedger conversion pipeline is entirely **client-side**:
+After running your bank statement through the test conversion page, here's what we found:
 
-| Component | Technology | Runs In |
-|-----------|------------|---------|
-| PDF Loading | pdfjs-dist | Browser |
-| Text Extraction | pdfjs-dist text layer | Browser |
-| OCR (scanned) | tesseract.js | Browser |
-| Rule Engine | TypeScript (geometric parsing) | Browser |
-| Export Generation | ExcelJS via Edge Function | Server |
+### Processing Metrics
+| Metric | Value | Status |
+|--------|-------|--------|
+| PDF Type | TEXT_BASED | Good - fast extraction |
+| Text Elements | 7,080 | Good |
+| Table Regions | 11 | Issue - too fragmented |
+| Transactions | 40 | Needs verification |
+| Confidence | 0.61 (61%) | Below 75% threshold |
 
-**The backend can only receive already-parsed transaction data** - it cannot process raw PDFs.
+### Critical Issues Found
 
-## Option 1: Create a Test Page (Fastest)
+1. **Missing Credit Column**
+   The column detection promoted column 3 to CREDIT but then reassigned it to DEBIT because it detected only a single amount column. This means all credits in your statement are being missed or mis-classified as debits.
 
-Add a hidden `/test-conversion` route that:
-- Bypasses quota limits for testing
-- Shows detailed timing breakdowns for each stage
-- Logs all intermediate data (columns detected, rows extracted, etc.)
-- Allows unlimited page processing
+2. **Fragmented Table Detection**
+   Your statement was split into 11 separate table regions. This causes:
+   - Inconsistent column mappings across regions
+   - Lost context between sections
+   - Multiple "unknown" column assignments
 
-**Files to Create:**
-- `src/pages/TestConversion.tsx` - Test interface with detailed logging
-- `src/components/TestFileUpload.tsx` - Enhanced upload component with timing
+3. **Column Mapping Inconsistency**
+   Different regions detected different columns:
+   - Region 1: `[description, reference, date, debit, balance]`
+   - Regions 2-3: `[description, unknown, date, credit, balance]`
+   - Other regions: mixed results
 
-**Output:**
+4. **Low Confidence Score (61%)**
+   This is below the 75% threshold required for trusted export. Key factors:
+   - Missing credit column detection
+   - Multiple "unknown" column types
+   - Fragmented table structure
+
+---
+
+## Improvement Plan
+
+### Phase 1: Enhanced Test Page Diagnostics
+
+Add more detailed metrics to identify exactly what's happening:
+
+**New Test Page Features:**
+- Per-table breakdown showing columns detected for each region
+- Visual highlighting of problematic rows
+- Column classification confidence per column
+- Debit/Credit totals comparison
+- Raw extracted text viewer for debugging
+
 ```text
-PDF Type: TEXT_BASED (1,247 chars on page 1)
-Page Count: 3
-Text Extraction: 245ms
-Table Detection: 89ms  
-  - Lines detected: 47
-  - Columns: [date, description, debit, credit, balance]
-  - Confidence: 0.92
-Row Processing: 156ms
-  - Transactions: 24
-  - Opening balance: Yes
-  - Closing balance: Yes
-Validation: 34ms
-  - Balance check: PASSED
-  - Errors: 0
-  - Warnings: 1
-Total Time: 524ms
+Table Region Analysis:
+  Region 1 (Page 1, lines 15-42): 
+    Columns: date(0.67), description(1.00), debit(0.50), balance(0.40)
+    Rows: 12
+  Region 2 (Page 1, lines 50-80):
+    Columns: date(1.00), description(0.97), credit(0.80), balance(0.40)
+    Rows: 8
+  ...
 ```
 
-## Option 2: Create Backend Processing Capability (Complex)
+### Phase 2: Column Detection Improvements
 
-This would require significant changes:
+Fix the core issues in the parsing engine:
 
-### Edge Function Infrastructure
+**2.1 Single Amount Column Handling**
+Current behavior: If only one numeric column found between date and balance, it's assigned as DEBIT only.
 
-```text
-supabase/functions/process-pdf/
-├── index.ts          # Entry point
-├── pdfParser.ts      # Server-side PDF parsing
-└── deps.ts           # Deno-compatible dependencies
-```
+**Fix:** Check for CR/DR suffixes in the amount values to split into debit/credit dynamically.
 
-### Technical Challenges
+**2.2 Cross-Table Column Reconciliation**
+Current behavior: Each table region classifies columns independently.
 
-| Challenge | Browser Solution | Server Solution |
-|-----------|------------------|-----------------|
-| PDF Parsing | pdfjs-dist | pdf-lib or external service |
-| OCR | tesseract.js WASM | Google Vision API or external |
-| Canvas | DOM canvas | No native support |
-| Memory | User device | Edge function limits (256MB) |
+**Fix:** Use the highest-confidence column mapping from the first valid table region and apply it consistently across all subsequent regions on the same page.
 
-### Required Dependencies
+**2.3 Merged Debit/Credit Column Detection**
+Current behavior: Looking for explicit "Debit" and "Credit" headers separately.
 
-1. **pdf-lib** - Can parse PDFs in Deno but text extraction is limited
-2. **External OCR Service** - Google Vision, AWS Textract, or Azure Form Recognizer
-3. **PDF Text Extraction Service** - Like pdf.co or pdftables.com
+**Fix:** Detect merged amount columns where values contain suffixes like "1,548.00 Dr" or "500.00 Cr" and split them dynamically.
 
-### Migration Scope
+### Phase 3: Bank Profile Enhancement
 
-1. Abstract the rule engine to work with raw text (already mostly done)
-2. Create server-side PDF text extraction
-3. Handle OCR via external API
-4. Move processing from client to server
+**3.1 Detect Bank Format**
+Add pattern matching to identify the specific bank format (likely Indian bank based on column structure) and apply appropriate column hints.
 
-## Recommendation
+**3.2 Statement-Specific Tuning**
+For this statement format:
+- Expected columns: Date | Description | Withdrawal | Deposit | Balance
+- OR: Date | Description | Amount (with DR/CR suffix) | Balance
 
-**Start with Option 1** (Test Page) to:
-1. Test the current pipeline with your PDF without limits
-2. Get detailed timing and quality metrics
-3. Identify any parsing issues
+### Phase 4: Validation Improvements
 
-**Then evaluate Option 2** if you need:
-- Processing without client resources
-- Higher security (files never leave server)
-- API-first architecture for integrations
+**4.1 Cross-Check Totals**
+Add validation that compares:
+- Sum of all debits
+- Sum of all credits
+- Opening balance + credits - debits = Closing balance
 
-## Implementation for Option 1
+**4.2 Missing Amount Detection**
+Flag rows where:
+- No debit AND no credit detected
+- Amount exists but couldn't be classified
 
-### New Test Page
+---
 
-```typescript
-// Route: /test-conversion (not linked in navigation)
-// Features:
-// - No quota checks
-// - No page limits
-// - Detailed console logging
-// - Timing breakdown per stage
-// - Raw data inspection
-// - Export all debug info
-```
+## Implementation Steps
 
-### Timing Instrumentation
+| Step | File | Change |
+|------|------|--------|
+| 1 | `TestConversion.tsx` | Add per-table metrics display |
+| 2 | `TestConversion.tsx` | Add debit/credit totals verification |
+| 3 | `tableDetector.ts` | Add merged amount column detection |
+| 4 | `tableDetector.ts` | Add cross-table column reconciliation |
+| 5 | `dynamicRowProcessor.ts` | Improve CR/DR suffix parsing |
+| 6 | `ruleEngine/index.ts` | Add validation for missing credits |
 
-Add detailed timing to each pipeline stage:
-- `loadPdfDocument()` - PDF loading time
-- `analyzePdfType()` - Type detection time
-- `extractTextFromPage()` - Per-page extraction
-- `detectAndExtractTables()` - Table detection
-- `processExtractedRows()` - Row processing
-- `validateDocument()` - Balance validation
+---
 
-### Quality Metrics Dashboard
+## Expected Outcomes After Fixes
 
-Display:
-- PDF type (text-based vs scanned)
-- Characters extracted per page
-- Columns detected with confidence scores
-- Transaction count vs expected
-- Balance validation results
-- Any auto-repair actions taken
+| Metric | Before | After (Expected) |
+|--------|--------|------------------|
+| Credit Column | Missing | Detected |
+| Table Regions | 11 (fragmented) | 2-3 (consolidated) |
+| Confidence | 61% | 85%+ |
+| Transaction Accuracy | Unknown | Verified via balance check |
 
-## Files to Create/Modify
+---
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/pages/TestConversion.tsx` | Create | Test UI with detailed output |
-| `src/components/TestFileUpload.tsx` | Create | Unlimited processing component |
-| `src/lib/pdfProcessor.ts` | Modify | Add timing instrumentation |
-| `src/lib/ruleEngine/index.ts` | Modify | Add debug output hooks |
-| `src/App.tsx` | Modify | Add `/test-conversion` route |
+## Technical Details
 
-## Next Steps
+### File Changes Summary
 
-1. **Approve this plan** to create the test infrastructure
-2. **Upload your PDF** through the test page
-3. **Review results** including timing, transaction count, validation
-4. **Decide on backend** based on performance needs
+**TestConversion.tsx** - Enhanced diagnostics
+- Add per-table region breakdown panel
+- Display column confidence scores per column
+- Show debit/credit totals with balance verification
+- Add raw text viewer for selected rows
+- Export debug data as JSON
+
+**tableDetector.ts** - Column detection fixes
+- Add merged amount column detection (DR/CR suffix)
+- Implement cross-table column reconciliation
+- Reduce table fragmentation threshold
+- Improve column type inference for Indian bank formats
+
+**dynamicRowProcessor.ts** - Row processing fixes
+- Enhance CR/DR suffix parsing patterns
+- Add fallback for unclassified amounts
+- Improve reference extraction for Indian payment modes
+
+### Testing Strategy
+
+1. Process your statement with enhanced diagnostics
+2. Verify all 40 transactions have correct debit/credit assignment
+3. Validate running balance matches actual statement
+4. Compare totals with statement summary section
