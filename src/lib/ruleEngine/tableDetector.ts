@@ -244,7 +244,7 @@ export function detectTableRegions(lines: PdfLine[]): TableRegion[] {
   }
 
   // Handle table at end of document
-  if (consistentColumnCount >= 3) {
+  if (consistentColumnCount >= 2) {
     tables.push(createTableRegion(lines, tableStartIndex, lines.length - 1));
   }
   
