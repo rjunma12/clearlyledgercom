@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { processPDF } from '@/lib/pdfProcessor';
-import type { ProcessingResult, StatementMetadata, ValidationSummary, StandardizedTransaction } from '@/lib/ruleEngine/types';
+import type { ProcessingResult } from '@/lib/ruleEngine/types';
 import type { TableMetrics, ColumnBoundary } from '@/lib/ruleEngine/tableDetector';
-import { Loader2, Download, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { Loader2, Download, FileSpreadsheet } from 'lucide-react';
 import { TableMetricsPanel } from '@/components/test/TableMetricsPanel';
 import { TransactionSummaryPanel } from '@/components/test/TransactionSummaryPanel';
 import { ColumnVisualization } from '@/components/test/ColumnVisualization';
 import { RawTransactionTable } from '@/components/test/RawTransactionTable';
 import { ColumnConflictsPanel } from '@/components/test/ColumnConflictsPanel';
-import { generateStandardizedExcel } from '@/lib/excelGenerator';
+import { generateSimpleExcel } from '@/lib/simpleExcelGenerator';
+import { toast } from 'sonner';
 
 interface ExtendedResult extends ProcessingResult {
   perTableMetrics?: TableMetrics[];
