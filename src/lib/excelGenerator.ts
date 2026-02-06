@@ -91,8 +91,11 @@ function filterAddressContent(transactions: StandardizedTransaction[]): Standard
  */
 function generateTransactionsSheet(
   workbook: ExcelJS.Workbook,
-  transactions: StandardizedTransaction[]
+  rawTransactions: StandardizedTransaction[]
 ): void {
+  // Filter out address/disclaimer content
+  const transactions = filterAddressContent(rawTransactions);
+  console.log(`[ExcelGenerator] Filtered ${rawTransactions.length} rows -> ${transactions.length} valid transactions`);
   const sheet = workbook.addWorksheet('Transactions', {
     properties: { tabColor: { argb: '4472C4' } }
   });
