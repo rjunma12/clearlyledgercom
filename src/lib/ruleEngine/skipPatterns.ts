@@ -114,6 +114,42 @@ export const INSTRUCTION_PATTERNS: RegExp[] = [
 ];
 
 // =============================================================================
+// ADDRESS & DISCLAIMER PATTERNS
+// =============================================================================
+
+/** Address and disclaimer patterns - filter non-transaction content */
+export const ADDRESS_PATTERNS: RegExp[] = [
+  /\b(toll\s*free|helpline|customer\s*care)\b/i,
+  /\b(phone|tel|fax|email)\s*[:.]?\s*[\d\-\(\)]+/i,
+  /\b(registered\s+)?office\s*:/i,
+  /\b(pin\s*code|postal\s*code|zip)\s*[:\-]?\s*\d+/i,
+  /\b(address|location)\s*:/i,
+  /\bwww\.\w+\.(com|in|org|net|co)/i,
+  /\b(city|state|district)\s*:/i,
+  /\bterms\s+(and|&)\s+conditions/i,
+  /\bdisclaimer\b/i,
+  /\b(head|corporate|main)\s+office/i,
+  /\bregd\.?\s*(office|address)/i,
+  /\bcin\s*[:.-]?\s*[A-Z0-9]+/i,  // Corporate ID Number
+  /\b(gstin|gst\s*no\.?)\s*[:.-]?\s*\w+/i,  // GST Number
+  /\bfor\s+(any|your)\s+(queries?|complaints?|assistance)/i,
+  /\bthis\s+is\s+an?\s+(electronic|computer|system)\s+generated/i,
+  /\bauthorised\s+signator/i,
+  /\bdoes\s+not\s+require\s+signature/i,
+  /\bcontact\s+us\s*(at|on)?/i,
+  /\bemail\s*id\s*:/i,
+  /\bwebsite\s*:/i,
+  /\bcustomer\s+service/i,
+  /\bbank\s+address/i,
+  /\bbranch\s+address/i,
+  /\bfloor,?\s*(no\.?)?\s*\d/i,  // Floor numbers
+  /\bbuilding\s*(no\.?)?\s*\d/i,  // Building numbers
+  /\bplot\s*(no\.?)?\s*\d/i,  // Plot numbers
+  /\bstreet\s*(no\.?)?\s*\d/i,  // Street numbers
+  /\bpincode\s*\d{6}/i,  // Indian pincode
+];
+
+// =============================================================================
 // NOISE PATTERNS
 // =============================================================================
 
@@ -140,6 +176,7 @@ export const ALL_SKIP_PATTERNS: RegExp[] = [
   ...SECTION_HEADER_PATTERNS,
   ...INSTRUCTION_PATTERNS,
   ...NOISE_PATTERNS,
+  ...ADDRESS_PATTERNS,
 ];
 
 // =============================================================================
@@ -293,6 +330,14 @@ export function isInstruction(text: string): boolean {
 export function isNoise(text: string): boolean {
   const trimmed = text.trim();
   return NOISE_PATTERNS.some(pattern => pattern.test(trimmed));
+}
+
+/**
+ * Check if text is address/disclaimer content
+ */
+export function isAddressContent(text: string): boolean {
+  const trimmed = text.trim();
+  return ADDRESS_PATTERNS.some(pattern => pattern.test(trimmed));
 }
 
 /**

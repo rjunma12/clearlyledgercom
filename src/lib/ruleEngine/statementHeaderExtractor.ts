@@ -46,14 +46,20 @@ export interface ExtractedStatementHeader {
 const EXTRACTION_PATTERNS = {
   // Account holder name patterns - expanded for Indian banks
   accountHolder: [
-    // Indian banks: "Name :- DR DEEPIKAS HEALTHPLUS PVT LTD"
-    /Name\s*:[-]?\s*(.+?)(?:\s*$|Account|A\/C|Branch|IFSC|Customer|CIF)/i,
+    // Indian banks: "Name :- DR DEEPIKAS HEALTHPLUS PVT LTD" (colon-dash separator)
+    /Name\s*:[-]+\s*(.+?)(?:\s*$|Account|A\/C|Branch|IFSC|Customer|CIF)/i,
+    // Indian banks: "Name: COMPANY NAME PVT LTD"
+    /Name\s*:\s*(.+?)(?:\s*$|Account|A\/C|Branch|IFSC|Customer|CIF)/i,
     // Generic: "Account Holder: John Smith"
     /Account\s*Holder\s*:?\s*(.+?)(?:\s*$|Account|Branch)/i,
     // Generic: "Customer Name: John Smith"
     /Customer\s*Name\s*:?\s*(.+?)(?:\s*$|Account|Branch)/i,
     // UK/AU style: "A/C Name: John Smith"
     /A\/C\s*Name\s*:?\s*(.+?)(?:\s*$|Account|Branch)/i,
+    // NEW: Multi-part business names with suffixes
+    /Name\s*[:\-]+\s*([A-Z][A-Z\s]+(?:PVT|LTD|LIMITED|PRIVATE|COMPANY|CORP|INC)?[\.\s]*(?:PVT|LTD|LIMITED)?)/i,
+    // NEW: All caps words after Name (common in Indian statements)
+    /Name\s*[:\-]+\s*([A-Z]{2,}(?:\s+[A-Z]{2,})*)/i,
     // Simple name line (fallback)
     /(?:Name|Holder)\s*:?\s*(.+)/i,
     // NEW: Statement for/of patterns
@@ -382,9 +388,9 @@ export function extractStatementHeader(
   bankProfile?: BankProfile
 ): ExtractedStatementHeader {
   // Convert line array to text array
-  // Use first 30 lines max (header area)
+  // Use first 50 lines max (header area) - expanded for better coverage
   const textLines = lines
-    .slice(0, 30)
+    .slice(0, 50)
     .map(line => {
       // Check for 'text' property first
       if ('text' in line && typeof line.text === 'string' && line.text.length > 0) {

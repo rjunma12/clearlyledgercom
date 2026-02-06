@@ -40,14 +40,55 @@ const TRANSACTION_COLUMNS = [
 export async function generateSimpleExcel(options: SimpleExcelOptions): Promise<ArrayBuffer> {
   const { accountInfo, transactions: rawTransactions } = options;
   
-  // Filter out completely empty rows - only include rows with at least one data point
-  const transactions = rawTransactions.filter(tx => 
-    (tx.date && tx.date.trim()) || 
-    (tx.description && tx.description.trim()) || 
-    (tx.debit && tx.debit.trim()) || 
-    (tx.credit && tx.credit.trim()) || 
-    (tx.balance && tx.balance.trim())
-  );
+  // Address/disclaimer patterns to filter out non-transaction content
+  const addressPatterns = [
+    /toll\s*free/i,
+    /customer\s*care/i,
+    /customer\s*service/i,
+    /phone|tel|fax/i,
+    /office\s*:/i,
+    /www\./i,
+    /disclaimer/i,
+    /terms\s+(and|&)/i,
+    /regd\.?\s*office/i,
+    /cin\s*[:.-]/i,
+    /gstin/i,
+    /gst\s*no/i,
+    /email\s*id/i,
+    /contact\s*us/i,
+    /helpline/i,
+    /pincode/i,
+    /authorised\s*signator/i,
+    /does\s+not\s+require/i,
+    /bank\s+address/i,
+    /branch\s+address/i,
+    /floor,?\s*no/i,
+    /building\s*no/i,
+    /plot\s*no/i,
+  ];
+
+  // Filter out completely empty rows AND address/disclaimer content
+  const transactions = rawTransactions.filter(tx => {
+    // Skip completely empty rows
+    const hasContent = (tx.date && tx.date.trim()) || 
+      (tx.description && tx.description.trim()) || 
+      (tx.debit && tx.debit.trim()) || 
+      (tx.credit && tx.credit.trim()) || 
+      (tx.balance && tx.balance.trim());
+    
+    if (!hasContent) return false;
+    
+    // Check if description contains address/disclaimer content
+    const descLower = (tx.description || '').toLowerCase();
+    const isAddressRow = addressPatterns.some(p => p.test(descLower));
+    
+    if (isAddressRow) {
+      console.log('[SimpleExcelGenerator] Skipping address/footer row:', tx.description?.substring(0, 60));
+      return false;
+    }
+    
+    return true;
+  });
   
   console.log(`[SimpleExcelGenerator] Filtered ${rawTransactions.length} rows -> ${transactions.length} valid transactions`);
   
