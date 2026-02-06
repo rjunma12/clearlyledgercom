@@ -5,6 +5,7 @@
 
 import type { RawTransaction, ParsedTransaction, TextElement, ColumnType } from './types';
 import type { ExtractedRow, ColumnBoundary, PdfLine } from './tableDetector';
+import { isAddressContent, ADDRESS_PATTERNS } from './skipPatterns';
 
 // =============================================================================
 // DATE VALIDATION PATTERNS
