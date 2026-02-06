@@ -44,7 +44,7 @@ export interface ExtractedStatementHeader {
 // =============================================================================
 
 const EXTRACTION_PATTERNS = {
-  // Account holder name patterns
+  // Account holder name patterns - expanded for Indian banks
   accountHolder: [
     // Indian banks: "Name :- DR DEEPIKAS HEALTHPLUS PVT LTD"
     /Name\s*:[-]?\s*(.+?)(?:\s*$|Account|A\/C|Branch|IFSC|Customer|CIF)/i,
@@ -56,6 +56,11 @@ const EXTRACTION_PATTERNS = {
     /A\/C\s*Name\s*:?\s*(.+?)(?:\s*$|Account|Branch)/i,
     // Simple name line (fallback)
     /(?:Name|Holder)\s*:?\s*(.+)/i,
+    // NEW: Statement for/of patterns
+    /Statement\s+for\s+(.+?)(?:\s*Account|\s*A\/C|\s*$)/i,
+    /Statement\s+of\s+Account\s+(?:for\s+)?(.+?)(?:\s*Account|\s*Period|\s*$)/i,
+    // NEW: Account in the name of
+    /Account\s+in\s+the\s+name\s+of\s+(.+?)(?:\s*$|Account|Branch)/i,
   ],
 
   // Account number patterns
@@ -70,6 +75,8 @@ const EXTRACTION_PATTERNS = {
     /(?:Account|A\/C)\s*(?:No\.?)?\s*:?\s*(\d{6,12})/i,
     // Australian BSB + Account: "BSB: 062-000 Account: 12345678"
     /Account\s*(?:Number|No\.?)?\s*:?\s*(\d{6,10})/i,
+    // NEW: Standalone account number pattern
+    /(?:^|\s)(\d{10,17})(?:\s|$)/,
   ],
 
   // Statement period patterns
@@ -86,12 +93,16 @@ const EXTRACTION_PATTERNS = {
     /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\s*[-–to]+\s*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/i,
     // Australian: "For the period 1 Mar 2025 to 31 Mar 2025"
     /(?:For\s+)?(?:the\s+)?period\s+(\d{1,2}\s+\w{3,9}\s+\d{4})\s+to\s+(\d{1,2}\s+\w{3,9}\s+\d{4})/i,
+    // NEW: Date DD MMM YYYY format
+    /(\d{1,2}\s+\w{3}\s+\d{4})\s*(?:to|[-–])\s*(\d{1,2}\s+\w{3}\s+\d{4})/i,
   ],
 
   // IFSC Code (Indian banks)
   ifscCode: [
     /IFSC\s*(?:Code)?\s*:?\s*([A-Z]{4}0[A-Z0-9]{6})/i,
     /IFS\s*Code\s*:?\s*([A-Z]{4}0[A-Z0-9]{6})/i,
+    // NEW: Bare IFSC pattern
+    /\b([A-Z]{4}0[A-Z0-9]{6})\b/,
   ],
 
   // Branch name
@@ -131,8 +142,44 @@ const EXTRACTION_PATTERNS = {
     /(?:Amount\s+in|All\s+amounts\s+in)\s+([A-Z]{3})/i,
     // Infer from symbol
     /(?:Opening|Closing)\s*Balance\s*:?\s*([₹$€£¥])/i,
+    // NEW: Amounts in currency
+    /(?:All\s+)?amounts?\s+(?:are\s+)?in\s+([A-Z]{3})/i,
   ],
 };
+
+// Known bank patterns for fallback detection
+const KNOWN_BANKS = [
+  { pattern: /ICICI\s*Bank/i, name: 'ICICI Bank' },
+  { pattern: /HDFC\s*Bank/i, name: 'HDFC Bank' },
+  { pattern: /State\s*Bank\s*of\s*India|SBI/i, name: 'State Bank of India' },
+  { pattern: /Axis\s*Bank/i, name: 'Axis Bank' },
+  { pattern: /Kotak\s*Mahindra/i, name: 'Kotak Mahindra Bank' },
+  { pattern: /IndusInd/i, name: 'IndusInd Bank' },
+  { pattern: /Yes\s*Bank/i, name: 'Yes Bank' },
+  { pattern: /Punjab\s*National\s*Bank|PNB/i, name: 'Punjab National Bank' },
+  { pattern: /Bank\s*of\s*Baroda|BoB/i, name: 'Bank of Baroda' },
+  { pattern: /Canara\s*Bank/i, name: 'Canara Bank' },
+  { pattern: /Union\s*Bank/i, name: 'Union Bank of India' },
+  { pattern: /IDBI\s*Bank/i, name: 'IDBI Bank' },
+  { pattern: /Federal\s*Bank/i, name: 'Federal Bank' },
+  { pattern: /RBL\s*Bank/i, name: 'RBL Bank' },
+  { pattern: /Bandhan\s*Bank/i, name: 'Bandhan Bank' },
+  // International banks
+  { pattern: /HSBC/i, name: 'HSBC' },
+  { pattern: /Barclays/i, name: 'Barclays' },
+  { pattern: /Lloyds/i, name: 'Lloyds Bank' },
+  { pattern: /NatWest/i, name: 'NatWest' },
+  { pattern: /Commonwealth\s*Bank|CBA/i, name: 'Commonwealth Bank' },
+  { pattern: /ANZ\s*Bank|ANZ/i, name: 'ANZ Bank' },
+  { pattern: /Westpac/i, name: 'Westpac' },
+  { pattern: /NAB|National\s*Australia/i, name: 'NAB' },
+  { pattern: /Chase/i, name: 'Chase' },
+  { pattern: /Bank\s*of\s*America/i, name: 'Bank of America' },
+  { pattern: /Wells\s*Fargo/i, name: 'Wells Fargo' },
+  { pattern: /Citibank|Citi/i, name: 'Citibank' },
+  { pattern: /DBS\s*Bank/i, name: 'DBS Bank' },
+  { pattern: /Standard\s*Chartered/i, name: 'Standard Chartered' },
+];
 
 // Currency symbol to code mapping
 const CURRENCY_SYMBOLS: Record<string, string> = {
