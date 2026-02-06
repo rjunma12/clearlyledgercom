@@ -446,6 +446,16 @@ export function extractStatementHeader(
     result.bankName = bankProfile.name;
   }
   
+  // NEW: Fallback bank name detection from text content
+  if (!result.bankName) {
+    result.bankName = detectBankNameFromText(textLines);
+  }
+  
+  // NEW: Infer currency from regional identifiers
+  if (!result.currency) {
+    result.currency = inferCurrencyFromRegion(result);
+  }
+  
   // Log extraction summary (no PII)
   console.log('[StatementHeaderExtractor] Extracted fields:', {
     hasAccountHolder: !!result.accountHolder,
@@ -453,6 +463,7 @@ export function extractStatementHeader(
     hasPeriod: !!(result.statementPeriodFrom && result.statementPeriodTo),
     hasIfsc: !!result.ifscCode,
     hasBranch: !!result.branchName,
+    hasBankName: !!result.bankName,
     currency: result.currency,
   });
   
