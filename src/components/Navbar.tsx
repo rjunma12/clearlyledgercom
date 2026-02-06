@@ -52,6 +52,10 @@ const Navbar = forwardRef<HTMLElement>((_, ref) => {
             <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               {t('nav.security')}
             </Link>
+            <Link to="/test-conversion" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              <TestTube className="w-4 h-4" />
+              Test
+            </Link>
           </div>
 
           {/* CTA Buttons */}
