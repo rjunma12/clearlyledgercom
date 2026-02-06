@@ -189,12 +189,13 @@ function hasNumericContent(row: ExtractedRow): boolean {
 
 /**
  * Classify a row to determine its type
- * ULTRA-RELAXED: Include rows with ANY meaningful content
+ * ENHANCED: Uses full rawLine text for address detection + numeric continuation support
  */
 export function classifyRow(row: ExtractedRow): RowClassification & { 
   effectiveDebit: string | null; 
   effectiveCredit: string | null;
   wasAmountSplit: boolean;
+  isNumericContinuation: boolean;
 } {
   // Handle merged amount column by splitting into debit/credit
   let effectiveDebit = row.debit;
@@ -208,10 +209,14 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
     wasAmountSplit = wasClassified;
   }
   
+  // Build fullText from classified columns
   const fullText = [row.date, row.description, effectiveDebit, effectiveCredit, row.balance]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
+  
+  // NEW: Build rawLineText from actual PDF line for robust footer detection
+  const rawLineText = row.rawLine.words.map(w => w.text).join(' ');
 
   // Check for opening/closing balance
   const isOpeningBalance = OPENING_BALANCE_PATTERNS.some(p => p.test(fullText));
@@ -220,12 +225,15 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
   // Check for skip patterns (headers/footers)
   const isSkip = SKIP_PATTERNS.some(p => p.test(fullText));
   
-  // Check for address/disclaimer content (should be filtered out)
+  // ENHANCED: Check for address/disclaimer content using BOTH fullText AND rawLineText
+  // This catches footers even if they land in reference/valueDate/amount columns
   const hasAddressContent = isAddressContent(fullText) || 
-    ADDRESS_PATTERNS.some(p => p.test(row.description || ''));
+    isAddressContent(rawLineText) ||
+    ADDRESS_PATTERNS.some(p => p.test(row.description || '')) ||
+    ADDRESS_PATTERNS.some(p => p.test(rawLineText));
   
   if (hasAddressContent) {
-    console.log(`[DynamicRowProcessor] Skipping address/disclaimer content: "${(row.description || '').substring(0, 50)}..."`);
+    console.log(`[DynamicRowProcessor] Skipping address/disclaimer content: "${rawLineText.substring(0, 60)}..."`);
     return {
       isTransaction: false,
       isContinuation: false,
@@ -237,10 +245,10 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
       effectiveDebit: null,
       effectiveCredit: null,
       wasAmountSplit: false,
+      isNumericContinuation: false,
     };
   }
 
-  // ULTRA-RELAXED DETECTION
   // 1. Try to validate date in date column
   const hasValidDate = row.date !== null && 
     DATE_VALIDATION_PATTERNS.some(p => p.test(row.date!));
@@ -259,7 +267,16 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
   // 5. Check for meaningful description
   const hasDescription = row.description !== null && row.description.trim().length > 2;
   
-  // RELAXED: A row is a transaction if:
+  // NEW: Detect numeric-only continuation rows (amount/balance but no date/description)
+  // These are wrapped lines that contain only the amount values
+  const isNumericContinuation = !hasRecoveredDate && 
+    !hasDescription && 
+    (hasAmount || hasBalance || hasNumeric) && 
+    !isSkip && 
+    !isOpeningBalance && 
+    !isClosingBalance;
+  
+  // A row is a transaction if:
   // - Has ANY date (validated or recovered) + any other content, OR
   // - Has balance + any amount, OR  
   // - Has numeric content + description (likely a transaction row), OR
@@ -267,7 +284,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
   // - Has at least 2 of: date, description, amount, balance
   const contentCount = [hasRecoveredDate, hasDescription, hasAmount || hasNumeric, hasBalance].filter(Boolean).length;
   
-  const isTransaction = !isSkip && !isOpeningBalance && !isClosingBalance && (
+  const isTransaction = !isSkip && !isOpeningBalance && !isClosingBalance && !isNumericContinuation && (
     (hasRecoveredDate && (hasAmount || hasBalance || hasDescription)) ||
     (hasBalance && hasAmount) ||
     (hasNumeric && hasDescription) ||
@@ -275,7 +292,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
     contentCount >= 2
   );
 
-  // Continuation row: has ONLY description (no date anywhere, no balance, no amounts)
+  // Description-only continuation row: has ONLY description (no date anywhere, no balance, no amounts)
   const isContinuation = hasDescription && !hasRecoveredDate && !hasBalance && !hasAmount && !hasNumeric && !isSkip;
 
   return {
@@ -289,6 +306,7 @@ export function classifyRow(row: ExtractedRow): RowClassification & {
     effectiveDebit,
     effectiveCredit,
     wasAmountSplit,
+    isNumericContinuation,
   };
 }
 
