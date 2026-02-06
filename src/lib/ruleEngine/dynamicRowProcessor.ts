@@ -475,43 +475,7 @@ function finalizeStitchedTransaction(tx: StitchedTransaction): StitchedTransacti
   };
 }
 
-// Helper for finalize (also used in splitMergedAmount)
-const DEBIT_SUFFIX_FINALIZE = /([\d,.\s]+)\s*[(\[]?\s*(dr|debit|d)\s*[)\]]?\s*$/i;
-const CREDIT_SUFFIX_FINALIZE = /([\d,.\s]+)\s*[(\[]?\s*(cr|credit|c)\s*[)\]]?\s*$/i;
-
-function splitMergedAmount(amountText: string): { debit: string | null; credit: string | null; wasClassified: boolean } {
-  if (!amountText) return { debit: null, credit: null, wasClassified: false };
-  
-  const trimmed = amountText.trim();
-  
-  // Check for DR/Debit suffix
-  const debitMatch = trimmed.match(DEBIT_SUFFIX_FINALIZE);
-  if (debitMatch) {
-    return { debit: debitMatch[1].trim(), credit: null, wasClassified: true };
-  }
-  
-  // Check for CR/Credit suffix
-  const creditMatch = trimmed.match(CREDIT_SUFFIX_FINALIZE);
-  if (creditMatch) {
-    return { debit: null, credit: creditMatch[1].trim(), wasClassified: true };
-  }
-  
-  // Check for negative prefix (common in some banks for debit)
-  const negativeMatch = trimmed.match(/^\s*-\s*([\d,.]+)\s*$/);
-  if (negativeMatch) {
-    return { debit: negativeMatch[1].trim(), credit: null, wasClassified: true };
-  }
-  
-  // Check for explicit positive prefix (less common, but indicates credit)
-  if (trimmed.startsWith('+')) {
-    const positiveMatch = trimmed.match(/^\s*\+\s*([\d,.]+)\s*$/);
-    if (positiveMatch) {
-      return { debit: null, credit: positiveMatch[1].trim(), wasClassified: true };
-    }
-  }
-  
-  return { debit: null, credit: null, wasClassified: false };
-}
+// Note: splitMergedAmount is defined earlier in the file (line 123)
 
 /**
  * Clean and normalize a description string
