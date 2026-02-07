@@ -121,16 +121,10 @@ const BlogPost1 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                January 15, 2025
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                6 min read
-              </div>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mb-4">
+              By ClearlyLedger Team · January 15, 2025 · 6 min read
+            </p>
             <ShareButtons 
               url="https://clearlyledger.com/blog/convert-bank-statements-to-excel" 
               title="How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)"
