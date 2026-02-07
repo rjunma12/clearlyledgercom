@@ -219,6 +219,91 @@ const CURRENCY_PATTERNS: CurrencyPattern[] = [
     patterns: [/\bTHB\b/i, /\bThai\s*Baht/i, /\bBaht\b/i],
     symbolPatterns: [/฿\s*[\d,]+\.?\d*/],
   },
+  // NEW: 16 additional currency patterns
+  {
+    code: 'VND',
+    patterns: [/\bVND\b/i, /\bVietnamese\s*Dong/i, /\bDong\b/i],
+    symbolPatterns: [/₫\s*[\d,]+/],
+  },
+  {
+    code: 'PKR',
+    patterns: [/\bPKR\b/i, /\bPakistani\s*Rupee/i],
+    symbolPatterns: [/(?<!\w)Rs\.?\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'BDT',
+    patterns: [/\bBDT\b/i, /\bBangladeshi\s*Taka/i, /\bTaka\b/i],
+    symbolPatterns: [/৳\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'LKR',
+    patterns: [/\bLKR\b/i, /\bSri\s*Lankan?\s*Rupee/i],
+  },
+  {
+    code: 'TWD',
+    patterns: [/\bTWD\b/i, /\bTaiwan\s*Dollar/i, /\bNew\s*Taiwan\s*Dollar/i],
+    symbolPatterns: [/NT\$\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'CZK',
+    patterns: [/\bCZK\b/i, /\bCzech\s*Koruna/i],
+    symbolPatterns: [/Kč\s*[\d,]+\.?\d*/, /[\d,]+\.?\d*\s*Kč/],
+  },
+  {
+    code: 'HUF',
+    patterns: [/\bHUF\b/i, /\bHungarian\s*Forint/i, /\bForint\b/i],
+    symbolPatterns: [/Ft\s*[\d,]+/, /[\d,]+\s*Ft/],
+  },
+  {
+    code: 'RON',
+    patterns: [/\bRON\b/i, /\bRomanian\s*Leu/i],
+    symbolPatterns: [/lei\s*[\d,]+\.?\d*/, /[\d,]+\.?\d*\s*lei/],
+  },
+  {
+    code: 'ILS',
+    patterns: [/\bILS\b/i, /\bIsraeli\s*Shekel/i, /\bShekel\b/i],
+    symbolPatterns: [/₪\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'KWD',
+    patterns: [/\bKWD\b/i, /\bKuwaiti\s*Dinar/i],
+    symbolPatterns: [/د\.ك\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'QAR',
+    patterns: [/\bQAR\b/i, /\bQatari\s*Riyal/i],
+    symbolPatterns: [/ر\.ق\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'OMR',
+    patterns: [/\bOMR\b/i, /\bOmani\s*Rial/i],
+    symbolPatterns: [/ر\.ع\.?\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'BHD',
+    patterns: [/\bBHD\b/i, /\bBahraini\s*Dinar/i],
+    symbolPatterns: [/\.د\.ب\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'GHS',
+    patterns: [/\bGHS\b/i, /\bGhanaian\s*Cedi/i, /\bCedi\b/i],
+    symbolPatterns: [/GH₵\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'TZS',
+    patterns: [/\bTZS\b/i, /\bTanzanian\s*Shilling/i],
+    symbolPatterns: [/TSh\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'MAD',
+    patterns: [/\bMAD\b/i, /\bMoroccan\s*Dirham/i],
+    symbolPatterns: [/د\.م\.?\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'TRY',
+    patterns: [/\bTRY\b/i, /\bTurkish\s*Lira/i, /\bTL\b/],
+    symbolPatterns: [/₺\s*[\d,]+\.?\d*/],
+  },
 ];
 
 // =============================================================================
