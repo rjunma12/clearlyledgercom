@@ -82,9 +82,6 @@ const BlogPostJapan = () => {
           <header className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">Regional</span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" /> 5 min read
-              </span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
               Japanese Bank Statement PDF to Excel Converter - Complete Guide
@@ -92,10 +89,10 @@ const BlogPostJapan = () => {
             <p className="text-lg text-muted-foreground">
               日本の銀行取引明細書をExcelに変換する完全ガイド
             </p>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
-              <Calendar className="w-4 h-4" />
-              <time dateTime="2025-01-21">January 21, 2025</time>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mt-4">
+              By ClearlyLedger Team · January 21, 2025 · 5 min read
+            </p>
           </header>
 
           <ShareButtons url={shareUrl} title={shareTitle} />
