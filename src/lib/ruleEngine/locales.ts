@@ -160,6 +160,10 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       '입금', '예금',
       // Turkish
       'Alacak', 'Giriş', 'Yatırım',
+      // Additional regional
+      'CR Amount', 'Credit Tran', 'Deposits Amt', 'Lodgement Amt', 'Lodgment Amt',
+      'Amount In', 'Guthaben', 'Einnahme', 'Encaissement', 'Recette', 'Incasso',
+      'Insättning', 'Yatırılan', 'Proceeds', 'Funds In',
     ],
   },
   {
