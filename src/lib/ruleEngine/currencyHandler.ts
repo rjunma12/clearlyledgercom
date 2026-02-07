@@ -15,6 +15,9 @@ export type CurrencyCode =
   | 'CHF' | 'HKD' | 'SGD' | 'AED' | 'SAR' | 'ZAR' | 'MYR' | 'THB'
   | 'PHP' | 'IDR' | 'KRW' | 'NZD' | 'SEK' | 'NOK' | 'DKK' | 'PLN'
   | 'BRL' | 'MXN' | 'RUB' | 'TRY' | 'EGP' | 'NGN' | 'KES'
+  // NEW: 16 additional currencies
+  | 'VND' | 'PKR' | 'BDT' | 'LKR' | 'TWD' | 'CZK' | 'HUF' | 'RON'
+  | 'ILS' | 'KWD' | 'QAR' | 'OMR' | 'BHD' | 'GHS' | 'TZS' | 'MAD'
   | 'UNKNOWN';
 
 export interface CurrencyInfo {
