@@ -65,8 +65,29 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     '取引日',
   ],
   description: [
+    // English
     'description', 'particulars', 'narration', 'details', 'remarks',
-    'transaction details', 'memo', 'reference', 'विवरण', '摘要', 'keterangan'
+    'transaction details', 'memo', 'reference', 'trans type', 'tran type',
+    'txn type', 'payment type', 'trans ref', 'ref no', 'ref number',
+    'payment details', 'transaction',
+    // German
+    'beschreibung', 'verwendungszweck', 'buchungstext', 'referenznummer',
+    // French
+    'libellé', 'opération', 'détail', 'numéro de référence',
+    // Spanish
+    'descripción', 'concepto', 'detalle', 'movimiento',
+    // Italian
+    'descrizione', 'causale',
+    // Dutch
+    'omschrijving', 'beschrijving',
+    // Arabic
+    'البيان', 'الوصف', 'التفاصيل', 'الملاحظات',
+    // Hindi
+    'विवरण', 'ब्योरा',
+    // Chinese
+    '描述', '摘要', '交易说明',
+    // Malay
+    'keterangan',
   ],
   debit: [
     // English (Standard)
