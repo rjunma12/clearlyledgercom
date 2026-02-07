@@ -80,16 +80,10 @@ const BlogPost2 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               Best Tools for Converting Indian Bank Statement PDFs to Excel
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                January 12, 2025
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                5 min read
-              </div>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mb-4">
+              By ClearlyLedger Team · January 12, 2025 · 5 min read
+            </p>
             <ShareButtons 
               url="https://clearlyledger.com/blog/indian-bank-statement-converter" 
               title="Best Tools for Converting Indian Bank Statement PDFs to Excel"
