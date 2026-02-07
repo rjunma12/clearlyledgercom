@@ -219,15 +219,21 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     // Czech
     'konečný zůstatek',
     // Arabic
-    'الرصيد', 'الرصيد المتاح', 'الرصيد الحالي',
+    'الرصيد', 'الرصيد المتاح', 'الرصيد الحالي', 'الرصيد الختامي', 'الرصيد الافتتاحي',
     // Hindi
-    'शेष', 'बैलेंस',
-    // Chinese
-    '余额', '结余', '账户余额',
+    'शेष', 'बैलेंस', 'खाता शेष', 'उपलब्ध शेष',
+    // Chinese (Simplified & Traditional)
+    '余额', '结余', '账户余额', '可用余额', '結餘',
+    // Japanese
+    '残高', '口座残高', '利用可能残高',
     // Thai
-    'ยอดคงเหลือ',
+    'ยอดคงเหลือ', 'ยอดใช้ได้', 'ยอดเงิน',
+    // Vietnamese
+    'số dư', 'số dư khả dụng', 'số dư hiện tại',
+    // Korean
+    '잔액', '계좌잔액', '사용가능잔액',
     // Malay
-    'baki'
+    'baki', 'baki akaun', 'baki tersedia',
   ],
   reference: ['ref', 'reference', 'ref no', 'txn id', 'transaction id'],
   amount: ['amount', 'value', 'transaction amount', 'txn amt'],
