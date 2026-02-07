@@ -187,7 +187,7 @@ const BlogPostRuleBasedVsAI = () => {
           </header>
 
           {/* Table of Contents */}
-          <TableOfContents contentSelector="article" />
+          <TableOfContents contentSelector="article" h2Only />
 
           {/* TL;DR Box */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 mb-10">

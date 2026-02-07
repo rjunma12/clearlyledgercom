@@ -541,7 +541,7 @@ const BlogPostWhyBanksDontProvideCSV = () => {
                 {/* Sidebar */}
                 <aside className="hidden lg:block">
                   <div className="sticky top-24">
-                    <TableOfContents />
+                    <TableOfContents h2Only />
 
                     {/* Related Posts */}
                     <div className="mt-8 p-6 bg-muted/50 rounded-lg">
