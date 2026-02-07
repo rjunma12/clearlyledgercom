@@ -129,6 +129,12 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     '출금', '인출',
     // Turkish
     'borç', 'çıkış', 'ödeme',
+    // Additional regional (Cheque/Check variants)
+    'cheque amt', 'cheque amt.', 'check amt', 'check amt.',
+    'débits', 'prélèvement', 'dépense', 'pagamento', 'betalning', 'uttag', 'çekim',
+    'expenditure', 'spent', 'amount out', 'dr amount', 'debit tran', 'withdrawal tran',
+    // Swedish
+    'uttag', 'betalning',
   ],
   credit: [
     // English (Standard)
