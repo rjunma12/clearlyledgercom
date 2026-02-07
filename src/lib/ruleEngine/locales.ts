@@ -16,14 +16,15 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       // English
       'Date', 'DATE', 'Txn Date', 'TXN DATE', 'Transaction Date', 'Trans Date',
       'Value Date', 'Posting Date', 'Entry Date', 'Effective Date', 'Book Date',
+      'Post Date', 'Trade Date', 'Tran Date', 'Txn Dt', 'Trans Dt', 'Dt',
       // Spanish
-      'Fecha', 'FECHA', 'Fecha de Transacción', 'Fecha Valor',
+      'Fecha', 'FECHA', 'Fecha de Transacción', 'Fecha Valor', 'Fecha Operación',
       // French
       'Date', 'Date d\'opération', 'Date de valeur',
       // German
-      'Datum', 'Buchungsdatum', 'Valutadatum', 'Wertstellung',
+      'Datum', 'Buchungsdatum', 'Valutadatum', 'Wertstellung', 'Buchungstag',
       // Arabic
-      'التاريخ', 'تاريخ المعاملة', 'تاريخ القيمة',
+      'التاريخ', 'تاريخ المعاملة', 'تاريخ القيمة', 'تاريخ العملية',
       // Hindi
       'तारीख', 'दिनांक',
       // Chinese
@@ -31,9 +32,13 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       // Portuguese
       'Data', 'Data da Transação',
       // Italian
-      'Data', 'Data Operazione',
+      'Data', 'Data Operazione', 'Data Valuta',
       // Dutch
-      'Datum', 'Boekdatum',
+      'Datum', 'Boekdatum', 'Boekingsdatum',
+      // Japanese
+      '取引日',
+      // Malay
+      'Tarikh', 'Tarikh Urus Niaga',
     ],
   },
   {
