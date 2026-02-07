@@ -179,16 +179,10 @@ const BlogPostRuleBasedVsAI = () => {
             <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
               Rule-Based vs AI Bank Statement Conversion: Which Is Right for Your Business?
             </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                <span>February 4, 2026</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                <span>15 min read</span>
-              </div>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mb-6">
+              By ClearlyLedger Team · February 4, 2026 · 15 min read
+            </p>
             <ShareButtons url={pageUrl} title={pageTitle} />
           </header>
 
