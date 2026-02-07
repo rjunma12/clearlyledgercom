@@ -9,7 +9,7 @@ export const uobSingaporeProfile: BankProfile = {
   id: 'uob-singapore',
   name: 'UOB',
   region: 'SG',
-  defaultLocale: 'en-SG',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['UOB', 'UNITED OVERSEAS BANK', 'uob.com.sg', 'UOB GROUP'],
     accountPatterns: [/\b\d{10,13}\b/, /\b\d{3}-\d{6}-\d{1}\b/],
