@@ -172,12 +172,14 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       // English
       'Balance', 'BALANCE', 'Running Balance', 'Available Balance', 'Closing Balance',
       'Current Balance', 'Ledger Balance', 'Book Balance', 'Total', 'Net Balance',
+      'Stmt Balance', 'Account Balance', 'End Balance', 'Statement Balance',
+      'New Balance', 'Updated Balance',
       // Spanish
       'Saldo', 'SALDO', 'Saldo Actual', 'Saldo Disponible',
       // French
-      'Solde', 'Solde Courant', 'Solde Disponible',
+      'Solde', 'Solde Courant', 'Solde Disponible', 'Solde Final',
       // German
-      'Saldo', 'Kontostand', 'Guthaben',
+      'Saldo', 'Kontostand', 'Guthaben', 'Endsaldo',
       // Arabic
       'الرصيد', 'الرصيد المتاح', 'الرصيد الحالي',
       // Hindi
@@ -190,6 +192,14 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       'Saldo', 'Saldo Disponibile',
       // Dutch
       'Saldo', 'Balans',
+      // Russian
+      'Остаток',
+      // Czech
+      'Konečný zůstatek',
+      // Thai
+      'ยอดคงเหลือ',
+      // Malay
+      'Baki',
     ],
   },
 ];
