@@ -208,6 +208,18 @@ const BlogPost2 = () => {
             <p>
               <Link to="/contact" className="text-primary hover:underline">Contact us</Link> if you need support for a specific bank format.
             </p>
+
+            <h2>Key Takeaways</h2>
+            <ul>
+              <li><strong>Major Indian banks supported:</strong> SBI, HDFC, ICICI, Axis, and Kotak formats handled automatically</li>
+              <li><strong>Local date and currency formats:</strong> DD/MM/YYYY dates and lakhs/crores notation preserved</li>
+              <li><strong>Privacy-first processing:</strong> Files processed locally, deleted after conversion</li>
+              <li><strong>GST-ready exports:</strong> Clean data for tax compliance and accounting</li>
+              <li><strong>Balance verification:</strong> Automatic checks ensure data accuracy</li>
+            </ul>
+            <p>
+              Ready to convert your Indian bank statements? <Link to="/" className="text-primary hover:underline">Start your free conversion</Link> now.
+            </p>
           </div>
 
           {/* Author Section */}

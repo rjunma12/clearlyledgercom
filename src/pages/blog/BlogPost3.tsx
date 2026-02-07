@@ -193,15 +193,17 @@ const BlogPost3 = () => {
               Review our <Link to="/terms-of-service" className="text-primary hover:underline">Terms of Service</Link> for complete details on our data handling practices.
             </p>
 
-            <h2>Summary: Security Checklist</h2>
+            <h2>Key Takeaways</h2>
             <ul>
-              <li>✓ HTTPS encryption on file upload</li>
-              <li>✓ Automatic file deletion after processing</li>
-              <li>✓ No AI training on your documents</li>
-              <li>✓ Clear, readable privacy policy</li>
-              <li>✓ Optional PII masking for sharing</li>
-              <li>✓ Transparent about data handling</li>
+              <li><strong>Choose tools with no data retention:</strong> Files should be deleted immediately after processing</li>
+              <li><strong>Verify HTTPS encryption:</strong> Look for the padlock icon when uploading</li>
+              <li><strong>Avoid AI training risks:</strong> Your documents shouldn't train machine learning models</li>
+              <li><strong>Use PII masking when sharing:</strong> Anonymize sensitive data before sending to others</li>
+              <li><strong>Read privacy policies carefully:</strong> Understand exactly how your data is handled</li>
             </ul>
+            <p>
+              Protect your financial data while streamlining your workflow. <Link to="/" className="text-primary hover:underline">Try our privacy-first converter</Link>.
+            </p>
           </div>
 
           {/* Author Section */}
