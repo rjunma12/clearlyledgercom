@@ -282,6 +282,51 @@ const defaultProfiles: BankProfile[] = [
   attijariwafaMaProfile,
   // Global Banks
   standardCharteredProfile,
+  // China Banks (Critical)
+  icbcChinaProfile,
+  ccbChinaProfile,
+  abcChinaProfile,
+  // Japan Banks (Critical)
+  mufgJapanProfile,
+  smbcJapanProfile,
+  mizuhoJapanProfile,
+  // Korea Banks (Critical)
+  kookminKoreaProfile,
+  shinhanKoreaProfile,
+  wooriKoreaProfile,
+  hanaKoreaProfile,
+  // Thailand Banks (Critical)
+  bangkokThailandProfile,
+  kbankThailandProfile,
+  scbThailandProfile,
+  // Indonesia Banks (Critical)
+  bcaIndonesiaProfile,
+  mandiriIndonesiaProfile,
+  briIndonesiaProfile,
+  // Philippines Banks (Critical)
+  bdoPhilippinesProfile,
+  bpiPhilippinesProfile,
+  // Vietnam Banks (Critical)
+  vietcombankVnProfile,
+  bidvVnProfile,
+  // Hong Kong Banks (Critical)
+  hangsengHkProfile,
+  beaHkProfile,
+  // Brazil Banks (Critical)
+  itauBrazilProfile,
+  bbBrazilProfile,
+  bradescoBrazilProfile,
+  caixaBrazilProfile,
+  // Mexico Banks (Critical)
+  bbvaMexicoProfile,
+  banorteMexicoProfile,
+  // Saudi Arabia Banks (Critical)
+  alrajhiSaProfile,
+  snbSaProfile,
+  // Qatar Banks (Critical)
+  qnbQatarProfile,
+  // Kuwait Banks (Critical)
+  nbkKuwaitProfile,
   // Fallback
   genericProfile, // Always last as fallback
 ];
