@@ -9,7 +9,7 @@ export const unicreditItProfile: BankProfile = {
   id: 'unicredit-it',
   name: 'UniCredit',
   region: 'IT',
-  defaultLocale: 'it-IT',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['UNICREDIT', 'unicredit.it', 'UNICREDIT BANCA', 'UNICREDIT SPA'],
     accountPatterns: [/\bIT\d{25}\b/, /\b\d{5}\s*\d{5}\s*\d{12}\b/],

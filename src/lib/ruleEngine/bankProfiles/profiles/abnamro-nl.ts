@@ -9,7 +9,7 @@ export const abnamroNlProfile: BankProfile = {
   id: 'abnamro-nl',
   name: 'ABN AMRO',
   region: 'NL',
-  defaultLocale: 'nl-NL',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['ABN AMRO', 'abnamro.nl', 'ABN AMRO BANK'],
     accountPatterns: [/\bNL\d{16}\b/, /\b\d{9}\b/],

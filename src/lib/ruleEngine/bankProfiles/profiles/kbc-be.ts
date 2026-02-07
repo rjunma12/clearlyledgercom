@@ -9,7 +9,7 @@ export const kbcBeProfile: BankProfile = {
   id: 'kbc-be',
   name: 'KBC Bank',
   region: 'BE',
-  defaultLocale: 'nl-BE',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['KBC', 'KBC BANK', 'kbc.be', 'KBC GROEP'],
     accountPatterns: [/\bBE\d{14}\b/, /\b\d{3}-\d{7}-\d{2}\b/],

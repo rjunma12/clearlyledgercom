@@ -9,7 +9,7 @@ export const ersteAtProfile: BankProfile = {
   id: 'erste-at',
   name: 'Erste Bank',
   region: 'AT',
-  defaultLocale: 'de-AT',
+  defaultLocale: 'de-DE',
   identification: {
     logoPatterns: ['ERSTE BANK', 'erstebank.at', 'ERSTE GROUP', 'SPARKASSE'],
     accountPatterns: [/\bAT\d{18}\b/, /\b\d{5}\s*\d{11}\b/],

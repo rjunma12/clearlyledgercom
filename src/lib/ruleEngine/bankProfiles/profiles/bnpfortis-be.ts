@@ -9,7 +9,7 @@ export const bnpfortisBeProfile: BankProfile = {
   id: 'bnpfortis-be',
   name: 'BNP Paribas Fortis',
   region: 'BE',
-  defaultLocale: 'nl-BE',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['BNP PARIBAS FORTIS', 'FORTIS', 'bnpparibasfortis.be', 'BNP FORTIS'],
     accountPatterns: [/\bBE\d{14}\b/, /\b\d{3}-\d{7}-\d{2}\b/],

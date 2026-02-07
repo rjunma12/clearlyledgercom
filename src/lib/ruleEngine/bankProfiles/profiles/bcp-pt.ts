@@ -9,7 +9,7 @@ export const bcpPtProfile: BankProfile = {
   id: 'bcp-pt',
   name: 'Millennium BCP',
   region: 'PT',
-  defaultLocale: 'pt-PT',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['MILLENNIUM BCP', 'millenniumbcp.pt', 'BCP', 'BANCO COMERCIAL PORTUGUÊS'],
     accountPatterns: [/\bPT\d{23}\b/, /\b\d{4}\s*\d{4}\s*\d{11}\s*\d{2}\b/],

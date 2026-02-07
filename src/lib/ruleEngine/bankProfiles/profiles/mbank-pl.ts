@@ -9,7 +9,7 @@ export const mbankPlProfile: BankProfile = {
   id: 'mbank-pl',
   name: 'mBank',
   region: 'PL',
-  defaultLocale: 'pl-PL',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['MBANK', 'mbank.pl', 'MBANK S.A.'],
     accountPatterns: [/\bPL\d{26}\b/, /\b\d{2}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\b/],

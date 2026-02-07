@@ -9,7 +9,7 @@ export const intesaItProfile: BankProfile = {
   id: 'intesa-it',
   name: 'Intesa Sanpaolo',
   region: 'IT',
-  defaultLocale: 'it-IT',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['INTESA SANPAOLO', 'intesasanpaolo.com', 'INTESA', 'SANPAOLO'],
     accountPatterns: [/\bIT\d{25}\b/, /\b\d{5}\s*\d{5}\s*\d{12}\b/],

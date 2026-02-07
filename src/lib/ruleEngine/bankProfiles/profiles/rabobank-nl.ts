@@ -9,7 +9,7 @@ export const rabobankNlProfile: BankProfile = {
   id: 'rabobank-nl',
   name: 'Rabobank',
   region: 'NL',
-  defaultLocale: 'nl-NL',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['RABOBANK', 'rabobank.nl', 'RABOBANK NEDERLAND'],
     accountPatterns: [/\bNL\d{16}\b/, /\b\d{9}\b/],

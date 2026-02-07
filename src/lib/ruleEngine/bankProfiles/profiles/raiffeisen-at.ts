@@ -9,7 +9,7 @@ export const raiffeisenAtProfile: BankProfile = {
   id: 'raiffeisen-at',
   name: 'Raiffeisen Bank',
   region: 'AT',
-  defaultLocale: 'de-AT',
+  defaultLocale: 'de-DE',
   identification: {
     logoPatterns: ['RAIFFEISEN', 'raiffeisen.at', 'RAIFFEISENBANK', 'RBI'],
     accountPatterns: [/\bAT\d{18}\b/, /\b\d{5}\s*\d{11}\b/],

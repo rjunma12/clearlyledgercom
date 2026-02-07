@@ -9,7 +9,7 @@ export const pkoPlProfile: BankProfile = {
   id: 'pko-pl',
   name: 'PKO Bank Polski',
   region: 'PL',
-  defaultLocale: 'pl-PL',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['PKO BANK POLSKI', 'PKO BP', 'pkobp.pl', 'PKO'],
     accountPatterns: [/\bPL\d{26}\b/, /\b\d{2}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\b/],
