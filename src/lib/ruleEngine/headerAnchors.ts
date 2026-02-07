@@ -54,15 +54,21 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     // Dutch
     'boekingsdatum',
     // Arabic
-    'التاريخ', 'تاريخ العملية',
+    'التاريخ', 'تاريخ العملية', 'تاريخ الحجز',
     // Hindi
-    'तारीख', 'दिनांक',
-    // Chinese
-    '日期', '交易日期', '取引日',
-    // Malay
-    'tarikh', 'tarikh urus niaga',
+    'तारीख', 'दिनांक', 'लेन-देन की तारीख',
+    // Chinese (Simplified & Traditional)
+    '日期', '交易日期', '取引日', '交易時間', '日期', '账户日期', '交易时间',
     // Japanese
-    '取引日',
+    '取引日', '取引日付', '日付', 'トランザクション日',
+    // Thai
+    'วันที่', 'วันที่ทำรายการ', 'วันที่ค้นหา',
+    // Vietnamese
+    'ngày', 'ngày giao dịch', 'ngày ghi sổ',
+    // Korean
+    '날짜', '거래일', '거래날짜',
+    // Malay
+    'tarikh', 'tarikh urus niaga', 'tarikh transaksi',
   ],
   description: [
     // English
@@ -81,13 +87,21 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     // Dutch
     'omschrijving', 'beschrijving',
     // Arabic
-    'البيان', 'الوصف', 'التفاصيل', 'الملاحظات',
+    'البيان', 'الوصف', 'التفاصيل', 'الملاحظات', 'الترميز',
     // Hindi
-    'विवरण', 'ब्योरा',
-    // Chinese
-    '描述', '摘要', '交易说明',
+    'विवरण', 'ब्योरा', 'विवरणी', 'मुद्दा',
+    // Chinese (Simplified & Traditional)
+    '描述', '摘要', '交易说明', '交易詳情', '說明', '詳細信息', '交易描述',
+    // Japanese
+    '摘要', '説明', '詳細', '記述', '内容',
+    // Thai
+    'รายละเอียด', 'คำอธิบาย', 'บรรยาย',
+    // Vietnamese
+    'mô tả', 'chi tiết', 'ghi chú',
+    // Korean
+    '설명', '적요', '내용',
     // Malay
-    'keterangan',
+    'keterangan', 'perincian', 'penerangan',
   ],
   debit: [
     // English (Standard)
@@ -114,19 +128,21 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     // Dutch
     'debet', 'af', 'afschrijving', 'uitgaven',
     // Hindi
-    'डेबिट', 'निकासी', 'आहरण',
-    // Chinese
-    '借方', '支出', '取款', '提款',
+    'डेबिट', 'निकासी', 'आहरण', 'व्यय', 'बाहर',
+    // Chinese (Simplified & Traditional)
+    '借方', '支出', '取款', '提款', '扣除', '付款', '消費', '借貸',
     // Japanese
-    '出金', '引落', '支払',
-    // Malay/Indonesian
-    'keluar', 'pengeluaran',
-    // Arabic
-    'مدين', 'سحب', 'المسحوبات', 'مصروفات',
+    '出金', '引落', '支払', '引き出し', '払い出し',
     // Thai
-    'ถอน', 'รายจ่าย',
+    'ถอน', 'รายจ่าย', 'หักออก', 'เงินออก',
+    // Vietnamese
+    'ghi nợ', 'rút tiền', 'chi tiêu',
     // Korean
-    '출금', '인출',
+    '출금', '인출', '차변', '지불',
+    // Malay/Indonesian
+    'keluar', 'pengeluaran', 'debit', 'penarikan',
+    // Arabic
+    'مدين', 'سحب', 'المسحوبات', 'مصروفات', 'خصم', 'الإنفاق',
     // Turkish
     'borç', 'çıkış', 'ödeme',
     // Additional regional (Cheque/Check variants)
@@ -203,15 +219,21 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     // Czech
     'konečný zůstatek',
     // Arabic
-    'الرصيد', 'الرصيد المتاح', 'الرصيد الحالي',
+    'الرصيد', 'الرصيد المتاح', 'الرصيد الحالي', 'الرصيد الختامي', 'الرصيد الافتتاحي',
     // Hindi
-    'शेष', 'बैलेंस',
-    // Chinese
-    '余额', '结余', '账户余额',
+    'शेष', 'बैलेंस', 'खाता शेष', 'उपलब्ध शेष',
+    // Chinese (Simplified & Traditional)
+    '余额', '结余', '账户余额', '可用余额', '結餘',
+    // Japanese
+    '残高', '口座残高', '利用可能残高',
     // Thai
-    'ยอดคงเหลือ',
+    'ยอดคงเหลือ', 'ยอดใช้ได้', 'ยอดเงิน',
+    // Vietnamese
+    'số dư', 'số dư khả dụng', 'số dư hiện tại',
+    // Korean
+    '잔액', '계좌잔액', '사용가능잔액',
     // Malay
-    'baki'
+    'baki', 'baki akaun', 'baki tersedia',
   ],
   reference: ['ref', 'reference', 'ref no', 'txn id', 'transaction id'],
   amount: ['amount', 'value', 'transaction amount', 'txn amt'],
