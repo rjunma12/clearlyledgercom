@@ -9,7 +9,7 @@ export const ubsSwitzerlandProfile: BankProfile = {
   id: 'ubs-switzerland',
   name: 'UBS',
   region: 'CH',
-  defaultLocale: 'de-CH',
+  defaultLocale: 'de-DE',
   identification: {
     logoPatterns: ['UBS', 'UBS AG', 'ubs.com', 'UBS SWITZERLAND'],
     accountPatterns: [/\b\d{12}\b/, /\bCH\d{2}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{1}\b/],
