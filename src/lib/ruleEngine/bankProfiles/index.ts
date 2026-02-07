@@ -77,6 +77,8 @@ const defaultProfiles: BankProfile[] = [
   bofaUSProfile,
   wellsFargoUSProfile,
   citibankUSProfile,
+  usbankUSProfile,
+  capitaloneUSProfile,
   // UK Banks
   hsbcUKProfile,
   barclaysUKProfile,
@@ -85,10 +87,17 @@ const defaultProfiles: BankProfile[] = [
   // European Banks
   santanderEUProfile,
   deutscheBankDEProfile,
+  bnpFranceProfile,
+  creditagricoleFranceProfile,
+  ingNetherlandsProfile,
+  ubsSwitzerlandProfile,
   // India Banks
   hdfcIndiaProfile,
   iciciIndiaProfile,
   sbiIndiaProfile,
+  axisIndiaProfile,
+  kotakIndiaProfile,
+  pnbIndiaProfile,
   // Australian Banks
   cbaAustraliaProfile,
   anzAustraliaProfile,
@@ -99,8 +108,21 @@ const defaultProfiles: BankProfile[] = [
   bendigoAustraliaProfile,
   // Asia-Pacific Banks
   dbsSingaporeProfile,
+  ocbcSingaporeProfile,
+  uobSingaporeProfile,
+  maybankMalaysiaProfile,
+  cimbMalaysiaProfile,
+  bocChinaProfile,
   // Canada Banks
   tdCanadaProfile,
+  rbcCanadaProfile,
+  bmoCanadaProfile,
+  scotiabankCanadaProfile,
+  // Middle East Banks
+  enbdUaeProfile,
+  adcbUaeProfile,
+  // Africa Banks
+  standardbankZaProfile,
   // Global Banks
   standardCharteredProfile,
   // Fallback
