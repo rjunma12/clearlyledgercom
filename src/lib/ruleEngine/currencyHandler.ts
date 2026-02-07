@@ -93,6 +93,23 @@ export const CURRENCY_INFO: Record<CurrencyCode, CurrencyInfo> = {
   EGP: { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound', decimalPlaces: 2 },
   NGN: { code: 'NGN', symbol: '₦', name: 'Nigerian Naira', decimalPlaces: 2 },
   KES: { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', decimalPlaces: 2 },
+  // NEW: 16 additional currencies
+  VND: { code: 'VND', symbol: '₫', name: 'Vietnamese Dong', decimalPlaces: 0 },
+  PKR: { code: 'PKR', symbol: 'Rs', name: 'Pakistani Rupee', decimalPlaces: 2 },
+  BDT: { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka', decimalPlaces: 2 },
+  LKR: { code: 'LKR', symbol: 'Rs', name: 'Sri Lankan Rupee', decimalPlaces: 2 },
+  TWD: { code: 'TWD', symbol: 'NT$', name: 'New Taiwan Dollar', decimalPlaces: 2 },
+  CZK: { code: 'CZK', symbol: 'Kč', name: 'Czech Koruna', decimalPlaces: 2 },
+  HUF: { code: 'HUF', symbol: 'Ft', name: 'Hungarian Forint', decimalPlaces: 0 },
+  RON: { code: 'RON', symbol: 'lei', name: 'Romanian Leu', decimalPlaces: 2 },
+  ILS: { code: 'ILS', symbol: '₪', name: 'Israeli Shekel', decimalPlaces: 2 },
+  KWD: { code: 'KWD', symbol: 'د.ك', name: 'Kuwaiti Dinar', decimalPlaces: 3 },
+  QAR: { code: 'QAR', symbol: 'ر.ق', name: 'Qatari Riyal', decimalPlaces: 2 },
+  OMR: { code: 'OMR', symbol: 'ر.ع.', name: 'Omani Rial', decimalPlaces: 3 },
+  BHD: { code: 'BHD', symbol: '.د.ب', name: 'Bahraini Dinar', decimalPlaces: 3 },
+  GHS: { code: 'GHS', symbol: 'GH₵', name: 'Ghanaian Cedi', decimalPlaces: 2 },
+  TZS: { code: 'TZS', symbol: 'TSh', name: 'Tanzanian Shilling', decimalPlaces: 2 },
+  MAD: { code: 'MAD', symbol: 'د.م.', name: 'Moroccan Dirham', decimalPlaces: 2 },
   UNKNOWN: { code: 'UNKNOWN', symbol: '', name: 'Unknown', decimalPlaces: 2 },
 };
 
