@@ -54,15 +54,21 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     // Dutch
     'boekingsdatum',
     // Arabic
-    'التاريخ', 'تاريخ العملية',
+    'التاريخ', 'تاريخ العملية', 'تاريخ الحجز',
     // Hindi
-    'तारीख', 'दिनांक',
-    // Chinese
-    '日期', '交易日期', '取引日',
-    // Malay
-    'tarikh', 'tarikh urus niaga',
+    'तारीख', 'दिनांक', 'लेन-देन की तारीख',
+    // Chinese (Simplified & Traditional)
+    '日期', '交易日期', '取引日', '交易時間', '日期', '账户日期', '交易时间',
     // Japanese
-    '取引日',
+    '取引日', '取引日付', '日付', 'トランザクション日',
+    // Thai
+    'วันที่', 'วันที่ทำรายการ', 'วันที่ค้นหา',
+    // Vietnamese
+    'ngày', 'ngày giao dịch', 'ngày ghi sổ',
+    // Korean
+    '날짜', '거래일', '거래날짜',
+    // Malay
+    'tarikh', 'tarikh urus niaga', 'tarikh transaksi',
   ],
   description: [
     // English
