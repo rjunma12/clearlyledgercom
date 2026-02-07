@@ -9,7 +9,7 @@ export const maybankMalaysiaProfile: BankProfile = {
   id: 'maybank-malaysia',
   name: 'Maybank',
   region: 'MY',
-  defaultLocale: 'en-MY',
+  defaultLocale: 'ms-MY',
   identification: {
     logoPatterns: ['MAYBANK', 'MALAYAN BANKING', 'maybank.com.my', 'MAYBANK BERHAD'],
     accountPatterns: [/\b\d{12}\b/, /\b\d{14}\b/],
