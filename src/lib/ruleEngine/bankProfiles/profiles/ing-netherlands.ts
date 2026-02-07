@@ -9,7 +9,7 @@ export const ingNetherlandsProfile: BankProfile = {
   id: 'ing-netherlands',
   name: 'ING Bank Netherlands',
   region: 'NL',
-  defaultLocale: 'nl-NL',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['ING BANK', 'ING', 'ing.nl', 'ING GROEP'],
     accountPatterns: [/\b\d{10}\b/, /\bNL\d{2}\s*INGB\s*\d{10}\b/],
