@@ -58,6 +58,23 @@ const USD_RATES: Record<string, number> = {
   EGP: 50.0,
   NGN: 1550,
   KES: 153,
+  // NEW: 16 additional currencies
+  VND: 24500,
+  PKR: 280,
+  BDT: 110,
+  LKR: 320,
+  TWD: 32,
+  CZK: 23.5,
+  HUF: 365,
+  RON: 4.6,
+  ILS: 3.7,
+  KWD: 0.31,
+  QAR: 3.64,
+  OMR: 0.385,
+  BHD: 0.377,
+  GHS: 15.5,
+  TZS: 2580,
+  MAD: 10.1,
 };
 
 // =============================================================================

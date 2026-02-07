@@ -16,14 +16,15 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       // English
       'Date', 'DATE', 'Txn Date', 'TXN DATE', 'Transaction Date', 'Trans Date',
       'Value Date', 'Posting Date', 'Entry Date', 'Effective Date', 'Book Date',
+      'Post Date', 'Trade Date', 'Tran Date', 'Txn Dt', 'Trans Dt', 'Dt',
       // Spanish
-      'Fecha', 'FECHA', 'Fecha de Transacción', 'Fecha Valor',
+      'Fecha', 'FECHA', 'Fecha de Transacción', 'Fecha Valor', 'Fecha Operación',
       // French
       'Date', 'Date d\'opération', 'Date de valeur',
       // German
-      'Datum', 'Buchungsdatum', 'Valutadatum', 'Wertstellung',
+      'Datum', 'Buchungsdatum', 'Valutadatum', 'Wertstellung', 'Buchungstag',
       // Arabic
-      'التاريخ', 'تاريخ المعاملة', 'تاريخ القيمة',
+      'التاريخ', 'تاريخ المعاملة', 'تاريخ القيمة', 'تاريخ العملية',
       // Hindi
       'तारीख', 'दिनांक',
       // Chinese
@@ -31,9 +32,13 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       // Portuguese
       'Data', 'Data da Transação',
       // Italian
-      'Data', 'Data Operazione',
+      'Data', 'Data Operazione', 'Data Valuta',
       // Dutch
-      'Datum', 'Boekdatum',
+      'Datum', 'Boekdatum', 'Boekingsdatum',
+      // Japanese
+      '取引日',
+      // Malay
+      'Tarikh', 'Tarikh Urus Niaga',
     ],
   },
   {
@@ -43,12 +48,14 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       'Description', 'DESCRIPTION', 'Particulars', 'PARTICULARS', 'Narration',
       'NARRATION', 'Details', 'Transaction Details', 'Trans. Description',
       'Memo', 'Reference', 'Remarks', 'Transaction', 'Payment Details',
+      'Trans Type', 'Tran Type', 'Txn Type', 'Payment Type', 'Trans Ref',
+      'Ref No', 'Ref Number',
       // Spanish
       'Descripción', 'DESCRIPCIÓN', 'Concepto', 'Detalle', 'Movimiento',
       // French
-      'Description', 'Libellé', 'Opération', 'Détail',
+      'Description', 'Libellé', 'Opération', 'Détail', 'Numéro de Référence',
       // German
-      'Beschreibung', 'Verwendungszweck', 'Buchungstext', 'Empfänger/Auftraggeber',
+      'Beschreibung', 'Verwendungszweck', 'Buchungstext', 'Empfänger/Auftraggeber', 'Referenznummer',
       // Arabic
       'البيان', 'الوصف', 'التفاصيل', 'الملاحظات',
       // Hindi
@@ -105,6 +112,11 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       '출금', '인출',
       // Turkish
       'Borç', 'Çıkış', 'Ödeme',
+      // Additional regional
+      'Cheque Amt', 'Cheque Amt.', 'Check Amt', 'Check Amt.',
+      'Débits', 'Prélèvement', 'Dépense', 'Pagamento', 'Betalning', 'Uttag',
+      'Çekim', 'Expenditure', 'Spent', 'Amount Out', 'DR Amount', 'Debit Tran',
+      'Withdrawal Tran',
     ],
   },
   {
@@ -148,6 +160,10 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       '입금', '예금',
       // Turkish
       'Alacak', 'Giriş', 'Yatırım',
+      // Additional regional
+      'CR Amount', 'Credit Tran', 'Deposits Amt', 'Lodgement Amt', 'Lodgment Amt',
+      'Amount In', 'Guthaben', 'Einnahme', 'Encaissement', 'Recette', 'Incasso',
+      'Insättning', 'Yatırılan', 'Proceeds', 'Funds In',
     ],
   },
   {
@@ -156,12 +172,14 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       // English
       'Balance', 'BALANCE', 'Running Balance', 'Available Balance', 'Closing Balance',
       'Current Balance', 'Ledger Balance', 'Book Balance', 'Total', 'Net Balance',
+      'Stmt Balance', 'Account Balance', 'End Balance', 'Statement Balance',
+      'New Balance', 'Updated Balance',
       // Spanish
       'Saldo', 'SALDO', 'Saldo Actual', 'Saldo Disponible',
       // French
-      'Solde', 'Solde Courant', 'Solde Disponible',
+      'Solde', 'Solde Courant', 'Solde Disponible', 'Solde Final',
       // German
-      'Saldo', 'Kontostand', 'Guthaben',
+      'Saldo', 'Kontostand', 'Guthaben', 'Endsaldo',
       // Arabic
       'الرصيد', 'الرصيد المتاح', 'الرصيد الحالي',
       // Hindi
@@ -174,6 +192,14 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       'Saldo', 'Saldo Disponibile',
       // Dutch
       'Saldo', 'Balans',
+      // Russian
+      'Остаток',
+      // Czech
+      'Konečný zůstatek',
+      // Thai
+      'ยอดคงเหลือ',
+      // Malay
+      'Baki',
     ],
   },
 ];

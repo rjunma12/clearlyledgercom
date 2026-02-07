@@ -39,12 +39,55 @@ export interface HeaderDetectionResult {
 
 const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
   date: [
+    // English
     'date', 'txn date', 'transaction date', 'value date', 'post date',
-    'posting date', 'trans date', 'dated', 'dt', 'तारीख', '日付', 'tarikh'
+    'posting date', 'trans date', 'dated', 'dt', 'tran date', 'txn dt', 'trans dt',
+    'trade date', 'entry date', 'effective date', 'book date',
+    // German
+    'datum', 'buchungstag', 'buchungsdatum', 'valutadatum', 'wertstellung',
+    // Spanish
+    'fecha', 'fecha operación', 'fecha de transacción', 'fecha valor',
+    // French
+    'date d\'opération', 'date de valeur',
+    // Italian
+    'data', 'data operazione', 'data valuta',
+    // Dutch
+    'boekingsdatum',
+    // Arabic
+    'التاريخ', 'تاريخ العملية',
+    // Hindi
+    'तारीख', 'दिनांक',
+    // Chinese
+    '日期', '交易日期', '取引日',
+    // Malay
+    'tarikh', 'tarikh urus niaga',
+    // Japanese
+    '取引日',
   ],
   description: [
+    // English
     'description', 'particulars', 'narration', 'details', 'remarks',
-    'transaction details', 'memo', 'reference', 'विवरण', '摘要', 'keterangan'
+    'transaction details', 'memo', 'reference', 'trans type', 'tran type',
+    'txn type', 'payment type', 'trans ref', 'ref no', 'ref number',
+    'payment details', 'transaction',
+    // German
+    'beschreibung', 'verwendungszweck', 'buchungstext', 'referenznummer',
+    // French
+    'libellé', 'opération', 'détail', 'numéro de référence',
+    // Spanish
+    'descripción', 'concepto', 'detalle', 'movimiento',
+    // Italian
+    'descrizione', 'causale',
+    // Dutch
+    'omschrijving', 'beschrijving',
+    // Arabic
+    'البيان', 'الوصف', 'التفاصيل', 'الملاحظات',
+    // Hindi
+    'विवरण', 'ब्योरा',
+    // Chinese
+    '描述', '摘要', '交易说明',
+    // Malay
+    'keterangan',
   ],
   debit: [
     // English (Standard)
@@ -86,6 +129,12 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     '출금', '인출',
     // Turkish
     'borç', 'çıkış', 'ödeme',
+    // Additional regional (Cheque/Check variants)
+    'cheque amt', 'cheque amt.', 'check amt', 'check amt.',
+    'débits', 'prélèvement', 'dépense', 'pagamento', 'betalning', 'uttag', 'çekim',
+    'expenditure', 'spent', 'amount out', 'dr amount', 'debit tran', 'withdrawal tran',
+    // Swedish
+    'uttag', 'betalning',
   ],
   credit: [
     // English (Standard)
@@ -126,10 +175,43 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     '입금', '예금',
     // Turkish
     'alacak', 'giriş', 'yatırım',
+    // Additional regional
+    'cr amount', 'credit tran', 'deposits amt', 'lodgement amt', 'lodgment amt',
+    'amount in', 'guthaben', 'einnahme', 'encaissement', 'recette', 'incasso',
+    'insättning', 'yatırılan', 'proceeds', 'funds in',
+    // Swedish
+    'insättning',
   ],
   balance: [
+    // English
     'balance', 'running balance', 'available balance', 'closing',
-    'closing balance', 'bal', 'शेष', '余额', 'baki'
+    'closing balance', 'bal', 'stmt balance', 'account balance', 'end balance',
+    'statement balance', 'new balance', 'updated balance', 'ledger balance',
+    'current balance', 'net balance', 'book balance', 'total',
+    // German
+    'saldo', 'kontostand', 'guthaben', 'endsaldo',
+    // French
+    'solde', 'solde courant', 'solde disponible', 'solde final',
+    // Spanish
+    'saldo actual', 'saldo disponible',
+    // Italian
+    'saldo disponibile',
+    // Dutch
+    'balans',
+    // Russian
+    'остаток',
+    // Czech
+    'konečný zůstatek',
+    // Arabic
+    'الرصيد', 'الرصيد المتاح', 'الرصيد الحالي',
+    // Hindi
+    'शेष', 'बैलेंस',
+    // Chinese
+    '余额', '结余', '账户余额',
+    // Thai
+    'ยอดคงเหลือ',
+    // Malay
+    'baki'
   ],
   reference: ['ref', 'reference', 'ref no', 'txn id', 'transaction id'],
   amount: ['amount', 'value', 'transaction amount', 'txn amt'],

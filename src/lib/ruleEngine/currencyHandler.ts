@@ -15,6 +15,9 @@ export type CurrencyCode =
   | 'CHF' | 'HKD' | 'SGD' | 'AED' | 'SAR' | 'ZAR' | 'MYR' | 'THB'
   | 'PHP' | 'IDR' | 'KRW' | 'NZD' | 'SEK' | 'NOK' | 'DKK' | 'PLN'
   | 'BRL' | 'MXN' | 'RUB' | 'TRY' | 'EGP' | 'NGN' | 'KES'
+  // NEW: 16 additional currencies
+  | 'VND' | 'PKR' | 'BDT' | 'LKR' | 'TWD' | 'CZK' | 'HUF' | 'RON'
+  | 'ILS' | 'KWD' | 'QAR' | 'OMR' | 'BHD' | 'GHS' | 'TZS' | 'MAD'
   | 'UNKNOWN';
 
 export interface CurrencyInfo {
@@ -90,6 +93,23 @@ export const CURRENCY_INFO: Record<CurrencyCode, CurrencyInfo> = {
   EGP: { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound', decimalPlaces: 2 },
   NGN: { code: 'NGN', symbol: '₦', name: 'Nigerian Naira', decimalPlaces: 2 },
   KES: { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', decimalPlaces: 2 },
+  // NEW: 16 additional currencies
+  VND: { code: 'VND', symbol: '₫', name: 'Vietnamese Dong', decimalPlaces: 0 },
+  PKR: { code: 'PKR', symbol: 'Rs', name: 'Pakistani Rupee', decimalPlaces: 2 },
+  BDT: { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka', decimalPlaces: 2 },
+  LKR: { code: 'LKR', symbol: 'Rs', name: 'Sri Lankan Rupee', decimalPlaces: 2 },
+  TWD: { code: 'TWD', symbol: 'NT$', name: 'New Taiwan Dollar', decimalPlaces: 2 },
+  CZK: { code: 'CZK', symbol: 'Kč', name: 'Czech Koruna', decimalPlaces: 2 },
+  HUF: { code: 'HUF', symbol: 'Ft', name: 'Hungarian Forint', decimalPlaces: 0 },
+  RON: { code: 'RON', symbol: 'lei', name: 'Romanian Leu', decimalPlaces: 2 },
+  ILS: { code: 'ILS', symbol: '₪', name: 'Israeli Shekel', decimalPlaces: 2 },
+  KWD: { code: 'KWD', symbol: 'د.ك', name: 'Kuwaiti Dinar', decimalPlaces: 3 },
+  QAR: { code: 'QAR', symbol: 'ر.ق', name: 'Qatari Riyal', decimalPlaces: 2 },
+  OMR: { code: 'OMR', symbol: 'ر.ع.', name: 'Omani Rial', decimalPlaces: 3 },
+  BHD: { code: 'BHD', symbol: '.د.ب', name: 'Bahraini Dinar', decimalPlaces: 3 },
+  GHS: { code: 'GHS', symbol: 'GH₵', name: 'Ghanaian Cedi', decimalPlaces: 2 },
+  TZS: { code: 'TZS', symbol: 'TSh', name: 'Tanzanian Shilling', decimalPlaces: 2 },
+  MAD: { code: 'MAD', symbol: 'د.م.', name: 'Moroccan Dirham', decimalPlaces: 2 },
   UNKNOWN: { code: 'UNKNOWN', symbol: '', name: 'Unknown', decimalPlaces: 2 },
 };
 
@@ -198,6 +218,91 @@ const CURRENCY_PATTERNS: CurrencyPattern[] = [
     code: 'THB',
     patterns: [/\bTHB\b/i, /\bThai\s*Baht/i, /\bBaht\b/i],
     symbolPatterns: [/฿\s*[\d,]+\.?\d*/],
+  },
+  // NEW: 16 additional currency patterns
+  {
+    code: 'VND',
+    patterns: [/\bVND\b/i, /\bVietnamese\s*Dong/i, /\bDong\b/i],
+    symbolPatterns: [/₫\s*[\d,]+/],
+  },
+  {
+    code: 'PKR',
+    patterns: [/\bPKR\b/i, /\bPakistani\s*Rupee/i],
+    symbolPatterns: [/(?<!\w)Rs\.?\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'BDT',
+    patterns: [/\bBDT\b/i, /\bBangladeshi\s*Taka/i, /\bTaka\b/i],
+    symbolPatterns: [/৳\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'LKR',
+    patterns: [/\bLKR\b/i, /\bSri\s*Lankan?\s*Rupee/i],
+  },
+  {
+    code: 'TWD',
+    patterns: [/\bTWD\b/i, /\bTaiwan\s*Dollar/i, /\bNew\s*Taiwan\s*Dollar/i],
+    symbolPatterns: [/NT\$\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'CZK',
+    patterns: [/\bCZK\b/i, /\bCzech\s*Koruna/i],
+    symbolPatterns: [/Kč\s*[\d,]+\.?\d*/, /[\d,]+\.?\d*\s*Kč/],
+  },
+  {
+    code: 'HUF',
+    patterns: [/\bHUF\b/i, /\bHungarian\s*Forint/i, /\bForint\b/i],
+    symbolPatterns: [/Ft\s*[\d,]+/, /[\d,]+\s*Ft/],
+  },
+  {
+    code: 'RON',
+    patterns: [/\bRON\b/i, /\bRomanian\s*Leu/i],
+    symbolPatterns: [/lei\s*[\d,]+\.?\d*/, /[\d,]+\.?\d*\s*lei/],
+  },
+  {
+    code: 'ILS',
+    patterns: [/\bILS\b/i, /\bIsraeli\s*Shekel/i, /\bShekel\b/i],
+    symbolPatterns: [/₪\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'KWD',
+    patterns: [/\bKWD\b/i, /\bKuwaiti\s*Dinar/i],
+    symbolPatterns: [/د\.ك\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'QAR',
+    patterns: [/\bQAR\b/i, /\bQatari\s*Riyal/i],
+    symbolPatterns: [/ر\.ق\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'OMR',
+    patterns: [/\bOMR\b/i, /\bOmani\s*Rial/i],
+    symbolPatterns: [/ر\.ع\.?\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'BHD',
+    patterns: [/\bBHD\b/i, /\bBahraini\s*Dinar/i],
+    symbolPatterns: [/\.د\.ب\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'GHS',
+    patterns: [/\bGHS\b/i, /\bGhanaian\s*Cedi/i, /\bCedi\b/i],
+    symbolPatterns: [/GH₵\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'TZS',
+    patterns: [/\bTZS\b/i, /\bTanzanian\s*Shilling/i],
+    symbolPatterns: [/TSh\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'MAD',
+    patterns: [/\bMAD\b/i, /\bMoroccan\s*Dirham/i],
+    symbolPatterns: [/د\.م\.?\s*[\d,]+\.?\d*/],
+  },
+  {
+    code: 'TRY',
+    patterns: [/\bTRY\b/i, /\bTurkish\s*Lira/i, /\bTL\b/],
+    symbolPatterns: [/₺\s*[\d,]+\.?\d*/],
   },
 ];
 

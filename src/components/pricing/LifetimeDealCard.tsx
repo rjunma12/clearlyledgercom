@@ -115,7 +115,7 @@ export function LifetimeDealCard({
             </Button>
             {!isSoldOut && (
               <p className="text-xs text-muted-foreground text-center mt-2">
-                One-time payment • No subscription
+                One-time payment • 14-day refund policy
               </p>
             )}
           </div>

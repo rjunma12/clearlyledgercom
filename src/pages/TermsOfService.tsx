@@ -187,9 +187,10 @@ const TermsOfService = () => {
               8. Refunds & Cancellations
             </h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>All purchases, including Lifetime plans, are covered by a 14-day refund period in compliance with EU Consumer Rights Directive 2011/83/EU</li>
+              <li>EU customers have a statutory 14-day cooling-off period from the date of purchase</li>
+              <li>To request a refund, contact support within 14 days of purchase at helppropsal@outlook.com</li>
               <li>Subscription users may cancel their subscription at any time</li>
-              <li>Refund requests are handled on a case-by-case basis</li>
-              <li>One-time payments, including lifetime plan purchases, are generally non-refundable unless otherwise required by applicable law</li>
               <li>Upon cancellation, access continues until the end of the current billing period</li>
             </ul>
           </section>
