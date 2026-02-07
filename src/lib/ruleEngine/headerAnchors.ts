@@ -175,10 +175,43 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     '입금', '예금',
     // Turkish
     'alacak', 'giriş', 'yatırım',
+    // Additional regional
+    'cr amount', 'credit tran', 'deposits amt', 'lodgement amt', 'lodgment amt',
+    'amount in', 'guthaben', 'einnahme', 'encaissement', 'recette', 'incasso',
+    'insättning', 'yatırılan', 'proceeds', 'funds in',
+    // Swedish
+    'insättning',
   ],
   balance: [
+    // English
     'balance', 'running balance', 'available balance', 'closing',
-    'closing balance', 'bal', 'शेष', '余额', 'baki'
+    'closing balance', 'bal', 'stmt balance', 'account balance', 'end balance',
+    'statement balance', 'new balance', 'updated balance', 'ledger balance',
+    'current balance', 'net balance', 'book balance', 'total',
+    // German
+    'saldo', 'kontostand', 'guthaben', 'endsaldo',
+    // French
+    'solde', 'solde courant', 'solde disponible', 'solde final',
+    // Spanish
+    'saldo actual', 'saldo disponible',
+    // Italian
+    'saldo disponibile',
+    // Dutch
+    'balans',
+    // Russian
+    'остаток',
+    // Czech
+    'konečný zůstatek',
+    // Arabic
+    'الرصيد', 'الرصيد المتاح', 'الرصيد الحالي',
+    // Hindi
+    'शेष', 'बैलेंस',
+    // Chinese
+    '余额', '结余', '账户余额',
+    // Thai
+    'ยอดคงเหลือ',
+    // Malay
+    'baki'
   ],
   reference: ['ref', 'reference', 'ref no', 'txn id', 'transaction id'],
   amount: ['amount', 'value', 'transaction amount', 'txn amt'],

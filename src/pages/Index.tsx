@@ -30,7 +30,7 @@ const homepageFaqs = [
   },
   {
     question: "How many pages can I convert for free?",
-    answer: "Anonymous users can convert 1 page per 24 hours. Free registered accounts get 5 pages daily. Pro subscribers ($19/month) get unlimited pages, and Lifetime members ($119 one-time) get unlimited access forever."
+    answer: "Anonymous users can convert 1 page per 24 hours. Free registered accounts get 5 pages daily. Pro subscribers ($19/month) get unlimited pages, and Lifetime members ($119 one-time) get unlimited access forever. All paid plans include a 14-day money-back guarantee."
   },
   {
     question: "Does ClearlyLedger work with Indian and international bank statements?",

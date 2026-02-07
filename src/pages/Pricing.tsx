@@ -11,7 +11,7 @@ const pricingFaqs = [
   },
   {
     question: "Is there a money-back guarantee?",
-    answer: "Yes! We offer a 30-day money-back guarantee for Pro subscriptions. If you're not satisfied, contact us for a full refund, no questions asked."
+    answer: "Yes! All paid plans include a 14-day money-back guarantee in compliance with EU consumer protection standards. For Pro subscriptions, we extend this to a 30-day satisfaction guarantee. Lifetime purchases are covered by the 14-day policy from date of purchase."
   },
   {
     question: "What does Lifetime access include?",
