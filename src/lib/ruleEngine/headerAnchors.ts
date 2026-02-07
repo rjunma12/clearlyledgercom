@@ -128,19 +128,21 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     // Dutch
     'debet', 'af', 'afschrijving', 'uitgaven',
     // Hindi
-    'डेबिट', 'निकासी', 'आहरण',
-    // Chinese
-    '借方', '支出', '取款', '提款',
+    'डेबिट', 'निकासी', 'आहरण', 'व्यय', 'बाहर',
+    // Chinese (Simplified & Traditional)
+    '借方', '支出', '取款', '提款', '扣除', '付款', '消費', '借貸',
     // Japanese
-    '出金', '引落', '支払',
-    // Malay/Indonesian
-    'keluar', 'pengeluaran',
-    // Arabic
-    'مدين', 'سحب', 'المسحوبات', 'مصروفات',
+    '出金', '引落', '支払', '引き出し', '払い出し',
     // Thai
-    'ถอน', 'รายจ่าย',
+    'ถอน', 'รายจ่าย', 'หักออก', 'เงินออก',
+    // Vietnamese
+    'ghi nợ', 'rút tiền', 'chi tiêu',
     // Korean
-    '출금', '인출',
+    '출금', '인출', '차변', '지불',
+    // Malay/Indonesian
+    'keluar', 'pengeluaran', 'debit', 'penarikan',
+    // Arabic
+    'مدين', 'سحب', 'المسحوبات', 'مصروفات', 'خصم', 'الإنفاق',
     // Turkish
     'borç', 'çıkış', 'ödeme',
     // Additional regional (Cheque/Check variants)
