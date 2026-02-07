@@ -9,7 +9,7 @@ export const standardbankZaProfile: BankProfile = {
   id: 'standardbank-za',
   name: 'Standard Bank',
   region: 'ZA',
-  defaultLocale: 'en-ZA',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['STANDARD BANK', 'standardbank.co.za', 'STANBIC', 'STANDARD BANK GROUP'],
     accountPatterns: [/\b\d{9,11}\b/, /\b\d{6}\s*\d{5}\b/],
