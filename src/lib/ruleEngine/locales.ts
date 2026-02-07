@@ -48,12 +48,14 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       'Description', 'DESCRIPTION', 'Particulars', 'PARTICULARS', 'Narration',
       'NARRATION', 'Details', 'Transaction Details', 'Trans. Description',
       'Memo', 'Reference', 'Remarks', 'Transaction', 'Payment Details',
+      'Trans Type', 'Tran Type', 'Txn Type', 'Payment Type', 'Trans Ref',
+      'Ref No', 'Ref Number',
       // Spanish
       'Descripción', 'DESCRIPCIÓN', 'Concepto', 'Detalle', 'Movimiento',
       // French
-      'Description', 'Libellé', 'Opération', 'Détail',
+      'Description', 'Libellé', 'Opération', 'Détail', 'Numéro de Référence',
       // German
-      'Beschreibung', 'Verwendungszweck', 'Buchungstext', 'Empfänger/Auftraggeber',
+      'Beschreibung', 'Verwendungszweck', 'Buchungstext', 'Empfänger/Auftraggeber', 'Referenznummer',
       // Arabic
       'البيان', 'الوصف', 'التفاصيل', 'الملاحظات',
       // Hindi
