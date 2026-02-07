@@ -201,7 +201,7 @@ const BlogPostRuleBasedVsAI = () => {
           </div>
 
           {/* Main Content */}
-          <div className="prose prose-lg max-w-none dark:prose-invert">
+          <div className="prose prose-lg blog-prose max-w-none dark:prose-invert">
             
             {/* Introduction */}
             <section>

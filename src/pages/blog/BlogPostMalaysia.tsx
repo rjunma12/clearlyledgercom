@@ -105,7 +105,7 @@ const BlogPostMalaysia = () => {
           </div>
 
           {/* Main Content */}
-          <div className="prose prose-lg dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <h2 id="why-convert-my-statements">Why Convert Malaysian Bank Statements to Excel?</h2>
             <p>
               Malaysian businesses, accountants, and individuals frequently need to convert bank statement PDFs to Excel for GST reporting, tax submissions to LHDN, business accounting, or personal financial tracking. The diverse banking landscape in Malaysia means dealing with multiple statement formats.

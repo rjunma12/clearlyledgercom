@@ -108,7 +108,7 @@ const BlogPostJapan = () => {
           </div>
 
           {/* Main Content */}
-          <div className="prose prose-lg dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <h2 id="why-convert-jp-statements">Why Convert Japanese Bank Statements to Excel?</h2>
             <p>
               Japanese businesses, accountants, and expatriates frequently need to convert bank statement PDFs (取引明細書) to Excel for tax filings with the National Tax Agency (国税庁), business accounting, or financial analysis. Japanese bank statements present unique challenges due to character encodings and date formats.

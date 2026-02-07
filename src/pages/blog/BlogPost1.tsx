@@ -148,7 +148,7 @@ const BlogPost1 = () => {
           </div>
 
           {/* Content */}
-          <div className="prose prose-neutral dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <p className="lead text-lg text-muted-foreground">
               Converting PDF bank statements to Excel is a common need for accountants, small business owners, and anyone managing their finances. This guide walks you through the process step-by-step.
             </p>

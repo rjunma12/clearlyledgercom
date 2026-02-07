@@ -154,7 +154,7 @@ const BlogPostAustralia = () => {
           </div>
 
           {/* Main Content */}
-          <div className="prose prose-lg dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <h2 id="why-convert-australian-statements">Why Convert Australian Bank Statements to Excel?</h2>
             <p>
               Australian businesses, accountants, and individuals regularly need to convert bank statement PDFs to Excel for BAS lodgements, tax returns, loan applications, or business bookkeeping. Each of Australia's Big Four banks (and beyond) uses different PDF formats, making universal conversion challenging.
