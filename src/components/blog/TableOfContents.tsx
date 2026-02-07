@@ -9,9 +9,14 @@ interface TOCItem {
 
 interface TableOfContentsProps {
   contentSelector?: string;
+  /** When true, only shows H2 headings (recommended for SEO) */
+  h2Only?: boolean;
 }
 
-const TableOfContents = ({ contentSelector = "article" }: TableOfContentsProps) => {
+const TableOfContents = ({ 
+  contentSelector = "article",
+  h2Only = false 
+}: TableOfContentsProps) => {
   const [items, setItems] = useState<TOCItem[]>([]);
   const [activeId, setActiveId] = useState<string>("");
 
@@ -19,7 +24,9 @@ const TableOfContents = ({ contentSelector = "article" }: TableOfContentsProps) 
     const article = document.querySelector(contentSelector);
     if (!article) return;
 
-    const headings = article.querySelectorAll("h2, h3");
+    // Select only H2s if h2Only is true, otherwise H2 and H3
+    const headingSelector = h2Only ? "h2" : "h2, h3";
+    const headings = article.querySelectorAll(headingSelector);
     const tocItems: TOCItem[] = [];
 
     headings.forEach((heading, index) => {
@@ -35,7 +42,7 @@ const TableOfContents = ({ contentSelector = "article" }: TableOfContentsProps) 
     });
 
     setItems(tocItems);
-  }, [contentSelector]);
+  }, [contentSelector, h2Only]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Upload, ChevronRight, Lightbulb } from "lucide-react";
+import { ArrowLeft, Upload, ChevronRight, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -123,16 +123,10 @@ const BlogPost4 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               Improve Your Financial Workflows With Accurate Bank Statement Conversion
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                January 5, 2025
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                6 min read
-              </div>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mb-4">
+              By ClearlyLedger Team · January 5, 2025 · 6 min read
+            </p>
             <ShareButtons 
               url="https://clearlyledger.com/blog/accurate-bank-statement-conversion-workflows" 
               title="Improve Your Financial Workflows With Accurate Bank Statement Conversion"
@@ -140,7 +134,7 @@ const BlogPost4 = () => {
           </header>
 
           {/* Table of Contents */}
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
@@ -293,8 +287,17 @@ const BlogPost4 = () => {
               <li>Evaluate time savings and accuracy improvements</li>
               <li>Consider a <Link to="/pricing" className="text-primary hover:underline">paid plan</Link> for unlimited processing</li>
             </ol>
+
+            <h2>Key Takeaways</h2>
+            <ul>
+              <li><strong>Automated conversion saves hours:</strong> Process statements in seconds instead of hours of manual entry</li>
+              <li><strong>Balance verification catches errors:</strong> Automatic checks ensure data accuracy before import</li>
+              <li><strong>Integrates with existing tools:</strong> QuickBooks, Xero, Power BI, and Excel all supported</li>
+              <li><strong>Reduces error rates dramatically:</strong> From 2-5% manual error rate to near-zero</li>
+              <li><strong>Scales with your needs:</strong> Batch processing for high-volume workflows</li>
+            </ul>
             <p>
-              Questions? <Link to="/contact" className="text-primary hover:underline">Contact our support team</Link>.
+              Transform your financial workflows today. <Link to="/" className="text-primary hover:underline">Start with a free conversion</Link>.
             </p>
           </div>
 

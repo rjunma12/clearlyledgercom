@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Upload, ChevronRight, Lightbulb } from "lucide-react";
+import { ArrowLeft, Upload, ChevronRight, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -121,16 +121,10 @@ const BlogPost1 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                January 15, 2025
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                6 min read
-              </div>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mb-4">
+              By ClearlyLedger Team · January 15, 2025 · 6 min read
+            </p>
             <ShareButtons 
               url="https://clearlyledger.com/blog/convert-bank-statements-to-excel" 
               title="How to Convert Bank Statement PDFs to Excel (Step-by-Step Guide)"
@@ -138,7 +132,7 @@ const BlogPost1 = () => {
           </header>
 
           {/* Table of Contents */}
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
@@ -233,6 +227,18 @@ const BlogPost1 = () => {
             <h3>Q: What if my statement doesn't convert correctly?</h3>
             <p>
               <Link to="/contact" className="text-primary hover:underline">Contact our support team</Link> with details about the issue. We're continuously improving format coverage.
+            </p>
+
+            <h2>Key Takeaways</h2>
+            <ul>
+              <li><strong>Upload and convert in seconds:</strong> No manual data entry required</li>
+              <li><strong>Balance verification ensures accuracy:</strong> Opening + transactions = closing balance</li>
+              <li><strong>Works with multi-page PDFs:</strong> Automatic stitching across pages</li>
+              <li><strong>Integrates with accounting software:</strong> QuickBooks, Xero, and Excel-ready exports</li>
+              <li><strong>Privacy-first processing:</strong> Files deleted immediately after conversion</li>
+            </ul>
+            <p>
+              Ready to save hours on bank statement processing? <Link to="/" className="text-primary hover:underline">Try our free converter</Link> now.
             </p>
           </div>
 

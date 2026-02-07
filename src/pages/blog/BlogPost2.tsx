@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Upload, ChevronRight, Lightbulb } from "lucide-react";
+import { ArrowLeft, Upload, ChevronRight, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -80,16 +80,10 @@ const BlogPost2 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               Best Tools for Converting Indian Bank Statement PDFs to Excel
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                January 12, 2025
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                5 min read
-              </div>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mb-4">
+              By ClearlyLedger Team · January 12, 2025 · 5 min read
+            </p>
             <ShareButtons 
               url="https://clearlyledger.com/blog/indian-bank-statement-converter" 
               title="Best Tools for Converting Indian Bank Statement PDFs to Excel"
@@ -97,7 +91,7 @@ const BlogPost2 = () => {
           </header>
 
           {/* Table of Contents */}
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
@@ -213,6 +207,18 @@ const BlogPost2 = () => {
             </ul>
             <p>
               <Link to="/contact" className="text-primary hover:underline">Contact us</Link> if you need support for a specific bank format.
+            </p>
+
+            <h2>Key Takeaways</h2>
+            <ul>
+              <li><strong>Major Indian banks supported:</strong> SBI, HDFC, ICICI, Axis, and Kotak formats handled automatically</li>
+              <li><strong>Local date and currency formats:</strong> DD/MM/YYYY dates and lakhs/crores notation preserved</li>
+              <li><strong>Privacy-first processing:</strong> Files processed locally, deleted after conversion</li>
+              <li><strong>GST-ready exports:</strong> Clean data for tax compliance and accounting</li>
+              <li><strong>Balance verification:</strong> Automatic checks ensure data accuracy</li>
+            </ul>
+            <p>
+              Ready to convert your Indian bank statements? <Link to="/" className="text-primary hover:underline">Start your free conversion</Link> now.
             </p>
           </div>
 

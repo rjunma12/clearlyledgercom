@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -83,22 +83,19 @@ const BlogPostUK = () => {
           <header className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">Regional</span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" /> 5 min read
-              </span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
               Convert UK Bank Statement PDFs to Excel - Barclays, HSBC, Lloyds & More
             </h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <time dateTime="2025-01-21">January 21, 2025</time>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground">
+              By ClearlyLedger Team · January 21, 2025 · 5 min read
+            </p>
           </header>
 
           <ShareButtons url={shareUrl} title={shareTitle} />
           
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-8">
@@ -236,6 +233,18 @@ const BlogPostUK = () => {
               <li><strong>Expense Claims:</strong> Track business expenses for reimbursement</li>
               <li><strong>Audit Preparation:</strong> Create clean financial records for auditors</li>
             </ul>
+
+            <h2 id="key-takeaways">Key Takeaways</h2>
+            <ul>
+              <li><strong>Major UK banks supported:</strong> Barclays, HSBC, Lloyds, NatWest, Santander, and Nationwide</li>
+              <li><strong>UK GDPR compliant:</strong> Local browser processing with no server uploads</li>
+              <li><strong>Sort codes preserved:</strong> XX-XX-XX format maintained in exports</li>
+              <li><strong>GBP formatting:</strong> Proper Pound Sterling handling throughout</li>
+              <li><strong>Balance verification:</strong> Automatic accuracy checks before export</li>
+            </ul>
+            <p>
+              Ready to convert your UK bank statements? <Link to="/" className="text-primary hover:underline">Start your free conversion</Link>.
+            </p>
           </div>
 
           <AuthorSection />

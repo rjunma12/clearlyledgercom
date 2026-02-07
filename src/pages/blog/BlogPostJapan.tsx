@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -82,9 +82,6 @@ const BlogPostJapan = () => {
           <header className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">Regional</span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" /> 5 min read
-              </span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
               Japanese Bank Statement PDF to Excel Converter - Complete Guide
@@ -92,15 +89,15 @@ const BlogPostJapan = () => {
             <p className="text-lg text-muted-foreground">
               日本の銀行取引明細書をExcelに変換する完全ガイド
             </p>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
-              <Calendar className="w-4 h-4" />
-              <time dateTime="2025-01-21">January 21, 2025</time>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mt-4">
+              By ClearlyLedger Team · January 21, 2025 · 5 min read
+            </p>
           </header>
 
           <ShareButtons url={shareUrl} title={shareTitle} />
           
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-8">
@@ -244,6 +241,18 @@ const BlogPostJapan = () => {
               <li>お預り金額 (Deposit)</li>
               <li>残高 (Balance) / 差引残高</li>
             </ul>
+
+            <h2 id="key-takeaways">Key Takeaways</h2>
+            <ul>
+              <li><strong>Major Japanese banks supported:</strong> MUFG, SMBC, Mizuho, Resona, and Japan Post Bank</li>
+              <li><strong>Full Kanji and Kana support:</strong> Japanese characters preserved correctly</li>
+              <li><strong>Zenkaku to Hankaku conversion:</strong> Full-width numbers converted to standard digits</li>
+              <li><strong>Era dates handled:</strong> Both 令和/平成 and Western formats supported</li>
+              <li><strong>APPI compliant:</strong> Local processing meets Japanese privacy requirements</li>
+            </ul>
+            <p>
+              Convert your Japanese bank statements now. <Link to="/" className="text-primary hover:underline">今すぐ変換を開始</Link>.
+            </p>
           </div>
 
           <AuthorSection />

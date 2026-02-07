@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Upload, ChevronRight, Lightbulb } from "lucide-react";
+import { ArrowLeft, Upload, ChevronRight, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -79,16 +79,10 @@ const BlogPost3 = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-4 mb-4">
               Bank Statement Conversion: Ensuring Privacy & Secure Processing
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                January 8, 2025
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
-                5 min read
-              </div>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground mb-4">
+              By ClearlyLedger Team · January 8, 2025 · 5 min read
+            </p>
             <ShareButtons 
               url="https://clearlyledger.com/blog/privacy-secure-bank-statement-conversion" 
               title="Bank Statement Conversion: Ensuring Privacy & Secure Processing"
@@ -96,7 +90,7 @@ const BlogPost3 = () => {
           </header>
 
           {/* Table of Contents */}
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
@@ -199,15 +193,17 @@ const BlogPost3 = () => {
               Review our <Link to="/terms-of-service" className="text-primary hover:underline">Terms of Service</Link> for complete details on our data handling practices.
             </p>
 
-            <h2>Summary: Security Checklist</h2>
+            <h2>Key Takeaways</h2>
             <ul>
-              <li>✓ HTTPS encryption on file upload</li>
-              <li>✓ Automatic file deletion after processing</li>
-              <li>✓ No AI training on your documents</li>
-              <li>✓ Clear, readable privacy policy</li>
-              <li>✓ Optional PII masking for sharing</li>
-              <li>✓ Transparent about data handling</li>
+              <li><strong>Choose tools with no data retention:</strong> Files should be deleted immediately after processing</li>
+              <li><strong>Verify HTTPS encryption:</strong> Look for the padlock icon when uploading</li>
+              <li><strong>Avoid AI training risks:</strong> Your documents shouldn't train machine learning models</li>
+              <li><strong>Use PII masking when sharing:</strong> Anonymize sensitive data before sending to others</li>
+              <li><strong>Read privacy policies carefully:</strong> Understand exactly how your data is handled</li>
             </ul>
+            <p>
+              Protect your financial data while streamlining your workflow. <Link to="/" className="text-primary hover:underline">Try our privacy-first converter</Link>.
+            </p>
           </div>
 
           {/* Author Section */}

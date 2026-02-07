@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -131,22 +131,19 @@ const BlogPostAustralia = () => {
           <header className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">Regional</span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" /> 7 min read
-              </span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
               Convert Australian Bank Statement PDFs to Excel - CBA, ANZ, Westpac, NAB & More
             </h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <time dateTime="2025-01-23">January 23, 2025</time>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground">
+              By ClearlyLedger Team · January 23, 2025 · 7 min read
+            </p>
           </header>
 
           <ShareButtons url={shareUrl} title={shareTitle} />
           
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-8">
@@ -368,6 +365,18 @@ const BlogPostAustralia = () => {
             <h3>How do BSB numbers appear in the export?</h3>
             <p>
               BSB numbers (XXX-XXX format) are preserved in the exported data. ClearlyLedger recognises Australian bank identifiers and maintains the standard 6-digit BSB format in your Excel or CSV output.
+            </p>
+
+            <h2 id="key-takeaways">Key Takeaways</h2>
+            <ul>
+              <li><strong>All major Australian banks supported:</strong> CBA, ANZ, Westpac, NAB, ING, Macquarie, and Bendigo</li>
+              <li><strong>MYOB and Xero-ready exports:</strong> Native formats for Australian accounting software</li>
+              <li><strong>DD/MM/YYYY date format:</strong> Australian date conventions preserved correctly</li>
+              <li><strong>BSB numbers maintained:</strong> Bank identifiers preserved in XXX-XXX format</li>
+              <li><strong>Privacy Act compliant:</strong> Local browser processing, no data uploaded</li>
+            </ul>
+            <p>
+              Start converting your Australian bank statements today. <Link to="/" className="text-primary hover:underline">Try free conversion</Link>.
             </p>
           </div>
 

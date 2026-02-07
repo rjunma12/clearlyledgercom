@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -82,22 +82,19 @@ const BlogPostSouthAfrica = () => {
           <header className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">Regional</span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" /> 5 min read
-              </span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
               Convert South African Bank Statement PDFs to Excel - Complete Guide
             </h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <time dateTime="2025-01-21">January 21, 2025</time>
-            </div>
+            {/* Clean SEO-optimized metadata line - no icons */}
+            <p className="text-sm text-muted-foreground">
+              By ClearlyLedger Team · January 21, 2025 · 5 min read
+            </p>
           </header>
 
           <ShareButtons url={shareUrl} title={shareTitle} />
           
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-8">
@@ -213,6 +210,18 @@ const BlogPostSouthAfrica = () => {
               <li><strong>Review Extracted Data:</strong> Preview the transactions, dates, and amounts before export</li>
               <li><strong>Export to Excel:</strong> Download your structured data in .xlsx or .csv format</li>
             </ol>
+
+            <h2 id="key-takeaways">Key Takeaways</h2>
+            <ul>
+              <li><strong>Major SA banks supported:</strong> ABSA, Standard Bank, FNB, Nedbank, and Capitec</li>
+              <li><strong>ZAR format handling:</strong> Rand currency and number formatting preserved</li>
+              <li><strong>DD/MM/YYYY dates:</strong> South African date format maintained</li>
+              <li><strong>POPIA compliant:</strong> Local browser processing with no server uploads</li>
+              <li><strong>SARS-ready exports:</strong> Clean data for tax submissions</li>
+            </ul>
+            <p>
+              Ready to convert your South African bank statements? <Link to="/" className="text-primary hover:underline">Start free conversion</Link>.
+            </p>
           </div>
 
           <AuthorSection />
