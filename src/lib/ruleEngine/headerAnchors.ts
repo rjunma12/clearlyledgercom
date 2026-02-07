@@ -87,13 +87,21 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     // Dutch
     'omschrijving', 'beschrijving',
     // Arabic
-    'البيان', 'الوصف', 'التفاصيل', 'الملاحظات',
+    'البيان', 'الوصف', 'التفاصيل', 'الملاحظات', 'الترميز',
     // Hindi
-    'विवरण', 'ब्योरा',
-    // Chinese
-    '描述', '摘要', '交易说明',
+    'विवरण', 'ब्योरा', 'विवरणी', 'मुद्दा',
+    // Chinese (Simplified & Traditional)
+    '描述', '摘要', '交易说明', '交易詳情', '說明', '詳細信息', '交易描述',
+    // Japanese
+    '摘要', '説明', '詳細', '記述', '内容',
+    // Thai
+    'รายละเอียด', 'คำอธิบาย', 'บรรยาย',
+    // Vietnamese
+    'mô tả', 'chi tiết', 'ghi chú',
+    // Korean
+    '설명', '적요', '내용',
     // Malay
-    'keterangan',
+    'keterangan', 'perincian', 'penerangan',
   ],
   debit: [
     // English (Standard)
