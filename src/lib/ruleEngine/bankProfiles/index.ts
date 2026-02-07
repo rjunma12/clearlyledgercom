@@ -12,6 +12,8 @@ import { chaseUSProfile } from './profiles/chase-us';
 import { bofaUSProfile } from './profiles/bofa-us';
 import { wellsFargoUSProfile } from './profiles/wells-fargo-us';
 import { citibankUSProfile } from './profiles/citibank-us';
+import { usbankUSProfile } from './profiles/usbank-us';
+import { capitaloneUSProfile } from './profiles/capitalone-us';
 // UK Banks
 import { barclaysUKProfile } from './profiles/barclays-uk';
 import { hsbcUKProfile } from './profiles/hsbc-uk';
@@ -20,10 +22,17 @@ import { natwestUKProfile } from './profiles/natwest-uk';
 // European Banks
 import { santanderEUProfile } from './profiles/santander-eu';
 import { deutscheBankDEProfile } from './profiles/deutsche-bank-de';
+import { bnpFranceProfile } from './profiles/bnp-france';
+import { creditagricoleFranceProfile } from './profiles/creditagricole-france';
+import { ingNetherlandsProfile } from './profiles/ing-netherlands';
+import { ubsSwitzerlandProfile } from './profiles/ubs-switzerland';
 // India Banks
 import { hdfcIndiaProfile } from './profiles/hdfc-india';
 import { iciciIndiaProfile } from './profiles/icici-india';
 import { sbiIndiaProfile } from './profiles/sbi-india';
+import { axisIndiaProfile } from './profiles/axis-india';
+import { kotakIndiaProfile } from './profiles/kotak-india';
+import { pnbIndiaProfile } from './profiles/pnb-india';
 // Australian Banks
 import { cbaAustraliaProfile } from './profiles/cba-australia';
 import { anzAustraliaProfile } from './profiles/anz-australia';
@@ -34,8 +43,21 @@ import { macquarieAustraliaProfile } from './profiles/macquarie-australia';
 import { bendigoAustraliaProfile } from './profiles/bendigo-australia';
 // Asia-Pacific Banks
 import { dbsSingaporeProfile } from './profiles/dbs-singapore';
+import { ocbcSingaporeProfile } from './profiles/ocbc-singapore';
+import { uobSingaporeProfile } from './profiles/uob-singapore';
+import { maybankMalaysiaProfile } from './profiles/maybank-malaysia';
+import { cimbMalaysiaProfile } from './profiles/cimb-malaysia';
+import { bocChinaProfile } from './profiles/boc-china';
 // Canada Banks
 import { tdCanadaProfile } from './profiles/td-canada';
+import { rbcCanadaProfile } from './profiles/rbc-canada';
+import { bmoCanadaProfile } from './profiles/bmo-canada';
+import { scotiabankCanadaProfile } from './profiles/scotiabank-canada';
+// Middle East Banks
+import { enbdUaeProfile } from './profiles/enbd-uae';
+import { adcbUaeProfile } from './profiles/adcb-uae';
+// Africa Banks
+import { standardbankZaProfile } from './profiles/standardbank-za';
 // Global Banks
 import { standardCharteredProfile } from './profiles/standard-chartered';
 
