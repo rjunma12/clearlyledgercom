@@ -74,12 +74,12 @@ const TableOfContents = ({
   };
 
   return (
-    <nav className="bg-muted/30 border border-border rounded-lg p-4 mb-8">
-      <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-foreground">
+    <nav className="bg-muted/30 border border-border rounded-lg p-5 mb-10">
+      <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
         <List className="w-4 h-4" />
         Table of Contents
       </div>
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {items.map((item) => (
           <li
             key={item.id}
@@ -87,7 +87,7 @@ const TableOfContents = ({
           >
             <button
               onClick={() => handleClick(item.id)}
-              className={`text-left text-sm transition-colors hover:text-primary ${
+              className={`text-left text-sm leading-relaxed transition-colors hover:text-primary ${
                 activeId === item.id
                   ? "text-primary font-medium"
                   : "text-muted-foreground"

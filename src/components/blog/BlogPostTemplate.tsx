@@ -113,7 +113,7 @@ const BlogPostTemplate = ({
           </nav>
 
           {/* Header Section */}
-          <header className="mb-10">
+          <header className="mb-14">
             <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">
               {category}
             </span>
@@ -132,19 +132,19 @@ const BlogPostTemplate = ({
 
           {/* TL;DR Box for Featured Snippet Eligibility */}
           {tldr && (
-            <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="mb-10 p-5 bg-primary/5 border border-primary/20 rounded-lg">
               <div className="flex items-start gap-3">
                 <Lightbulb className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium text-foreground mb-1">TL;DR</p>
-                  <p className="text-sm text-muted-foreground">{tldr}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{tldr}</p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Main Content */}
-          <div className="prose prose-neutral dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             {children}
           </div>
 

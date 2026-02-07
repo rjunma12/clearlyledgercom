@@ -165,6 +165,43 @@
   .animate-fade-in {
     animation: fadeIn 0.8s ease-out forwards;
   }
+
+  /* Blog-specific prose overrides for better readability */
+  .blog-prose {
+    @apply text-lg leading-relaxed;
+  }
+
+  .blog-prose p {
+    @apply mb-6;
+  }
+
+  .blog-prose h2 {
+    @apply mt-12 mb-6 text-2xl font-bold;
+  }
+
+  .blog-prose h3 {
+    @apply mt-8 mb-4 text-xl font-semibold;
+  }
+
+  .blog-prose ul, .blog-prose ol {
+    @apply my-6 space-y-3;
+  }
+
+  .blog-prose li {
+    @apply pl-2;
+  }
+
+  .blog-prose blockquote {
+    @apply my-8;
+  }
+
+  .blog-prose table {
+    @apply my-8;
+  }
+
+  .blog-prose .lead {
+    @apply text-xl mb-8;
+  }
 }
 
 @layer utilities {
