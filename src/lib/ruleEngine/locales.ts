@@ -112,6 +112,11 @@ export const HEADER_ALIASES: HeaderAlias[] = [
       '출금', '인출',
       // Turkish
       'Borç', 'Çıkış', 'Ödeme',
+      // Additional regional
+      'Cheque Amt', 'Cheque Amt.', 'Check Amt', 'Check Amt.',
+      'Débits', 'Prélèvement', 'Dépense', 'Pagamento', 'Betalning', 'Uttag',
+      'Çekim', 'Expenditure', 'Spent', 'Amount Out', 'DR Amount', 'Debit Tran',
+      'Withdrawal Tran',
     ],
   },
   {
