@@ -241,6 +241,18 @@ const BlogPostJapan = () => {
               <li>お預り金額 (Deposit)</li>
               <li>残高 (Balance) / 差引残高</li>
             </ul>
+
+            <h2 id="key-takeaways">Key Takeaways</h2>
+            <ul>
+              <li><strong>Major Japanese banks supported:</strong> MUFG, SMBC, Mizuho, Resona, and Japan Post Bank</li>
+              <li><strong>Full Kanji and Kana support:</strong> Japanese characters preserved correctly</li>
+              <li><strong>Zenkaku to Hankaku conversion:</strong> Full-width numbers converted to standard digits</li>
+              <li><strong>Era dates handled:</strong> Both 令和/平成 and Western formats supported</li>
+              <li><strong>APPI compliant:</strong> Local processing meets Japanese privacy requirements</li>
+            </ul>
+            <p>
+              Convert your Japanese bank statements now. <Link to="/" className="text-primary hover:underline">今すぐ変換を開始</Link>.
+            </p>
           </div>
 
           <AuthorSection />

@@ -366,6 +366,18 @@ const BlogPostAustralia = () => {
             <p>
               BSB numbers (XXX-XXX format) are preserved in the exported data. ClearlyLedger recognises Australian bank identifiers and maintains the standard 6-digit BSB format in your Excel or CSV output.
             </p>
+
+            <h2 id="key-takeaways">Key Takeaways</h2>
+            <ul>
+              <li><strong>All major Australian banks supported:</strong> CBA, ANZ, Westpac, NAB, ING, Macquarie, and Bendigo</li>
+              <li><strong>MYOB and Xero-ready exports:</strong> Native formats for Australian accounting software</li>
+              <li><strong>DD/MM/YYYY date format:</strong> Australian date conventions preserved correctly</li>
+              <li><strong>BSB numbers maintained:</strong> Bank identifiers preserved in XXX-XXX format</li>
+              <li><strong>Privacy Act compliant:</strong> Local browser processing, no data uploaded</li>
+            </ul>
+            <p>
+              Start converting your Australian bank statements today. <Link to="/" className="text-primary hover:underline">Try free conversion</Link>.
+            </p>
           </div>
 
           <AuthorSection />

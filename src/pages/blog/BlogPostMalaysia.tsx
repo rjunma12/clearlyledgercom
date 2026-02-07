@@ -224,6 +224,18 @@ const BlogPostMalaysia = () => {
               <li><strong>Loan Applications:</strong> Organize financial history for bank loan applications</li>
               <li><strong>Expense Tracking:</strong> Personal finance management and budgeting</li>
             </ul>
+
+            <h2 id="key-takeaways">Key Takeaways</h2>
+            <ul>
+              <li><strong>Major Malaysian banks supported:</strong> Maybank, CIMB, Public Bank, RHB, Hong Leong, and AmBank</li>
+              <li><strong>Bilingual content handling:</strong> Both Malay and English text processed correctly</li>
+              <li><strong>MYR format support:</strong> Malaysian Ringgit amounts handled accurately</li>
+              <li><strong>DuitNow and FPX references:</strong> Local payment methods preserved</li>
+              <li><strong>PDPA compliant:</strong> Local browser processing meets Malaysian privacy requirements</li>
+            </ul>
+            <p>
+              Start converting your Malaysian bank statements. <Link to="/" className="text-primary hover:underline">Try free conversion</Link>.
+            </p>
           </div>
 
           <AuthorSection />
