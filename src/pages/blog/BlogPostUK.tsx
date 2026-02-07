@@ -106,7 +106,7 @@ const BlogPostUK = () => {
           </div>
 
           {/* Main Content */}
-          <div className="prose prose-lg dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <h2 id="why-convert-uk-statements">Why Convert UK Bank Statements to Excel?</h2>
             <p>
               UK businesses, accountants, and individuals regularly need to convert bank statement PDFs to Excel for VAT returns, HMRC submissions, mortgage applications, or business accounting. Each British bank uses different PDF formats, making universal conversion challenging.

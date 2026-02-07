@@ -105,7 +105,7 @@ const BlogPostSouthAfrica = () => {
           </div>
 
           {/* Main Content */}
-          <div className="prose prose-lg dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <h2 id="why-convert-sa-statements">Why Convert South African Bank Statements to Excel?</h2>
             <p>
               South African businesses and individuals often need to convert bank statement PDFs to Excel for accounting, tax submissions to SARS, loan applications, or financial analysis. Manual data entry is time-consuming and error-prone, especially when dealing with multiple accounts across different SA banks.

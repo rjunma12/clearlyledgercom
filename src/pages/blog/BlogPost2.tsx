@@ -107,7 +107,7 @@ const BlogPost2 = () => {
           </div>
 
           {/* Content */}
-          <div className="prose prose-neutral dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <p className="lead text-lg text-muted-foreground">
               Users across India frequently need to convert bank statement PDFs to Excel for accounting, GST compliance, and business analysis. This guide covers the best approaches with a focus on privacy and local format support.
             </p>

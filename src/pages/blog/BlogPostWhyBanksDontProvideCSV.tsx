@@ -180,7 +180,7 @@ const BlogPostWhyBanksDontProvideCSV = () => {
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <div className="grid lg:grid-cols-[1fr_250px] gap-12">
-                <article className="prose prose-lg max-w-none dark:prose-invert">
+                <article className="prose prose-lg blog-prose max-w-none dark:prose-invert">
                   {/* TL;DR Box */}
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-8 not-prose">
                     <div className="flex items-start gap-3">

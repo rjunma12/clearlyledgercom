@@ -106,7 +106,7 @@ const BlogPost3 = () => {
           </div>
 
           {/* Content */}
-          <div className="prose prose-neutral dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <p className="lead text-lg text-muted-foreground">
               Bank statements contain some of your most sensitive financial information. When converting them to Excel, security should be a top priority. This guide covers best practices for protecting your data.
             </p>

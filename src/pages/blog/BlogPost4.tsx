@@ -150,7 +150,7 @@ const BlogPost4 = () => {
           </div>
 
           {/* Content */}
-          <div className="prose prose-neutral dark:prose-invert max-w-none">
+          <div className="prose prose-lg blog-prose dark:prose-invert max-w-none">
             <p className="lead text-lg text-muted-foreground">
               For accountants, bookkeepers, and financial professionals, accurate data is everything. This article explores how reliable bank statement conversion can transform your financial workflows.
             </p>
