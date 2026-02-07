@@ -14,11 +14,23 @@ import { wellsFargoUSProfile } from './profiles/wells-fargo-us';
 import { citibankUSProfile } from './profiles/citibank-us';
 import { usbankUSProfile } from './profiles/usbank-us';
 import { capitaloneUSProfile } from './profiles/capitalone-us';
+import { pncUsProfile } from './profiles/pnc-us';
+import { truistUsProfile } from './profiles/truist-us';
+import { tdbankUsProfile } from './profiles/tdbank-us';
+import { fifththirdUsProfile } from './profiles/fifththird-us';
+import { allyUsProfile } from './profiles/ally-us';
+import { schwabUsProfile } from './profiles/schwab-us';
+import { discoverUsProfile } from './profiles/discover-us';
+import { amexUsProfile } from './profiles/amex-us';
 // UK Banks
 import { barclaysUKProfile } from './profiles/barclays-uk';
 import { hsbcUKProfile } from './profiles/hsbc-uk';
 import { lloydsUKProfile } from './profiles/lloyds-uk';
 import { natwestUKProfile } from './profiles/natwest-uk';
+import { santanderUkProfile } from './profiles/santander-uk';
+import { tsbUkProfile } from './profiles/tsb-uk';
+import { monzoUkProfile } from './profiles/monzo-uk';
+import { revolutUkProfile } from './profiles/revolut-uk';
 // European Banks
 import { santanderEUProfile } from './profiles/santander-eu';
 import { deutscheBankDEProfile } from './profiles/deutsche-bank-de';
@@ -26,6 +38,24 @@ import { bnpFranceProfile } from './profiles/bnp-france';
 import { creditagricoleFranceProfile } from './profiles/creditagricole-france';
 import { ingNetherlandsProfile } from './profiles/ing-netherlands';
 import { ubsSwitzerlandProfile } from './profiles/ubs-switzerland';
+import { socgenFranceProfile } from './profiles/socgen-france';
+import { labanquepostaleFranceProfile } from './profiles/labanquepostale-france';
+import { commerzbankDeProfile } from './profiles/commerzbank-de';
+import { sparkasseDeProfile } from './profiles/sparkasse-de';
+import { dkbDeProfile } from './profiles/dkb-de';
+import { abnamroNlProfile } from './profiles/abnamro-nl';
+import { rabobankNlProfile } from './profiles/rabobank-nl';
+import { bbvaEsProfile } from './profiles/bbva-es';
+import { caixabankEsProfile } from './profiles/caixabank-es';
+import { intesaItProfile } from './profiles/intesa-it';
+import { unicreditItProfile } from './profiles/unicredit-it';
+import { kbcBeProfile } from './profiles/kbc-be';
+import { bnpfortisBeProfile } from './profiles/bnpfortis-be';
+import { ersteAtProfile } from './profiles/erste-at';
+import { raiffeisenAtProfile } from './profiles/raiffeisen-at';
+import { bcpPtProfile } from './profiles/bcp-pt';
+import { pkoPlProfile } from './profiles/pko-pl';
+import { mbankPlProfile } from './profiles/mbank-pl';
 // India Banks
 import { hdfcIndiaProfile } from './profiles/hdfc-india';
 import { iciciIndiaProfile } from './profiles/icici-india';
@@ -33,6 +63,20 @@ import { sbiIndiaProfile } from './profiles/sbi-india';
 import { axisIndiaProfile } from './profiles/axis-india';
 import { kotakIndiaProfile } from './profiles/kotak-india';
 import { pnbIndiaProfile } from './profiles/pnb-india';
+import { bobIndiaProfile } from './profiles/bob-india';
+import { canaraIndiaProfile } from './profiles/canara-india';
+import { unionbankIndiaProfile } from './profiles/unionbank-india';
+import { boiIndiaProfile } from './profiles/boi-india';
+import { indianIndiaProfile } from './profiles/indian-india';
+import { centralbankIndiaProfile } from './profiles/centralbank-india';
+import { iobIndiaProfile } from './profiles/iob-india';
+import { ucoIndiaProfile } from './profiles/uco-india';
+import { yesIndiaProfile } from './profiles/yes-india';
+import { idfcIndiaProfile } from './profiles/idfc-india';
+import { indusindIndiaProfile } from './profiles/indusind-india';
+import { federalIndiaProfile } from './profiles/federal-india';
+import { sibIndiaProfile } from './profiles/sib-india';
+import { bandhanIndiaProfile } from './profiles/bandhan-india';
 // Australian Banks
 import { cbaAustraliaProfile } from './profiles/cba-australia';
 import { anzAustraliaProfile } from './profiles/anz-australia';
@@ -58,6 +102,18 @@ import { enbdUaeProfile } from './profiles/enbd-uae';
 import { adcbUaeProfile } from './profiles/adcb-uae';
 // Africa Banks
 import { standardbankZaProfile } from './profiles/standardbank-za';
+import { fnbZaProfile } from './profiles/fnb-za';
+import { absaZaProfile } from './profiles/absa-za';
+import { nedbankZaProfile } from './profiles/nedbank-za';
+import { capitecZaProfile } from './profiles/capitec-za';
+import { firstbankNgProfile } from './profiles/firstbank-ng';
+import { zenithNgProfile } from './profiles/zenith-ng';
+import { gtbankNgProfile } from './profiles/gtbank-ng';
+import { accessNgProfile } from './profiles/access-ng';
+import { equityKeProfile } from './profiles/equity-ke';
+import { kcbKeProfile } from './profiles/kcb-ke';
+import { nbeEgProfile } from './profiles/nbe-eg';
+import { attijariwafaMaProfile } from './profiles/attijariwafa-ma';
 // Global Banks
 import { standardCharteredProfile } from './profiles/standard-chartered';
 
@@ -79,11 +135,23 @@ const defaultProfiles: BankProfile[] = [
   citibankUSProfile,
   usbankUSProfile,
   capitaloneUSProfile,
+  pncUsProfile,
+  truistUsProfile,
+  tdbankUsProfile,
+  fifththirdUsProfile,
+  allyUsProfile,
+  schwabUsProfile,
+  discoverUsProfile,
+  amexUsProfile,
   // UK Banks
   hsbcUKProfile,
   barclaysUKProfile,
   lloydsUKProfile,
   natwestUKProfile,
+  santanderUkProfile,
+  tsbUkProfile,
+  monzoUkProfile,
+  revolutUkProfile,
   // European Banks
   santanderEUProfile,
   deutscheBankDEProfile,
@@ -91,6 +159,24 @@ const defaultProfiles: BankProfile[] = [
   creditagricoleFranceProfile,
   ingNetherlandsProfile,
   ubsSwitzerlandProfile,
+  socgenFranceProfile,
+  labanquepostaleFranceProfile,
+  commerzbankDeProfile,
+  sparkasseDeProfile,
+  dkbDeProfile,
+  abnamroNlProfile,
+  rabobankNlProfile,
+  bbvaEsProfile,
+  caixabankEsProfile,
+  intesaItProfile,
+  unicreditItProfile,
+  kbcBeProfile,
+  bnpfortisBeProfile,
+  ersteAtProfile,
+  raiffeisenAtProfile,
+  bcpPtProfile,
+  pkoPlProfile,
+  mbankPlProfile,
   // India Banks
   hdfcIndiaProfile,
   iciciIndiaProfile,
@@ -98,6 +184,20 @@ const defaultProfiles: BankProfile[] = [
   axisIndiaProfile,
   kotakIndiaProfile,
   pnbIndiaProfile,
+  bobIndiaProfile,
+  canaraIndiaProfile,
+  unionbankIndiaProfile,
+  boiIndiaProfile,
+  indianIndiaProfile,
+  centralbankIndiaProfile,
+  iobIndiaProfile,
+  ucoIndiaProfile,
+  yesIndiaProfile,
+  idfcIndiaProfile,
+  indusindIndiaProfile,
+  federalIndiaProfile,
+  sibIndiaProfile,
+  bandhanIndiaProfile,
   // Australian Banks
   cbaAustraliaProfile,
   anzAustraliaProfile,
@@ -123,6 +223,18 @@ const defaultProfiles: BankProfile[] = [
   adcbUaeProfile,
   // Africa Banks
   standardbankZaProfile,
+  fnbZaProfile,
+  absaZaProfile,
+  nedbankZaProfile,
+  capitecZaProfile,
+  firstbankNgProfile,
+  zenithNgProfile,
+  gtbankNgProfile,
+  accessNgProfile,
+  equityKeProfile,
+  kcbKeProfile,
+  nbeEgProfile,
+  attijariwafaMaProfile,
   // Global Banks
   standardCharteredProfile,
   // Fallback
