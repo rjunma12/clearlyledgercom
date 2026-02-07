@@ -9,7 +9,7 @@ export const ocbcSingaporeProfile: BankProfile = {
   id: 'ocbc-singapore',
   name: 'OCBC Bank',
   region: 'SG',
-  defaultLocale: 'en-SG',
+  defaultLocale: 'en-GB',
   identification: {
     logoPatterns: ['OCBC', 'OCBC BANK', 'ocbc.com', 'OVERSEA-CHINESE BANKING'],
     accountPatterns: [/\b\d{10,12}\b/, /\b\d{3}-\d{6}-\d{3}\b/],
