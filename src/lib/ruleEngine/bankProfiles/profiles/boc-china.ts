@@ -32,7 +32,6 @@ export const bocChinaProfile: BankProfile = {
       currencySymbol: '¥',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'zh-CN',
     },
     skipPatterns: [
       /^账户号码/i,

@@ -32,7 +32,6 @@ export const maybankMalaysiaProfile: BankProfile = {
       currencySymbol: 'RM',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'en-MY',
     },
     skipPatterns: [
       /^nombor\s+akaun/i,

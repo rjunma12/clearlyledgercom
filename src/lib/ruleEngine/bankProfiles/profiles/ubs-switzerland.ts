@@ -34,7 +34,6 @@ export const ubsSwitzerlandProfile: BankProfile = {
       currencySymbol: 'CHF',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'de-CH',
     },
     skipPatterns: [
       /^kontonummer/i,

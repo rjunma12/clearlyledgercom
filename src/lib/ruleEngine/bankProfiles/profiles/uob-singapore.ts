@@ -32,7 +32,6 @@ export const uobSingaporeProfile: BankProfile = {
       currencySymbol: 'S$',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'en-SG',
     },
     skipPatterns: [
       /^account\s+number/i,

@@ -32,7 +32,6 @@ export const axisIndiaProfile: BankProfile = {
       currencySymbol: '₹',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'en-IN',
     },
     skipPatterns: [
       /^ifsc\s+code/i,

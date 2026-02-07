@@ -32,7 +32,6 @@ export const scotiabankCanadaProfile: BankProfile = {
       currencySymbol: '$',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'en-US',
     },
     skipPatterns: [
       /^account\s+number/i,

@@ -32,7 +32,6 @@ export const creditagricoleFranceProfile: BankProfile = {
       currencySymbol: '€',
       symbolPosition: 'suffix',
       negativeFormat: 'minus',
-      numberFormat: 'fr-FR',
     },
     skipPatterns: [
       /^numéro\s+de\s+compte/i,

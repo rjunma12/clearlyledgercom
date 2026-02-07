@@ -33,7 +33,6 @@ export const ingNetherlandsProfile: BankProfile = {
       currencySymbol: '€',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'nl-NL',
     },
     skipPatterns: [
       /^rekeningnummer/i,

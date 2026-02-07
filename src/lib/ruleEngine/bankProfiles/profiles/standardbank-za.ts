@@ -32,7 +32,6 @@ export const standardbankZaProfile: BankProfile = {
       currencySymbol: 'R',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'en-ZA',
     },
     skipPatterns: [
       /^account\s+number/i,

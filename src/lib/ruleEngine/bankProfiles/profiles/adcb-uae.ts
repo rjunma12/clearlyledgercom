@@ -32,7 +32,6 @@ export const adcbUaeProfile: BankProfile = {
       currencySymbol: 'AED',
       symbolPosition: 'prefix',
       negativeFormat: 'minus',
-      numberFormat: 'en-AE',
     },
     skipPatterns: [
       /^رقم\s+الحساب/i,
