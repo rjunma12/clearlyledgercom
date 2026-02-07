@@ -167,11 +167,10 @@ const BlogPostWhyBanksDontProvideCSV = () => {
                 Understanding the gap between what banks provide and what businesses need—and how to bridge it reliably.
               </p>
 
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>Published: January 23, 2026</span>
-                <span>•</span>
-                <span>By ClearlyLedger Team</span>
-              </div>
+              {/* Clean SEO-optimized metadata line - no icons */}
+              <p className="text-sm text-muted-foreground">
+                By ClearlyLedger Team · January 23, 2026 · 12 min read
+              </p>
             </div>
           </div>
         </section>
