@@ -39,8 +39,30 @@ export interface HeaderDetectionResult {
 
 const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
   date: [
+    // English
     'date', 'txn date', 'transaction date', 'value date', 'post date',
-    'posting date', 'trans date', 'dated', 'dt', 'तारीख', '日付', 'tarikh'
+    'posting date', 'trans date', 'dated', 'dt', 'tran date', 'txn dt', 'trans dt',
+    'trade date', 'entry date', 'effective date', 'book date',
+    // German
+    'datum', 'buchungstag', 'buchungsdatum', 'valutadatum', 'wertstellung',
+    // Spanish
+    'fecha', 'fecha operación', 'fecha de transacción', 'fecha valor',
+    // French
+    'date d\'opération', 'date de valeur',
+    // Italian
+    'data', 'data operazione', 'data valuta',
+    // Dutch
+    'boekingsdatum',
+    // Arabic
+    'التاريخ', 'تاريخ العملية',
+    // Hindi
+    'तारीख', 'दिनांक',
+    // Chinese
+    '日期', '交易日期', '取引日',
+    // Malay
+    'tarikh', 'tarikh urus niaga',
+    // Japanese
+    '取引日',
   ],
   description: [
     'description', 'particulars', 'narration', 'details', 'remarks',
