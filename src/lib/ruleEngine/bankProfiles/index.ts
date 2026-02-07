@@ -116,6 +116,51 @@ import { nbeEgProfile } from './profiles/nbe-eg';
 import { attijariwafaMaProfile } from './profiles/attijariwafa-ma';
 // Global Banks
 import { standardCharteredProfile } from './profiles/standard-chartered';
+// China Banks (Critical)
+import { icbcChinaProfile } from './profiles/icbc-china';
+import { ccbChinaProfile } from './profiles/ccb-china';
+import { abcChinaProfile } from './profiles/abc-china';
+// Japan Banks (Critical)
+import { mufgJapanProfile } from './profiles/mufg-japan';
+import { smbcJapanProfile } from './profiles/smbc-japan';
+import { mizuhoJapanProfile } from './profiles/mizuho-japan';
+// Korea Banks (Critical)
+import { kookminKoreaProfile } from './profiles/kookmin-korea';
+import { shinhanKoreaProfile } from './profiles/shinhan-korea';
+import { wooriKoreaProfile } from './profiles/woori-korea';
+import { hanaKoreaProfile } from './profiles/hana-korea';
+// Thailand Banks (Critical)
+import { bangkokThailandProfile } from './profiles/bangkok-thailand';
+import { kbankThailandProfile } from './profiles/kbank-thailand';
+import { scbThailandProfile } from './profiles/scb-thailand';
+// Indonesia Banks (Critical)
+import { bcaIndonesiaProfile } from './profiles/bca-indonesia';
+import { mandiriIndonesiaProfile } from './profiles/mandiri-indonesia';
+import { briIndonesiaProfile } from './profiles/bri-indonesia';
+// Philippines Banks (Critical)
+import { bdoPhilippinesProfile } from './profiles/bdo-philippines';
+import { bpiPhilippinesProfile } from './profiles/bpi-philippines';
+// Vietnam Banks (Critical)
+import { vietcombankVnProfile } from './profiles/vietcombank-vn';
+import { bidvVnProfile } from './profiles/bidv-vn';
+// Hong Kong Banks (Critical)
+import { hangsengHkProfile } from './profiles/hangseng-hk';
+import { beaHkProfile } from './profiles/bea-hk';
+// Brazil Banks (Critical)
+import { itauBrazilProfile } from './profiles/itau-brazil';
+import { bbBrazilProfile } from './profiles/bb-brazil';
+import { bradescoBrazilProfile } from './profiles/bradesco-brazil';
+import { caixaBrazilProfile } from './profiles/caixa-brazil';
+// Mexico Banks (Critical)
+import { bbvaMexicoProfile } from './profiles/bbva-mexico';
+import { banorteMexicoProfile } from './profiles/banorte-mexico';
+// Saudi Arabia Banks (Critical)
+import { alrajhiSaProfile } from './profiles/alrajhi-sa';
+import { snbSaProfile } from './profiles/snb-sa';
+// Qatar Banks (Critical)
+import { qnbQatarProfile } from './profiles/qnb-qatar';
+// Kuwait Banks (Critical)
+import { nbkKuwaitProfile } from './profiles/nbk-kuwait';
 
 // Re-export types
 export * from './types';
@@ -237,6 +282,51 @@ const defaultProfiles: BankProfile[] = [
   attijariwafaMaProfile,
   // Global Banks
   standardCharteredProfile,
+  // China Banks (Critical)
+  icbcChinaProfile,
+  ccbChinaProfile,
+  abcChinaProfile,
+  // Japan Banks (Critical)
+  mufgJapanProfile,
+  smbcJapanProfile,
+  mizuhoJapanProfile,
+  // Korea Banks (Critical)
+  kookminKoreaProfile,
+  shinhanKoreaProfile,
+  wooriKoreaProfile,
+  hanaKoreaProfile,
+  // Thailand Banks (Critical)
+  bangkokThailandProfile,
+  kbankThailandProfile,
+  scbThailandProfile,
+  // Indonesia Banks (Critical)
+  bcaIndonesiaProfile,
+  mandiriIndonesiaProfile,
+  briIndonesiaProfile,
+  // Philippines Banks (Critical)
+  bdoPhilippinesProfile,
+  bpiPhilippinesProfile,
+  // Vietnam Banks (Critical)
+  vietcombankVnProfile,
+  bidvVnProfile,
+  // Hong Kong Banks (Critical)
+  hangsengHkProfile,
+  beaHkProfile,
+  // Brazil Banks (Critical)
+  itauBrazilProfile,
+  bbBrazilProfile,
+  bradescoBrazilProfile,
+  caixaBrazilProfile,
+  // Mexico Banks (Critical)
+  bbvaMexicoProfile,
+  banorteMexicoProfile,
+  // Saudi Arabia Banks (Critical)
+  alrajhiSaProfile,
+  snbSaProfile,
+  // Qatar Banks (Critical)
+  qnbQatarProfile,
+  // Kuwait Banks (Critical)
+  nbkKuwaitProfile,
   // Fallback
   genericProfile, // Always last as fallback
 ];
