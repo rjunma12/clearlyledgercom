@@ -94,7 +94,7 @@ const BlogPostMalaysia = () => {
 
           <ShareButtons url={shareUrl} title={shareTitle} />
           
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-8">

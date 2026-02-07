@@ -132,7 +132,7 @@ const BlogPost1 = () => {
           </header>
 
           {/* Table of Contents */}
-          <TableOfContents />
+          <TableOfContents h2Only />
 
           {/* TL;DR Box */}
           <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-lg">
