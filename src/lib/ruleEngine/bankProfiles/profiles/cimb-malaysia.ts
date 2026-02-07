@@ -9,7 +9,7 @@ export const cimbMalaysiaProfile: BankProfile = {
   id: 'cimb-malaysia',
   name: 'CIMB Bank',
   region: 'MY',
-  defaultLocale: 'en-MY',
+  defaultLocale: 'ms-MY',
   identification: {
     logoPatterns: ['CIMB', 'CIMB BANK', 'cimb.com.my', 'CIMB GROUP'],
     accountPatterns: [/\b\d{10}\b/, /\b\d{14}\b/],
