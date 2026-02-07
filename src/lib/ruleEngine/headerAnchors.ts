@@ -47,12 +47,85 @@ const HEADER_KEYWORDS: Record<ColumnType, string[]> = {
     'transaction details', 'memo', 'reference', 'विवरण', '摘要', 'keterangan'
   ],
   debit: [
-    'debit', 'withdrawal', 'dr', 'withdrawals', 'out', 'debit amount',
-    'debits', 'payment', 'paid out', 'डेबिट', '支出', 'keluar'
+    // English (Standard)
+    'debit', 'debits', 'debit amount', 'debit amt', 'debit amt.',
+    'dr', 'dr.', 'd',
+    // English (Withdrawal variants) - HDFC, SBI, ICICI, etc.
+    'withdrawal', 'withdrawals', 'withdrawal amt', 'withdrawal amt.',
+    'withdrawal amount', 'withdrawl', 'with drawal',
+    // English (Outflow variants)
+    'out', 'money out', 'paid out', 'outflow', 'outgoing',
+    'payments', 'payment', 'cash out', 'payout',
+    // English (Charge/Expense variants)
+    'charges', 'charge', 'expense', 'expenses', 'deductions',
+    // Spanish
+    'débito', 'debito', 'cargo', 'cargos', 'retiro', 'retiros', 'salida',
+    // French
+    'débit', 'débiteur', 'sortie', 'sorties', 'retrait',
+    // German
+    'soll', 'lastschrift', 'auszahlung', 'ausgabe', 'ausgaben', 'belastung',
+    // Portuguese
+    'saída', 'saida', 'débitos',
+    // Italian
+    'addebito', 'dare', 'uscita', 'uscite',
+    // Dutch
+    'debet', 'af', 'afschrijving', 'uitgaven',
+    // Hindi
+    'डेबिट', 'निकासी', 'आहरण',
+    // Chinese
+    '借方', '支出', '取款', '提款',
+    // Japanese
+    '出金', '引落', '支払',
+    // Malay/Indonesian
+    'keluar', 'pengeluaran',
+    // Arabic
+    'مدين', 'سحب', 'المسحوبات', 'مصروفات',
+    // Thai
+    'ถอน', 'รายจ่าย',
+    // Korean
+    '출금', '인출',
+    // Turkish
+    'borç', 'çıkış', 'ödeme',
   ],
   credit: [
-    'credit', 'deposit', 'cr', 'deposits', 'in', 'credit amount',
-    'credits', 'received', 'paid in', 'क्रेडिट', '收入', 'masuk'
+    // English (Standard)
+    'credit', 'credits', 'credit amount', 'credit amt', 'credit amt.',
+    'cr', 'cr.', 'c',
+    // English (Deposit variants)
+    'deposit', 'deposits', 'deposit amt', 'deposit amt.',
+    'deposit amount', 'lodgement', 'lodgments',
+    // English (Inflow variants)
+    'in', 'money in', 'paid in', 'inflow', 'incoming', 'receipt',
+    'receipts', 'received', 'cash in', 'income',
+    // Spanish
+    'crédito', 'credito', 'abono', 'abonos', 'depósito', 'deposito',
+    'depósitos', 'entrada', 'ingreso', 'ingresos',
+    // French
+    'crédit', 'créditeur', 'entrée', 'entrees', 'versement',
+    // German
+    'haben', 'gutschrift', 'einzahlung', 'eingang', 'eingänge', 'zugang',
+    // Portuguese
+    'créditos',
+    // Italian
+    'accredito', 'avere', 'entrata', 'entrate',
+    // Dutch
+    'bij', 'bijschrijving', 'inkomsten',
+    // Hindi
+    'क्रेडिट', 'जमा', 'जमाराशि',
+    // Chinese
+    '贷方', '收入', '存款', '入账',
+    // Japanese
+    '入金', '預入', '受取',
+    // Malay/Indonesian
+    'masuk', 'pemasukan', 'kredit',
+    // Arabic
+    'دائن', 'إيداع', 'الإيداعات', 'دخل',
+    // Thai
+    'ฝาก', 'รายรับ',
+    // Korean
+    '입금', '예금',
+    // Turkish
+    'alacak', 'giriş', 'yatırım',
   ],
   balance: [
     'balance', 'running balance', 'available balance', 'closing',

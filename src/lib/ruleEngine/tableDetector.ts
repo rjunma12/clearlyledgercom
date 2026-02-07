@@ -493,9 +493,9 @@ function detectMergedAmountColumn(samples: string[]): boolean {
 }
 
 // Header keywords for explicit column type detection
-// EXPANDED: Handle "Withdrawal Amt.", "Withdrawal Amount", multi-word patterns
-const HEADER_DEBIT_PATTERNS = /^(debit|withdrawal|dr|out|withdrawals?)(\s*(amt\.?|amount))?$/i;
-const HEADER_CREDIT_PATTERNS = /^(credit|deposit|cr|in|deposits?)(\s*(amt\.?|amount))?$/i;
+// EXPANDED: Handle "Withdrawal Amt.", regional variants (German Soll/Haben, French, Spanish, etc.)
+const HEADER_DEBIT_PATTERNS = /^(debit|withdrawal|dr|out|withdrawals?|soll|sortie|débito|debito|cargo|addebito|af|keluar|مدين|支出|出金|borç|lastschrift|retiro|charges?)(\s*(amt\.?|amount|betrag|montant))?$/i;
+const HEADER_CREDIT_PATTERNS = /^(credit|deposit|cr|in|deposits?|haben|entrée|crédito|credito|abono|accredito|bij|masuk|دائن|收入|入金|alacak|gutschrift|ingreso|lodgement)(\s*(amt\.?|amount|betrag|montant))?$/i;
 
 /**
  * Flexible numeric content detection that handles:

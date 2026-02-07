@@ -66,53 +66,88 @@ export const HEADER_ALIASES: HeaderAlias[] = [
   {
     canonical: 'debit',
     aliases: [
-      // English
-      'Debit', 'DEBIT', 'Debits', 'Debit Amount', 'Withdrawal', 'Withdrawals',
-      'Dr', 'DR', 'Dr.', 'Money Out', 'Payments', 'Paid Out', 'Outflow',
+      // English (Standard)
+      'Debit', 'DEBIT', 'Debits', 'Debit Amount', 'Debit Amt', 'Debit Amt.',
+      'Dr', 'DR', 'Dr.', 'D',
+      // English (Withdrawal variants) - HDFC, SBI, ICICI, etc.
+      'Withdrawal', 'Withdrawals', 'Withdrawal Amt', 'Withdrawal Amt.',
+      'Withdrawal Amount', 'Withdrawl', 'With Drawal',
+      // English (Outflow variants)
+      'Out', 'Money Out', 'Paid Out', 'Outflow', 'Outgoing',
+      'Payments', 'Payment', 'Cash Out', 'Payout',
+      // English (Charge/Expense variants)
+      'Charges', 'Charge', 'Expense', 'Expenses', 'Deductions',
       // Spanish
-      'Débito', 'DÉBITO', 'Cargo', 'Cargos', 'Retiro', 'Retiros',
+      'Débito', 'DÉBITO', 'Debito', 'Cargo', 'Cargos', 'Retiro', 'Retiros', 'Salida',
       // French
-      'Débit', 'Débiteur', 'Sortie',
+      'Débit', 'Débiteur', 'Sortie', 'Sorties', 'Retrait',
       // German
-      'Soll', 'Lastschrift', 'Auszahlung', 'Ausgabe',
-      // Arabic
-      'مدين', 'سحب', 'المسحوبات',
-      // Hindi
-      'डेबिट', 'निकासी',
-      // Chinese
-      '借方', '支出', '取款',
+      'Soll', 'Lastschrift', 'Auszahlung', 'Ausgabe', 'Ausgaben', 'Belastung',
       // Portuguese
-      'Débito', 'Saída',
+      'Saída', 'Saida', 'Débitos',
       // Italian
-      'Addebito', 'Dare',
+      'Addebito', 'Dare', 'Uscita', 'Uscite',
       // Dutch
-      'Debet', 'Af',
+      'Debet', 'Af', 'Afschrijving', 'Uitgaven',
+      // Hindi
+      'डेबिट', 'निकासी', 'आहरण',
+      // Chinese
+      '借方', '支出', '取款', '提款',
+      // Japanese
+      '出金', '引落', '支払',
+      // Malay/Indonesian
+      'Keluar', 'Pengeluaran',
+      // Arabic
+      'مدين', 'سحب', 'المسحوبات', 'مصروفات',
+      // Thai
+      'ถอน', 'รายจ่าย',
+      // Korean
+      '출금', '인출',
+      // Turkish
+      'Borç', 'Çıkış', 'Ödeme',
     ],
   },
   {
     canonical: 'credit',
     aliases: [
-      // English
-      'Credit', 'CREDIT', 'Credits', 'Credit Amount', 'Deposit', 'Deposits',
-      'Cr', 'CR', 'Cr.', 'Money In', 'Received', 'Paid In', 'Inflow',
+      // English (Standard)
+      'Credit', 'CREDIT', 'Credits', 'Credit Amount', 'Credit Amt', 'Credit Amt.',
+      'Cr', 'CR', 'Cr.', 'C',
+      // English (Deposit variants)
+      'Deposit', 'Deposits', 'Deposit Amt', 'Deposit Amt.',
+      'Deposit Amount', 'Lodgement', 'Lodgments',
+      // English (Inflow variants)
+      'In', 'Money In', 'Paid In', 'Inflow', 'Incoming', 'Receipt',
+      'Receipts', 'Received', 'Cash In', 'Income',
       // Spanish
-      'Crédito', 'CRÉDITO', 'Abono', 'Abonos', 'Depósito', 'Depósitos',
+      'Crédito', 'CRÉDITO', 'Credito', 'Abono', 'Abonos', 'Depósito', 'Deposito',
+      'Depósitos', 'Entrada', 'Ingreso', 'Ingresos',
       // French
-      'Crédit', 'Créditeur', 'Entrée',
+      'Crédit', 'Créditeur', 'Entrée', 'Entrees', 'Versement',
       // German
-      'Haben', 'Gutschrift', 'Einzahlung', 'Eingang',
-      // Arabic
-      'دائن', 'إيداع', 'الإيداعات',
-      // Hindi
-      'क्रेडिट', 'जमा',
-      // Chinese
-      '贷方', '收入', '存款',
+      'Haben', 'Gutschrift', 'Einzahlung', 'Eingang', 'Eingänge', 'Zugang',
       // Portuguese
-      'Crédito', 'Entrada',
+      'Créditos',
       // Italian
-      'Accredito', 'Avere',
+      'Accredito', 'Avere', 'Entrata', 'Entrate',
       // Dutch
-      'Credit', 'Bij',
+      'Bij', 'Bijschrijving', 'Inkomsten',
+      // Hindi
+      'क्रेडिट', 'जमा', 'जमाराशि',
+      // Chinese
+      '贷方', '收入', '存款', '入账',
+      // Japanese
+      '入金', '預入', '受取',
+      // Malay/Indonesian
+      'Masuk', 'Pemasukan', 'Kredit',
+      // Arabic
+      'دائن', 'إيداع', 'الإيداعات', 'دخل',
+      // Thai
+      'ฝาก', 'รายรับ',
+      // Korean
+      '입금', '예금',
+      // Turkish
+      'Alacak', 'Giriş', 'Yatırım',
     ],
   },
   {
