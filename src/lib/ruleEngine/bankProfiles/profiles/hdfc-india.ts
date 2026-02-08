@@ -45,12 +45,10 @@ export const hdfcIndiaProfile: BankProfile = {
     // Enhanced column hints with actual HDFC PDF measurements (percentage-based)
     columnHints: {
       date: [0, 12],           // First 12% - Date column
-      description: [12, 52],   // 12-52% - Narration/Description
-      reference: [52, 58],     // 52-58% - Chq./Ref.No. (optional)
-      valueDate: [58, 66],     // 58-66% - Value Dt (optional)
-      debit: [66, 78],         // 66-78% - Withdrawal Amt.
-      credit: [78, 90],        // 78-90% - Deposit Amt.
-      balance: [90, 100],      // 90-100% - Closing Balance
+      description: [12, 58],   // 12-58% - Narration/Description + Ref + Value Date
+      debit: [58, 72],         // 58-72% - Withdrawal Amt.
+      credit: [72, 86],        // 72-86% - Deposit Amt.
+      balance: [86, 100],      // 86-100% - Closing Balance
     },
   },
   
@@ -59,8 +57,6 @@ export const hdfcIndiaProfile: BankProfile = {
       dateFormats: ['DD/MM/YYYY', 'DD-MM-YYYY', 'DD/MM/YY', 'DD-MMM-YYYY'],
       dateSeparator: '/',
       yearFormat: 'both',
-      // Force DD/MM/YYYY interpretation for Indian locale
-      forceLocaleInterpretation: true,
     },
     amountFormatting: {
       currencySymbol: '₹',
@@ -72,7 +68,6 @@ export const hdfcIndiaProfile: BankProfile = {
         thousandsSeparator: ',',
         currencySymbol: '₹',
         currencyPosition: 'prefix',
-        indianFormat: true, // Enable lakh/crore parsing
       },
     },
     multiLineDescriptions: true,
