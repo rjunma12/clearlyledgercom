@@ -36,7 +36,9 @@ const TRANSACTION_COLUMNS = [
 ];
 
 // Address/disclaimer patterns to filter out non-transaction content
+// Enhanced with comprehensive Indian bank footer patterns
 const ADDRESS_FILTER_PATTERNS = [
+  // General patterns
   /toll\s*free/i,
   /customer\s*care/i,
   /customer\s*service/i,
@@ -45,21 +47,62 @@ const ADDRESS_FILTER_PATTERNS = [
   /www\./i,
   /disclaimer/i,
   /terms\s+(and|&)/i,
-  /regd\.?\s*office/i,
-  /cin\s*[:.-]/i,
-  /gstin/i,
-  /gst\s*no/i,
+  
+  // Indian bank-specific patterns
+  /regd\.?\s*(office|address)/i,
+  /registered\s+office/i,
+  /corporate\s+office/i,
+  /head\s+office/i,
+  /cin\s*[:.-]\s*[LU]/i,
+  /gstin\s*[:.-]?\s*\d/i,
+  /gst\s*no\s*[:.-]?\s*\d/i,
   /email\s*id/i,
   /contact\s*us/i,
   /helpline/i,
-  /pincode/i,
+  /pincode\s*[:.-]?\s*\d{6}/i,
+  /pin\s*code\s*[:.-]?\s*\d{6}/i,
   /authorised\s*signator/i,
-  /does\s+not\s+require/i,
+  /authorized\s*signator/i,
+  
+  // Computer-generated statement disclaimers
+  /this\s+is\s+a\s+(computer|system)\s+generated/i,
+  /does\s+not\s+require\s+(a\s+)?(signature|stamp)/i,
+  /electronically\s+generated/i,
+  /auto[- ]?generated/i,
+  
+  // Address components
   /bank\s+address/i,
   /branch\s+address/i,
-  /floor,?\s*no/i,
-  /building\s*no/i,
-  /plot\s*no/i,
+  /floor,?\s*(no\.?)?\s*\d/i,
+  /building\s*(no\.?)?\s*\d/i,
+  /plot\s*(no\.?)?\s*\d/i,
+  /street\s*(no\.?)?\s*\d/i,
+  
+  // Indian city/location patterns in footer
+  /mumbai\s*[-,]/i,
+  /delhi\s*[-,]/i,
+  /bangalore\s*[-,]/i,
+  /chennai\s*[-,]/i,
+  /kolkata\s*[-,]/i,
+  /hyderabad\s*[-,]/i,
+  
+  // Phone number patterns
+  /1800[-\s]?\d{3}[-\s]?\d+/i,  // Toll-free: 1800-xxx-xxxx
+  /\+91[-\s]?\d{10}/i,          // Indian mobile: +91-xxxxxxxxxx
+  /\d{3,4}[-\s]\d{3,4}[-\s]\d{3,4}/i,  // General phone
+  
+  // Website patterns
+  /www\.hdfcbank/i,
+  /www\.sbi\./i,
+  /www\.icicibank/i,
+  /www\.axisbank/i,
+  /hdfcbank\.com/i,
+  
+  // Other footer patterns
+  /for\s+(any|your)\s+(queries?|complaints?|assistance)/i,
+  /please\s+(contact|call|write)/i,
+  /nomination\s+registered/i,
+  /interest\s+rate\s*[:.-]/i,
 ];
 
 /**
