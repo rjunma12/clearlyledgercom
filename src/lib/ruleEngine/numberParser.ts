@@ -12,32 +12,85 @@ import { correctOCRDate } from './ocrCorrection';
 // =============================================================================
 
 /**
- * Indian numbering pattern: 1,00,000.00 (one lakh) or 1,00,00,000.00 (one crore)
+ * Indian numbering patterns: 1,00,000.00 (one lakh) or 1,00,00,000.00 (one crore)
  * Format: Start with 1-2 digits, then groups of 2 digits, last group is 3 digits before decimal
+ * 
+ * Enhanced patterns to handle various edge cases:
+ * - Standard: 1,50,000.00
+ * - No decimals: 1,50,000
+ * - With ₹ prefix: ₹1,50,000.00
+ * - With spaces: 1, 50, 000.00 (OCR artifacts)
+ * - With Dr/Cr suffix: 1,50,000.00 Dr
  */
+
+// Standard Indian format: 1,50,000.00 or 10,00,000.00
 const INDIAN_NUMBER_PATTERN = /^\d{1,2}(,\d{2})*(,\d{3})?\.\d{1,2}$/;
+// No decimal: 1,50,000
 const INDIAN_NUMBER_PATTERN_NO_DECIMAL = /^\d{1,2}(,\d{2})*(,\d{3})?$/;
+// With spaces (OCR artifacts): 1, 50, 000.00
+const INDIAN_NUMBER_PATTERN_SPACED = /^\d{1,2}(,\s*\d{2})*(,\s*\d{3})?\.\d{1,2}$/;
+// With currency prefix: ₹1,50,000.00 or Rs.1,50,000.00
+const INDIAN_NUMBER_PATTERN_WITH_CURRENCY = /^[₹Rs.INR\s]*\d{1,2}(,\s*\d{2})*(,\s*\d{3})?\.\d{1,2}$/i;
+
+// Dr/Cr suffix pattern (common in Indian statements)
+const DR_CR_SUFFIX_PATTERN = /\s*(Dr\.?|Cr\.?|D|C)\s*$/i;
 
 /**
  * Check if a number string follows Indian lakh/crore format
+ * Enhanced to detect various Indian number format variations
  */
 export function isIndianNumberFormat(value: string): boolean {
-  const cleaned = value.replace(/[\s₹Rs\.INR]/gi, '').trim();
-  return INDIAN_NUMBER_PATTERN.test(cleaned) || INDIAN_NUMBER_PATTERN_NO_DECIMAL.test(cleaned);
+  // First, remove Dr/Cr suffix if present
+  let cleaned = value.replace(DR_CR_SUFFIX_PATTERN, '').trim();
+  
+  // Remove currency symbols and extra spaces
+  cleaned = cleaned.replace(/[₹Rs.INR]/gi, '').trim();
+  
+  // Check all Indian format patterns
+  return INDIAN_NUMBER_PATTERN.test(cleaned) || 
+         INDIAN_NUMBER_PATTERN_NO_DECIMAL.test(cleaned) ||
+         INDIAN_NUMBER_PATTERN_SPACED.test(cleaned) ||
+         INDIAN_NUMBER_PATTERN_WITH_CURRENCY.test(cleaned);
 }
 
 /**
  * Parse an Indian formatted number (1,00,000.00 -> 100000.00)
+ * Enhanced to handle Dr/Cr suffixes and OCR spacing artifacts
  */
 export function parseIndianNumber(value: string): number | null {
-  // Remove currency symbols and spaces
-  let cleaned = value.replace(/[\s₹Rs\.INR]/gi, '').trim();
+  // Check for Dr/Cr suffix to determine sign
+  const hasDrSuffix = /\s*(Dr\.?|D)\s*$/i.test(value);
+  const hasCrSuffix = /\s*(Cr\.?|C)\s*$/i.test(value);
   
-  // Remove all commas
-  cleaned = cleaned.replace(/,/g, '');
+  // Remove Dr/Cr suffix
+  let cleaned = value.replace(DR_CR_SUFFIX_PATTERN, '').trim();
+  
+  // Remove currency symbols and spaces
+  cleaned = cleaned.replace(/[₹Rs.INR]/gi, '').trim();
+  
+  // Remove all commas and internal spaces
+  cleaned = cleaned.replace(/[,\s]/g, '');
   
   const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? null : parsed;
+  if (isNaN(parsed)) return null;
+  
+  // Dr = Debit = negative (in some contexts), but we return absolute value
+  // The calling code should handle the sign based on column context
+  return Math.abs(parsed);
+}
+
+/**
+ * Check if value has a Dr (Debit) suffix
+ */
+export function hasDebitSuffix(value: string): boolean {
+  return /\s*(Dr\.?|D)\s*$/i.test(value);
+}
+
+/**
+ * Check if value has a Cr (Credit) suffix
+ */
+export function hasCreditSuffix(value: string): boolean {
+  return /\s*(Cr\.?|C)\s*$/i.test(value);
 }
 
 // =============================================================================

@@ -199,17 +199,60 @@ const BANK_SKIP_PATTERNS: Record<string, RegExp[]> = {
     /^minimum daily balance/i,
   ],
   'hdfc-india': [
+    // Column header patterns
     /^narration$/i,
     /^chq.*no\.?$/i,
     /^value\s*dt$/i,
+    /^withdrawal\s*amt/i,
+    /^deposit\s*amt/i,
+    /^closing\s*balance$/i,
+    // Footer patterns
+    /^this\s+is\s+a\s+(computer|system)\s+generated/i,
+    /^does\s+not\s+require\s+(a\s+)?(signature|stamp)/i,
+    /^toll\s*free[\s:]*1800/i,
+    /^cin[\s:]+[LU]\d+/i,
+    /^gstin[\s:]+\d+/i,
+    /^gst\s*no[\s:]+\d+/i,
+    /^for\s+any\s+(queries?|complaints?|assistance)/i,
+    /^please\s+contact/i,
+    /^registered\s+office/i,
+    /^regd\.?\s+office/i,
+    /^corporate\s+office/i,
+    /^head\s+office/i,
+    /^branch[\s:]+\w+/i,
+    /^ifsc[\s:]+[A-Z]{4}0/i,
+    /^customer\s+care/i,
+    /^helpline[\s:]+/i,
+    /^1800[-\s]\d+/i, // Toll-free numbers
+    /^\d{3,4}[-\s]\d{3,4}[-\s]\d{3,4}/i, // Phone patterns
+    /^www\.hdfcbank/i,
+    /^hdfcbank\.com/i,
+    /^email\s*id[\s:]/i,
+    /^mumbai\s*[-,]/i, // City in address
+    /^\d+[,\s]+floor/i, // Floor numbers
+    /^nomination\s+registered/i,
   ],
   'sbi-india': [
     /^txn\s*branch$/i,
     /^value\s*date$/i,
+    /^this\s+is\s+a\s+(computer|system)/i,
+    /^does\s+not\s+require/i,
   ],
   'icici-india': [
     /^tran\s*id$/i,
     /^particulars$/i,
+    /^this\s+is\s+a\s+(computer|system)/i,
+    /^does\s+not\s+require/i,
+  ],
+  'axis-india': [
+    /^this\s+is\s+a\s+(computer|system)/i,
+    /^does\s+not\s+require/i,
+    /^cin[\s:]+/i,
+    /^gstin[\s:]+/i,
+  ],
+  'kotak-india': [
+    /^this\s+is\s+a\s+(computer|system)/i,
+    /^does\s+not\s+require/i,
   ],
   'cba-australia': [
     /^interest\s+free\s+days/i,

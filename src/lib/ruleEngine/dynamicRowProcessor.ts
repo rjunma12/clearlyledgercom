@@ -41,7 +41,36 @@ const SKIP_PATTERNS = [
   /^total[s]?\s*$/i,
   /statement\s*date/i,
   /account\s*(number|no\.?)/i,
-  /^date\s+(description|particulars)/i,
+  /^date\s+(description|particulars|narration)/i,
+  // Column header patterns
+  /^narration$/i,
+  /^particulars$/i,
+  /^chq\.?\s*\/?\s*ref/i,
+  /^value\s*dt/i,
+  /^withdrawal\s*amt/i,
+  /^deposit\s*amt/i,
+  /^closing\s*balance$/i,
+  // Indian bank footer patterns
+  /^this\s+is\s+a\s+(computer|system)/i,
+  /^does\s+not\s+require/i,
+  /^toll\s*free/i,
+  /^1800[-\s]\d+/i,
+  /^customer\s+care/i,
+  /^regd\.?\s*(office|address)/i,
+  /^cin\s*[:.-]/i,
+  /^gstin/i,
+  /^for\s+any\s+(queries?|complaints?)/i,
+  /^please\s+contact/i,
+  /^registered\s+office/i,
+  /^corporate\s+office/i,
+  /^head\s+office/i,
+  /^mumbai\s*[-,]/i,
+  /^www\.\w+/i,
+  /^email\s*id/i,
+  /^helpline/i,
+  // Phone number patterns
+  /^\d{3,4}[-\s]\d{3,4}[-\s]\d{3,4}$/i,
+  /^\+91[-\s]?\d{10}$/i,
 ];
 
 const OPENING_BALANCE_PATTERNS = [
