@@ -201,7 +201,7 @@ const registeredProfiles: Map<string, BankProfile> = new Map();
 
 // Register default profiles
 const defaultProfiles: BankProfile[] = [
-  // US Banks
+  // US Banks - Major
   chaseUSProfile,
   bofaUSProfile,
   wellsFargoUSProfile,
@@ -216,6 +216,34 @@ const defaultProfiles: BankProfile[] = [
   schwabUsProfile,
   discoverUsProfile,
   amexUsProfile,
+  // US Banks - Investment & Large Regionals
+  goldmanUsProfile,
+  morganStanleyUsProfile,
+  citizensUsProfile,
+  firstCitizensUsProfile,
+  mtUsProfile,
+  // US Banks - Regional Banks
+  huntingtonUsProfile,
+  keybankUsProfile,
+  regionsUsProfile,
+  usaaUsProfile,
+  synchronyUsProfile,
+  stateStreetUsProfile,
+  bnyMellonUsProfile,
+  northernTrustUsProfile,
+  comericaUsProfile,
+  zionsUsProfile,
+  // US Banks - Super-Regional & Specialty
+  popularUsProfile,
+  bmoUsProfile,
+  eastWestUsProfile,
+  websterUsProfile,
+  firstHorizonUsProfile,
+  frostUsProfile,
+  umbUsProfile,
+  flagstarUsProfile,
+  synovusUsProfile,
+  navyFederalUsProfile,
   // UK Banks
   hsbcUKProfile,
   barclaysUKProfile,
