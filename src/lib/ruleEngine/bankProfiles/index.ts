@@ -7,7 +7,7 @@ import type { BankProfile, BankDetectionResult, ProfileRegistry } from './types'
 
 // Import all bank profiles
 import { genericProfile } from './profiles/generic';
-// US Banks
+// US Banks - Major
 import { chaseUSProfile } from './profiles/chase-us';
 import { bofaUSProfile } from './profiles/bofa-us';
 import { wellsFargoUSProfile } from './profiles/wells-fargo-us';
@@ -22,6 +22,34 @@ import { allyUsProfile } from './profiles/ally-us';
 import { schwabUsProfile } from './profiles/schwab-us';
 import { discoverUsProfile } from './profiles/discover-us';
 import { amexUsProfile } from './profiles/amex-us';
+// US Banks - Investment & Large Regionals
+import { goldmanUsProfile } from './profiles/goldman-us';
+import { morganStanleyUsProfile } from './profiles/morgan-stanley-us';
+import { citizensUsProfile } from './profiles/citizens-us';
+import { firstCitizensUsProfile } from './profiles/first-citizens-us';
+import { mtUsProfile } from './profiles/mt-us';
+// US Banks - Regional Banks
+import { huntingtonUsProfile } from './profiles/huntington-us';
+import { keybankUsProfile } from './profiles/keybank-us';
+import { regionsUsProfile } from './profiles/regions-us';
+import { usaaUsProfile } from './profiles/usaa-us';
+import { synchronyUsProfile } from './profiles/synchrony-us';
+import { stateStreetUsProfile } from './profiles/state-street-us';
+import { bnyMellonUsProfile } from './profiles/bny-mellon-us';
+import { northernTrustUsProfile } from './profiles/northern-trust-us';
+import { comericaUsProfile } from './profiles/comerica-us';
+import { zionsUsProfile } from './profiles/zions-us';
+// US Banks - Super-Regional & Specialty
+import { popularUsProfile } from './profiles/popular-us';
+import { bmoUsProfile } from './profiles/bmo-us';
+import { eastWestUsProfile } from './profiles/east-west-us';
+import { websterUsProfile } from './profiles/webster-us';
+import { firstHorizonUsProfile } from './profiles/first-horizon-us';
+import { frostUsProfile } from './profiles/frost-us';
+import { umbUsProfile } from './profiles/umb-us';
+import { flagstarUsProfile } from './profiles/flagstar-us';
+import { synovusUsProfile } from './profiles/synovus-us';
+import { navyFederalUsProfile } from './profiles/navy-federal-us';
 // UK Banks
 import { barclaysUKProfile } from './profiles/barclays-uk';
 import { hsbcUKProfile } from './profiles/hsbc-uk';
