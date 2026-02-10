@@ -10,6 +10,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 import { PORT, ALLOWED_ORIGINS } from './lib/config.js';
+import { requestLogger } from './middleware/requestLogger.js';
 import jobsRouter from './routes/jobs.js';
 import pdfRouter, { multerErrorHandler } from './routes/pdf.js';
 
@@ -29,6 +30,9 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '1mb' }));
+
+// Request logging
+app.use(requestLogger);
 
 // General API rate limit: 100 requests/15min
 app.use('/api/', rateLimit({
