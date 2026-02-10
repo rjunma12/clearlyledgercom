@@ -168,6 +168,8 @@ router.post(
           id: jobId,
           user_id: req.userId!,
           status: result.success ? 'completed' : 'failed',
+          filename: file.originalname,
+          file_size: file.size,
           transactions: result.document?.transactions || [],
           total_transactions: result.document?.totalTransactions || 0,
           started_at: new Date(startTime).toISOString(),
