@@ -40,6 +40,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Contact = lazy(() => import("./pages/Contact"));
 const About = lazy(() => import("./pages/About"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const BankProfilesAdmin = lazy(() => import("./pages/admin/BankProfiles"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
