@@ -3,12 +3,7 @@
  * Loads bank profiles from the database with caching and fallback logic.
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabase } from './supabaseClient';
 
 // =============================================================================
 // TYPES
