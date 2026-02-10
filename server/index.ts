@@ -167,6 +167,30 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+// List user's processing jobs
+app.get('/api/jobs', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data, error } = await supabase
+      .from('processing_jobs')
+      .select('id, status, total_transactions, created_at, started_at, completed_at, updated_at')
+      .eq('user_id', req.userId!)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('[Server] Failed to fetch jobs:', error);
+      res.status(500).json({ error: 'Failed to fetch processing jobs' });
+      return;
+    }
+
+    res.json({ jobs: data });
+  } catch (err) {
+    console.error('[Server] Jobs endpoint error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // PDF Processing endpoint
 app.post(
   '/api/process-pdf',
