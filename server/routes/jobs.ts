@@ -6,17 +6,21 @@ import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth.js';
 import { SUPABASE_URL, SUPABASE_SERVICE_KEY } from '../lib/config.js';
+import { listJobsQuerySchema, jobIdParamSchema, updateJobBodySchema } from '../lib/validation.js';
 
 const router = Router();
 
 // List user's processing jobs (paginated, filterable)
 router.get('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const parsed = listJobsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid query parameters', details: parsed.error.flatten().fieldErrors });
+      return;
+    }
+
+    const { page, limit, status } = parsed.data;
     const offset = (page - 1) * limit;
-    const validStatuses = ['pending', 'processing', 'completed', 'failed'];
-    const status = validStatuses.includes(req.query.status as string) ? req.query.status as string : null;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -62,11 +66,17 @@ router.get('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 // Get single job with full transactions
 router.get('/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
   try {
+    const parsed = jobIdParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid job ID format' });
+      return;
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { data, error } = await supabase
       .from('processing_jobs')
       .select('*')
-      .eq('id', req.params.id)
+      .eq('id', parsed.data.id)
       .eq('user_id', req.userId!)
       .maybeSingle();
 
@@ -91,14 +101,19 @@ router.get('/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
 // Update job status
 router.patch('/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
   try {
-    const validStatuses = ['pending', 'processing', 'completed', 'failed'];
-    const { status } = req.body || {};
-
-    if (!status || !validStatuses.includes(status)) {
-      res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+    const paramsParsed = jobIdParamSchema.safeParse(req.params);
+    if (!paramsParsed.success) {
+      res.status(400).json({ error: 'Invalid job ID format' });
       return;
     }
 
+    const bodyParsed = updateJobBodySchema.safeParse(req.body);
+    if (!bodyParsed.success) {
+      res.status(400).json({ error: 'Invalid request body', details: bodyParsed.error.flatten().fieldErrors });
+      return;
+    }
+
+    const { status } = bodyParsed.data;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     const updateData: Record<string, string> = { status };
@@ -108,7 +123,7 @@ router.patch('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =>
     const { data, error } = await supabase
       .from('processing_jobs')
       .update(updateData)
-      .eq('id', req.params.id)
+      .eq('id', paramsParsed.data.id)
       .eq('user_id', req.userId!)
       .select('id, status, started_at, completed_at, updated_at')
       .maybeSingle();
@@ -132,12 +147,18 @@ router.patch('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =>
 // Delete a completed/failed job
 router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
   try {
+    const parsed = jobIdParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid job ID format' });
+      return;
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     const { data: job, error: fetchErr } = await supabase
       .from('processing_jobs')
       .select('id, status')
-      .eq('id', req.params.id)
+      .eq('id', parsed.data.id)
       .eq('user_id', req.userId!)
       .maybeSingle();
 
@@ -157,7 +178,7 @@ router.delete('/:id', authenticateUser, async (req: AuthenticatedRequest, res) =
     const { error: delErr } = await supabase
       .from('processing_jobs')
       .delete()
-      .eq('id', req.params.id)
+      .eq('id', parsed.data.id)
       .eq('user_id', req.userId!);
 
     if (delErr) {
