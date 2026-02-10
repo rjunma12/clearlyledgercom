@@ -330,6 +330,8 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          file_size: number | null
+          filename: string | null
           id: string
           started_at: string | null
           status: string
@@ -341,6 +343,8 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          file_size?: number | null
+          filename?: string | null
           id?: string
           started_at?: string | null
           status?: string
@@ -352,6 +356,8 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          file_size?: number | null
+          filename?: string | null
           id?: string
           started_at?: string | null
           status?: string
