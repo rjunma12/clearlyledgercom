@@ -1,0 +1,3 @@
+ALTER TABLE public.processing_jobs
+ADD COLUMN IF NOT EXISTS filename TEXT,
+ADD COLUMN IF NOT EXISTS file_size BIGINT;
