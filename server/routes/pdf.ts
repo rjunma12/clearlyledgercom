@@ -162,6 +162,14 @@ router.post(
         maxPages: maxPages > 0 ? maxPages : undefined,
       });
 
+      // Extract transactions: prefer rawTransactions, fallback to segment flatMap
+      const transactions = result.document?.rawTransactions
+        || result.document?.segments?.flatMap(s => s.transactions)
+        || [];
+      const totalTransactions = transactions.length
+        || result.document?.totalTransactions
+        || 0;
+
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
         await supabase.from('processing_jobs').insert({
@@ -170,8 +178,8 @@ router.post(
           status: result.success ? 'completed' : 'failed',
           filename: file.originalname,
           file_size: file.size,
-          transactions: result.document?.transactions || [],
-          total_transactions: result.document?.totalTransactions || 0,
+          transactions,
+          total_transactions: totalTransactions,
           started_at: new Date(startTime).toISOString(),
           completed_at: new Date().toISOString(),
         });
@@ -185,15 +193,15 @@ router.post(
         pdfType: result.pdfType,
         totalPages: result.totalPages,
         processingTimeMs: result.processingTimeMs,
-        transactions: result.document?.transactions || [],
-        totalTransactions: result.document?.totalTransactions || 0,
+        transactions,
+        totalTransactions,
         document: result.document || null,
-        errors: result.errors.map(e => ({
+        errors: result.errors?.length > 0 ? result.errors.map(e => ({
           code: e.code,
           message: e.message,
           recoverable: e.recoverable,
-        })),
-        warnings: result.warnings,
+        })) : [],
+        warnings: result.warnings || [],
       });
     } catch (err) {
       console.error('[Server] PDF processing failed:', err);
