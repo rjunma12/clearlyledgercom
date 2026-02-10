@@ -1,0 +1,187 @@
+bank_code,bank_name,country_code,currency_code,swift_code,template_name
+bandhan-in,Bandhan Bank,IN,INR,BDBLINDA,indian_standard
+rbl-in,RBL Bank,IN,INR,RAABORIN,indian_standard
+idfc-in,IDFC First Bank,IN,INR,IDFBINDA,indian_standard
+yes-in,Yes Bank,IN,INR,YESBINDA,indian_standard
+indusind-in,IndusInd Bank,IN,INR,INDBINDA,indian_standard
+federal-in,Federal Bank,IN,INR,FDRLINBA,indian_standard
+sib-in,South Indian Bank,IN,INR,SIBLINDA,indian_standard
+uco-in,UCO Bank,IN,INR,UCBAINDA,indian_standard
+iob-in,Indian Overseas Bank,IN,INR,IABORIN,indian_standard
+canara-in,Canara Bank,IN,INR,CNRBINDA,indian_standard
+bob-in,Bank of Baroda,IN,INR,BARBINDA,indian_standard
+pnb-in,Punjab National Bank,IN,INR,PUNBINDA,indian_standard
+boi-in,Bank of India,IN,INR,BKIDINDA,indian_standard
+union-in,Union Bank of India,IN,INR,UBININDA,indian_standard
+indian-in,Indian Bank,IN,INR,IDIBINDA,indian_standard
+central-in,Central Bank of India,IN,INR,CBININDA,indian_standard
+jk-in,Jammu & Kashmir Bank,IN,INR,JAKAINDA,indian_standard
+karnataka-in,Karnataka Bank,IN,INR,KARNINBA,indian_standard
+karur-in,Karur Vysya Bank,IN,INR,KVBLINDA,indian_standard
+tamilnad-in,Tamilnad Mercantile Bank,IN,INR,TMBLINDA,indian_standard
+usaa-us,USAA,US,USD,USAAUS44,us_checking
+ally-us,Ally Bank,US,USD,ALLYUS31,us_checking
+schwab-us,Charles Schwab Bank,US,USD,CSCHUS6S,us_checking
+discover-us,Discover Bank,US,USD,DISCUS33,us_checking
+amex-us,American Express,US,USD,ABORIN,us_checking
+goldman-us,Goldman Sachs (Marcus),US,USD,GOLDUS33,us_checking
+morgan-stanley-us,Morgan Stanley,US,USD,MSTCUS33,us_checking
+citizens-us,Citizens Bank,US,USD,CTZIUS33,us_checking
+fifth-third-us,Fifth Third Bank,US,USD,FTBCUS3C,us_checking
+huntington-us,Huntington National Bank,US,USD,HUNTUS33,us_checking
+keybank-us,KeyBank,US,USD,KEYBUS33,us_checking
+regions-us,Regions Bank,US,USD,UPNBUS44,us_checking
+pnc-us,PNC Bank,US,USD,PNCCUS33,us_checking
+truist-us,Truist Bank,US,USD,BRBTUS33,us_checking
+synchrony-us,Synchrony Bank,US,USD,SYFIUS33,us_checking
+state-street-us,State Street Bank,US,USD,SBOSUS33,us_checking
+bny-mellon-us,BNY Mellon,US,USD,IRVTUS3N,us_checking
+comerica-us,Comerica Bank,US,USD,MNBDUS33,us_checking
+zions-us,Zions Bancorporation,US,USD,ZFNBUS55,us_checking
+popular-us,Popular Bank,US,USD,BPPRPRSX,us_checking
+lloyds-uk,Lloyds Bank,GB,GBP,LOYDGB2L,uk_standard
+barclays-uk,Barclays,GB,GBP,BARCGB22,uk_standard
+hsbc-uk,HSBC UK,GB,GBP,MIDLGB22,uk_standard
+natwest-uk,NatWest,GB,GBP,NWBKGB2L,uk_standard
+santander-uk,Santander UK,GB,GBP,ABBYGB2L,uk_standard
+tsb-uk,TSB Bank,GB,GBP,TSBSGB2A,uk_standard
+monzo-uk,Monzo,GB,GBP,MONZGB2L,uk_standard
+revolut-uk,Revolut,GB,GBP,REVOGB21,uk_standard
+rbs-uk,Royal Bank of Scotland,GB,GBP,RBOSGB2L,uk_standard
+nationwide-uk,Nationwide Building Society,GB,GBP,NAIAGB21,uk_standard
+halifax-uk,Halifax,GB,GBP,HABORIN,uk_standard
+metro-uk,Metro Bank,GB,GBP,MYMBGB2L,uk_standard
+starling-uk,Starling Bank,GB,GBP,SRLGGB2L,uk_standard
+coop-uk,Co-operative Bank,GB,GBP,CPBKGB22,uk_standard
+virgin-money-uk,Virgin Money,GB,GBP,NABORIN,uk_standard
+bnp-paribas-fr,BNP Paribas,FR,EUR,BNPAFRPP,european_standard
+deutsche-bank-de,Deutsche Bank,DE,EUR,DEUTDEFF,european_standard
+credit-agricole-fr,Crédit Agricole,FR,EUR,AGRIFRPP,european_standard
+societe-generale-fr,Société Générale,FR,EUR,SOGEFRPP,european_standard
+commerzbank-de,Commerzbank,DE,EUR,COBADEFF,european_standard
+sparkasse-de,Sparkasse,DE,EUR,BYLADEM1,european_standard
+ing-nl,ING Bank,NL,EUR,INGBNL2A,european_standard
+rabobank-nl,Rabobank,NL,EUR,RABONL2U,european_standard
+abn-amro-nl,ABN AMRO,NL,EUR,ABNANL2A,european_standard
+bbva-es,BBVA,ES,EUR,BBVAESMM,european_standard
+caixabank-es,CaixaBank,ES,EUR,CABORIN,european_standard
+santander-es,Santander Spain,ES,EUR,BSCHESMM,european_standard
+intesa-it,Intesa Sanpaolo,IT,EUR,BCITITMM,european_standard
+unicredit-it,UniCredit,IT,EUR,UNCRITMM,european_standard
+kbc-be,KBC Bank,BE,EUR,KREDBEBB,european_standard
+erste-at,Erste Bank,AT,EUR,GIBAATWW,european_standard
+raiffeisen-at,Raiffeisen Bank,AT,EUR,RZBAATWW,european_standard
+bcp-pt,Banco BCP,PT,EUR,BCOMPTPL,european_standard
+pko-pl,PKO Bank Polski,PL,PLN,BPKOPLPW,european_standard
+mbank-pl,mBank,PL,PLN,BREXPLPW,european_standard
+dkb-de,DKB,DE,EUR,BYLADEM1,european_standard
+ubs-ch,UBS,CH,CHF,UBSWCHZH,european_standard
+credit-suisse-ch,Credit Suisse,CH,CHF,CRESCHZZ,european_standard
+nordea-fi,Nordea Finland,FI,EUR,NDEAFIHH,european_standard
+op-fi,OP Financial Group,FI,EUR,OABORIN,european_standard
+dnb-no,DNB,NO,NOK,DNBANOKKXXX,european_standard
+handelsbanken-se,Handelsbanken,SE,SEK,HANDSESS,european_standard
+seb-se,SEB,SE,SEK,ESSESESS,european_standard
+danske-bank-dk,Danske Bank,DK,DKK,DABADKKK,european_standard
+alpha-gr,Alpha Bank,GR,EUR,CRBAGRAA,european_standard
+swedbank-se,Swedbank,SE,SEK,SWEDSESS,european_standard
+ing-de,ING Germany,DE,EUR,INGDDEFF,european_standard
+n26-de,N26,DE,EUR,NTSBDEB1,european_standard
+monese-uk,Monese,GB,GBP,MABORIN,european_standard
+dbs-sg,DBS Bank,SG,SGD,DBSSSGSG,asian_standard
+ocbc-sg,OCBC Bank,SG,SGD,OCBCSGSG,asian_standard
+uob-sg,UOB,SG,SGD,UOVBSGSG,asian_standard
+maybank-my,Maybank,MY,MYR,MABORIN,asian_standard
+cimb-my,CIMB Bank,MY,MYR,CIBBMYKL,asian_standard
+boc-hk,Bank of China HK,HK,HKD,BKCHHKHH,asian_standard
+hangseng-hk,Hang Seng Bank,HK,HKD,HASEHKHH,asian_standard
+bea-hk,Bank of East Asia,HK,HKD,BEASHKHX,asian_standard
+cba-au,Commonwealth Bank,AU,AUD,CTBAAU2S,asian_standard
+anz-au,ANZ Bank,AU,AUD,ANZBAU3M,asian_standard
+westpac-au,Westpac,AU,AUD,WPACAU2S,asian_standard
+nab-au,National Australia Bank,AU,AUD,NATAAU33,asian_standard
+icbc-cn,ICBC,CN,CNY,ICBKCNBJ,asian_standard
+ccb-cn,China Construction Bank,CN,CNY,PCBCCNBJ,asian_standard
+boc-cn,Bank of China,CN,CNY,BKCHCNBJ,asian_standard
+mufg-jp,MUFG Bank,JP,JPY,BOTKJPJT,asian_standard
+smbc-jp,SMBC,JP,JPY,SMBCJPJT,asian_standard
+mizuho-jp,Mizuho Bank,JP,JPY,MHCBJPJT,asian_standard
+kookmin-kr,Kookmin Bank,KR,KRW,ABORIN,asian_standard
+shinhan-kr,Shinhan Bank,KR,KRW,SHBKKRSE,asian_standard
+bca-id,Bank Central Asia,ID,IDR,CENAIDJA,asian_standard
+mandiri-id,Bank Mandiri,ID,IDR,BMRIIDJA,asian_standard
+bri-id,Bank Rakyat Indonesia,ID,IDR,BRINIDJA,asian_standard
+bni-id,Bank Negara Indonesia,ID,IDR,BNINIDJA,asian_standard
+bdo-ph,BDO Unibank,PH,PHP,ABORIN,asian_standard
+bpi-ph,Bank of the Philippine Islands,PH,PHP,BABORIN,asian_standard
+vietcombank-vn,Vietcombank,VN,VND,BFTVVNVX,asian_standard
+vietinbank-vn,VietinBank,VN,VND,ICBVVNVX,asian_standard
+bangkok-bank-th,Bangkok Bank,TH,THB,BKKBTHBK,asian_standard
+kbank-th,Kasikornbank,TH,THB,KASITHBK,asian_standard
+scb-th,Siam Commercial Bank,TH,THB,SICOTHBK,asian_standard
+woori-kr,Woori Bank,KR,KRW,HVBKKRSEXXX,asian_standard
+hana-kr,Hana Bank,KR,KRW,KOABORIN,asian_standard
+ing-au,ING Australia,AU,AUD,INGAAU2S,asian_standard
+macquarie-au,Macquarie Bank,AU,AUD,MACQAU2S,asian_standard
+bendigo-au,Bendigo Bank,AU,AUD,BENDAU3B,asian_standard
+abc-cn,Agricultural Bank of China,CN,CNY,ABOCCNBJ,asian_standard
+bidv-vn,BIDV,VN,VND,BIDVVNVX,asian_standard
+enbd-ae,Emirates NBD,AE,AED,ABORIN,european_standard
+adcb-ae,ADCB,AE,AED,ADCBAEAA,european_standard
+fab-ae,First Abu Dhabi Bank,AE,AED,NBADORIN,european_standard
+mashreq-ae,Mashreqbank,AE,AED,BOMLAEAD,european_standard
+qnb-qa,Qatar National Bank,QA,QAR,QNBAQAQA,european_standard
+alrajhi-sa,Al Rajhi Bank,SA,SAR,RJHISARI,european_standard
+snb-sa,Saudi National Bank,SA,SAR,NCBKSAJE,european_standard
+nbk-kw,National Bank of Kuwait,KW,KWD,NABORIN,european_standard
+stdbank-za,Standard Bank,ZA,ZAR,SBZAZAJJ,european_standard
+fnb-za,First National Bank,ZA,ZAR,FIRNZAJJ,european_standard
+absa-za,Absa Bank,ZA,ZAR,ABSAZAJJ,european_standard
+nedbank-za,Nedbank,ZA,ZAR,NEDSZAJJ,european_standard
+capitec-za,Capitec Bank,ZA,ZAR,CABORIN,european_standard
+firstbank-ng,First Bank of Nigeria,NG,NGN,FBNINGLA,european_standard
+gtbank-ng,GTBank,NG,NGN,GTBINGLA,european_standard
+zenith-ng,Zenith Bank,NG,NGN,ZEABORIN,european_standard
+access-ng,Access Bank,NG,NGN,ABNGNGLA,european_standard
+uba-ng,United Bank for Africa,NG,NGN,ABORIN,european_standard
+equity-ke,Equity Bank,KE,KES,EABORIN,european_standard
+kcb-ke,KCB Bank,KE,KES,KCBLKENX,european_standard
+nbe-eg,National Bank of Egypt,EG,EGP,NBEGEGCX,european_standard
+cib-eg,CIB Egypt,EG,EGP,CIBEEGCX,european_standard
+attijariwafa-ma,Attijariwafa Bank,MA,MAD,BCMAMAMC,european_standard
+itau-br,Itaú Unibanco,BR,BRL,ITAUBRSP,us_checking
+bradesco-br,Bradesco,BR,BRL,BBDEBRSP,us_checking
+bb-br,Banco do Brasil,BR,BRL,BRASBRRJ,us_checking
+santander-br,Santander Brasil,BR,BRL,BABORIN,us_checking
+caixa-br,Caixa Econômica Federal,BR,BRL,CABORIN,us_checking
+nubank-br,Nubank,BR,BRL,NUABORIN,us_checking
+inter-br,Banco Inter,BR,BRL,BABORIN,us_checking
+bbva-mx,BBVA Mexico,MX,MXN,BCMRMXMM,us_checking
+banorte-mx,Banorte,MX,MXN,MENOMXMT,us_checking
+santander-mx,Santander Mexico,MX,MXN,BMSXMXMM,us_checking
+banamex-mx,Citibanamex,MX,MXN,BNMXMXMM,us_checking
+scotiabank-mx,Scotiabank Mexico,MX,MXN,MBCOMXMM,us_checking
+bancolombia-co,Bancolombia,CO,COP,COABORIN,us_checking
+bcp-pe,BCP Peru,PE,PEN,BCPLPEPL,us_checking
+banco-chile-cl,Banco de Chile,CL,CLP,BCHICLRM,us_checking
+hdfc-in,HDFC Bank,IN,INR,HDFCINBB,indian_standard
+icici-in,ICICI Bank,IN,INR,ABORIN,indian_standard
+sbi-in,State Bank of India,IN,INR,SBININBB,indian_standard
+axis-in,Axis Bank,IN,INR,AXISINBB,indian_standard
+kotak-in,Kotak Mahindra Bank,IN,INR,ABORIN,indian_standard
+chase-us,JPMorgan Chase,US,USD,CHASUS33,us_checking
+bofa-us,Bank of America,US,USD,BOFAUS3N,us_checking
+wells-fargo-us,Wells Fargo,US,USD,WFBIUS6S,us_checking
+citi-us,Citibank,US,USD,CITIUS33,us_checking
+usbank-us,U.S. Bank,US,USD,USBKUS44,us_checking
+capitalone-us,Capital One,US,USD,NFBKUS33,us_checking
+tdbank-us,TD Bank,US,USD,NABORIN,us_checking
+td-ca,TD Canada Trust,CA,CAD,TDOMCATTTOR,us_checking
+rbc-ca,Royal Bank of Canada,CA,CAD,ROYCCAT2,us_checking
+bmo-ca,BMO,CA,CAD,BOFMCAM2,us_checking
+scotiabank-ca,Scotiabank Canada,CA,CAD,NOSCCATT,us_checking
+cibc-ca,CIBC,CA,CAD,CIBCCATT,us_checking
+desjardins-ca,Desjardins,CA,CAD,CCDQCAMM,us_checking
+standard-chartered,Standard Chartered,XX,USD,SCBLHKHH,asian_standard
+hsbc-global,HSBC Global,XX,USD,MIDLGB22,uk_standard
+citi-global,Citibank Global,XX,USD,CITIUS33,us_checking
