@@ -14,6 +14,288 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_aliases: {
+        Row: {
+          alias_name: string
+          alias_type: string | null
+          bank_profile_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          alias_name: string
+          alias_type?: string | null
+          bank_profile_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          alias_name?: string
+          alias_type?: string | null
+          bank_profile_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_aliases_bank_profile_id_fkey"
+            columns: ["bank_profile_id"]
+            isOneToOne: false
+            referencedRelation: "bank_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_profile_contributions: {
+        Row: {
+          bank_name: string
+          contact_email: string | null
+          country_code: string
+          created_at: string
+          id: string
+          proposed_profile: Json | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sample_pdf_urls: string[] | null
+          status: string
+          submitted_by: string
+        }
+        Insert: {
+          bank_name: string
+          contact_email?: string | null
+          country_code: string
+          created_at?: string
+          id?: string
+          proposed_profile?: Json | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sample_pdf_urls?: string[] | null
+          status?: string
+          submitted_by: string
+        }
+        Update: {
+          bank_name?: string
+          contact_email?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          proposed_profile?: Json | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sample_pdf_urls?: string[] | null
+          status?: string
+          submitted_by?: string
+        }
+        Relationships: []
+      }
+      bank_profile_templates: {
+        Row: {
+          banks_using_count: number
+          created_at: string
+          description: string | null
+          id: string
+          region: string | null
+          template_name: string
+          template_patterns: Json | null
+          updated_at: string
+        }
+        Insert: {
+          banks_using_count?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          region?: string | null
+          template_name: string
+          template_patterns?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          banks_using_count?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          region?: string | null
+          template_name?: string
+          template_patterns?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bank_profile_test_results: {
+        Row: {
+          accuracy_rate: number | null
+          bank_profile_id: string
+          created_at: string
+          errors: Json | null
+          id: string
+          test_duration_ms: number | null
+          test_file_hash: string | null
+          test_file_name: string | null
+          tested_by: string | null
+          transactions_expected: number | null
+          transactions_extracted: number | null
+          version: number
+        }
+        Insert: {
+          accuracy_rate?: number | null
+          bank_profile_id: string
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          test_duration_ms?: number | null
+          test_file_hash?: string | null
+          test_file_name?: string | null
+          tested_by?: string | null
+          transactions_expected?: number | null
+          transactions_extracted?: number | null
+          version: number
+        }
+        Update: {
+          accuracy_rate?: number | null
+          bank_profile_id?: string
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          test_duration_ms?: number | null
+          test_file_hash?: string | null
+          test_file_name?: string | null
+          tested_by?: string | null
+          transactions_expected?: number | null
+          transactions_extracted?: number | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_profile_test_results_bank_profile_id_fkey"
+            columns: ["bank_profile_id"]
+            isOneToOne: false
+            referencedRelation: "bank_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_profile_versions: {
+        Row: {
+          bank_profile_id: string
+          change_summary: string | null
+          changed_by: string | null
+          created_at: string
+          id: string
+          is_published: boolean
+          profile_data: Json | null
+          version: number
+        }
+        Insert: {
+          bank_profile_id: string
+          change_summary?: string | null
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          profile_data?: Json | null
+          version: number
+        }
+        Update: {
+          bank_profile_id?: string
+          change_summary?: string | null
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          profile_data?: Json | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_profile_versions_bank_profile_id_fkey"
+            columns: ["bank_profile_id"]
+            isOneToOne: false
+            referencedRelation: "bank_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_profiles: {
+        Row: {
+          bank_code: string
+          bank_name: string
+          column_config: Json | null
+          confidence_threshold: number
+          country_code: string
+          created_at: string
+          created_by: string | null
+          currency_code: string | null
+          detect_patterns: Json | null
+          display_name: string
+          id: string
+          is_active: boolean
+          is_verified: boolean
+          last_used_at: string | null
+          regional_config: Json | null
+          source: string | null
+          success_rate: number | null
+          swift_code: string | null
+          transaction_patterns: Json | null
+          updated_at: string
+          usage_count: number
+          validation_rules: Json | null
+          version: number
+        }
+        Insert: {
+          bank_code: string
+          bank_name: string
+          column_config?: Json | null
+          confidence_threshold?: number
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string | null
+          detect_patterns?: Json | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          last_used_at?: string | null
+          regional_config?: Json | null
+          source?: string | null
+          success_rate?: number | null
+          swift_code?: string | null
+          transaction_patterns?: Json | null
+          updated_at?: string
+          usage_count?: number
+          validation_rules?: Json | null
+          version?: number
+        }
+        Update: {
+          bank_code?: string
+          bank_name?: string
+          column_config?: Json | null
+          confidence_threshold?: number
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string | null
+          detect_patterns?: Json | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          last_used_at?: string | null
+          regional_config?: Json | null
+          source?: string | null
+          success_rate?: number | null
+          swift_code?: string | null
+          transaction_patterns?: Json | null
+          updated_at?: string
+          usage_count?: number
+          validation_rules?: Json | null
+          version?: number
+        }
+        Relationships: []
+      }
       email_preferences: {
         Row: {
           created_at: string
@@ -559,6 +841,14 @@ export type Database = {
           percent_used: number
           user_id: string
         }[]
+      }
+      increment_profile_usage: {
+        Args: {
+          profile_id: string
+          transaction_count: number
+          was_successful: boolean
+        }
+        Returns: undefined
       }
     }
     Enums: {
