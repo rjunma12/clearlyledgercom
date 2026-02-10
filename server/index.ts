@@ -329,6 +329,7 @@ app.patch('/api/jobs/:id', authenticateUser, async (req: AuthenticatedRequest, r
   }
 });
 
+// PDF Processing endpoint
 app.post(
   '/api/process-pdf',
   authenticateUser,
