@@ -6,7 +6,10 @@
  * Delegates structured parsing to the shared rule engine.
  */
 
-import { getDocument, type PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+// Disable PDF.js worker in Node.js — not needed server-side
+GlobalWorkerOptions.workerSrc = '';
 import type { TextItem } from 'pdfjs-dist/types/src/display/api';
 import { processDocument } from '../../src/lib/ruleEngine/index.js';
 import type { TextElement, ProcessingResult, Locale } from '../../src/lib/ruleEngine/types.js';
