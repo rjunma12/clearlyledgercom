@@ -59,6 +59,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/jobs', jobsRouter);
 app.use('/api/process-pdf', pdfRouter);
+app.use('/api/bank-profiles', bankProfilesRouter);
 
 // =============================================================================
 // ERROR HANDLING
