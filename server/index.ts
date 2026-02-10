@@ -195,24 +195,20 @@ app.post(
         maxPages: maxPages > 0 ? maxPages : undefined,
       });
 
-      // Store result in Supabase processing_history
+      // Store result in Supabase processing_jobs
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-        await supabase.from('processing_history').insert({
+        await supabase.from('processing_jobs').insert({
           id: jobId,
           user_id: req.userId!,
-          file_name: file.originalname,
-          file_size_bytes: file.size,
-          pages_processed: result.totalPages,
-          transactions_extracted: result.document?.totalTransactions || 0,
           status: result.success ? 'completed' : 'failed',
-          validation_status: result.document?.overallValidation || null,
-          error_count: result.errors.length,
-          warning_count: result.warnings.length,
+          transactions: result.document?.transactions || [],
+          total_transactions: result.document?.totalTransactions || 0,
+          started_at: new Date(startTime).toISOString(),
           completed_at: new Date().toISOString(),
         });
       } catch (dbErr) {
-        console.error('[Server] Failed to store processing history:', dbErr);
+        console.error('[Server] Failed to store processing job:', dbErr);
         // Don't fail the request if DB write fails
       }
 
