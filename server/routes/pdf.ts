@@ -146,9 +146,14 @@ router.post(
     try {
       const buffer = fs.readFileSync(file.path);
 
-      const locale = req.body?.locale || 'auto';
-      const confidenceThreshold = parseFloat(req.body?.confidenceThreshold) || 0.6;
-      const maxPages = parseInt(req.body?.maxPages) || 0;
+      // Validate and parse form fields
+      const parsed = processPdfBodySchema.safeParse(req.body || {});
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Invalid processing options', details: parsed.error.flatten().fieldErrors });
+        return;
+      }
+
+      const { locale, confidenceThreshold, maxPages } = parsed.data;
 
       const result = await processPDFBuffer(buffer, {
         fileName: file.originalname,
