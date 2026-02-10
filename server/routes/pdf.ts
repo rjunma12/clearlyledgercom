@@ -187,6 +187,8 @@ router.post(
         console.error('[Server] Failed to store processing job:', dbErr);
       }
 
+      const header = result.document?.extractedHeader;
+
       res.json({
         jobId,
         success: result.success,
@@ -196,6 +198,27 @@ router.post(
         transactions,
         totalTransactions,
         document: result.document || null,
+        result: {
+          pages: result.totalPages,
+          transactions: transactions.map((t: any) => ({
+            date: t.date ?? '',
+            description: t.description ?? '',
+            debit: t.debit ?? null,
+            credit: t.credit ?? null,
+            balance: t.balance ?? null,
+            category: t.category ?? null,
+          })),
+          accountHolder: header?.accountHolder ?? null,
+          accountNumber: header?.accountNumberMasked ?? null,
+          bankDetected: header?.bankName ?? null,
+          statementPeriod: {
+            from: header?.statementPeriodFrom ?? null,
+            to: header?.statementPeriodTo ?? null,
+          },
+          currency: header?.currency ?? null,
+          totalTransactions,
+          confidence: result.confidence ?? null,
+        },
         errors: result.errors?.length > 0 ? result.errors.map(e => ({
           code: e.code,
           message: e.message,
