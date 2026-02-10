@@ -189,10 +189,13 @@ app.get('/api/jobs', authenticateUser, async (req: AuthenticatedRequest, res) =>
       return;
     }
 
-    const { data, error } = await supabase
+    let dataQuery = supabase
       .from('processing_jobs')
       .select('id, status, total_transactions, created_at, started_at, completed_at, updated_at')
-      .eq('user_id', req.userId!)
+      .eq('user_id', req.userId!);
+    if (status) dataQuery = dataQuery.eq('status', status);
+
+    const { data, error } = await dataQuery
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
