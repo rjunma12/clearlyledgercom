@@ -309,7 +309,7 @@ export default function BankProfilesAdmin() {
                       {p.success_rate != null ? `${(p.success_rate * 100).toFixed(1)}%` : "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="default" className="bg-emerald-600 text-white">Verified</Badge>
+                      <Badge variant="default">Verified</Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button size="sm" variant="outline">
