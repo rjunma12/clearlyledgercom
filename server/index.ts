@@ -173,15 +173,18 @@ app.get('/api/jobs', authenticateUser, async (req: AuthenticatedRequest, res) =>
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
     const offset = (page - 1) * limit;
+    const validStatuses = ['pending', 'processing', 'completed', 'failed'];
+    const status = validStatuses.includes(req.query.status as string) ? req.query.status as string : null;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    const { count, error: countErr } = await supabase
+    let countQuery = supabase
       .from('processing_jobs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', req.userId!);
+    if (status) countQuery = countQuery.eq('status', status);
 
-    if (countErr) {
+    const { count, error: countErr } = await countQuery;
       res.status(500).json({ error: 'Failed to fetch job count' });
       return;
     }
