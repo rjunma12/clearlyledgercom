@@ -329,60 +329,36 @@ export type Database = {
       processing_jobs: {
         Row: {
           completed_at: string | null
-          created_at: string
-          error_count: number | null
-          error_message: string | null
-          file_name: string
-          file_size_bytes: number | null
+          created_at: string | null
           id: string
-          pages_processed: number | null
-          pdf_type: string | null
-          processing_time_ms: number | null
-          result: Json | null
           started_at: string | null
           status: string
-          transactions_extracted: number | null
+          total_transactions: number | null
+          transactions: Json | null
+          updated_at: string | null
           user_id: string
-          validation_status: string | null
-          warning_count: number | null
         }
         Insert: {
           completed_at?: string | null
-          created_at?: string
-          error_count?: number | null
-          error_message?: string | null
-          file_name: string
-          file_size_bytes?: number | null
+          created_at?: string | null
           id?: string
-          pages_processed?: number | null
-          pdf_type?: string | null
-          processing_time_ms?: number | null
-          result?: Json | null
           started_at?: string | null
           status?: string
-          transactions_extracted?: number | null
+          total_transactions?: number | null
+          transactions?: Json | null
+          updated_at?: string | null
           user_id: string
-          validation_status?: string | null
-          warning_count?: number | null
         }
         Update: {
           completed_at?: string | null
-          created_at?: string
-          error_count?: number | null
-          error_message?: string | null
-          file_name?: string
-          file_size_bytes?: number | null
+          created_at?: string | null
           id?: string
-          pages_processed?: number | null
-          pdf_type?: string | null
-          processing_time_ms?: number | null
-          result?: Json | null
           started_at?: string | null
           status?: string
-          transactions_extracted?: number | null
+          total_transactions?: number | null
+          transactions?: Json | null
+          updated_at?: string | null
           user_id?: string
-          validation_status?: string | null
-          warning_count?: number | null
         }
         Relationships: []
       }
