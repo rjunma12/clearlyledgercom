@@ -185,6 +185,8 @@ router.post(
         pdfType: result.pdfType,
         totalPages: result.totalPages,
         processingTimeMs: result.processingTimeMs,
+        transactions: result.document?.transactions || [],
+        totalTransactions: result.document?.totalTransactions || 0,
         document: result.document || null,
         errors: result.errors.map(e => ({
           code: e.code,
