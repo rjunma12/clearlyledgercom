@@ -7,12 +7,12 @@
  */
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type { TextItem, PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
+import { processDocument } from '../../src/lib/ruleEngine/index.js';
+import type { TextElement, ProcessingResult, Locale } from '../../src/lib/ruleEngine/types.js';
 
 // Disable PDF.js worker in Node.js — not needed server-side
 pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-import type { TextItem } from 'pdfjs-dist/types/src/display/api';
-import { processDocument } from '../../src/lib/ruleEngine/index.js';
-import type { TextElement, ProcessingResult, Locale } from '../../src/lib/ruleEngine/types.js';
 
 // Polyfill browser globals that pdfjs-dist may reference
 if (typeof globalThis.navigator === 'undefined') {
