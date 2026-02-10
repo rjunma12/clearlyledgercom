@@ -111,6 +111,7 @@ const App = () => {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/checkout/success" element={<CheckoutSuccess />} />
+                  <Route path="/admin/bank-profiles" element={<BankProfilesAdmin />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
