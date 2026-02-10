@@ -219,6 +219,52 @@ app.get('/api/jobs/:id', authenticateUser, async (req: AuthenticatedRequest, res
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// Delete a completed job
+app.delete('/api/jobs/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Verify job exists, belongs to user, and is completed
+    const { data: job, error: fetchErr } = await supabase
+      .from('processing_jobs')
+      .select('id, status')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId!)
+      .maybeSingle();
+
+    if (fetchErr) {
+      res.status(500).json({ error: 'Failed to look up job' });
+      return;
+    }
+    if (!job) {
+      res.status(404).json({ error: 'Job not found' });
+      return;
+    }
+    if (job.status !== 'completed' && job.status !== 'failed') {
+      res.status(400).json({ error: 'Only completed or failed jobs can be deleted' });
+      return;
+    }
+
+    const { error: delErr } = await supabase
+      .from('processing_jobs')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId!);
+
+    if (delErr) {
+      res.status(500).json({ error: 'Failed to delete job' });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Server] Job delete error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PDF Processing endpoint
 app.post(
   '/api/process-pdf',
   authenticateUser,
