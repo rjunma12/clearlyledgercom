@@ -170,21 +170,39 @@ app.get('/api/health', (_req, res) => {
 // List user's processing jobs
 app.get('/api/jobs', authenticateUser, async (req: AuthenticatedRequest, res) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const offset = (page - 1) * limit;
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    const { count, error: countErr } = await supabase
+      .from('processing_jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.userId!);
+
+    if (countErr) {
+      res.status(500).json({ error: 'Failed to fetch job count' });
+      return;
+    }
+
     const { data, error } = await supabase
       .from('processing_jobs')
       .select('id, status, total_transactions, created_at, started_at, completed_at, updated_at')
       .eq('user_id', req.userId!)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('[Server] Failed to fetch jobs:', error);
       res.status(500).json({ error: 'Failed to fetch processing jobs' });
       return;
     }
 
-    res.json({ jobs: data });
+    const total = count ?? 0;
+    res.json({
+      jobs: data,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
   } catch (err) {
     console.error('[Server] Jobs endpoint error:', err);
     res.status(500).json({ error: 'Internal server error' });
