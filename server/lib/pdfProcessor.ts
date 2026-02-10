@@ -58,7 +58,7 @@ export async function processPDFBuffer(
   const uint8Array = new Uint8Array(buffer);
 
   // Load the PDF document
-  const document = await getDocument({ data: uint8Array, useSystemFonts: true }).promise;
+  const document = await pdfjsLib.getDocument({ data: uint8Array, useSystemFonts: true }).promise;
   const totalPages = document.numPages;
 
   // Step 1: Analyze PDF type from page 1
