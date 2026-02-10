@@ -6,13 +6,13 @@
  * Delegates structured parsing to the shared rule engine.
  */
 
-import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
-
-// Disable PDF.js worker in Node.js — not needed server-side
-GlobalWorkerOptions.workerSrc = '';
-import type { TextItem } from 'pdfjs-dist/types/src/display/api';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type { TextItem, PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 import { processDocument } from '../../src/lib/ruleEngine/index.js';
 import type { TextElement, ProcessingResult, Locale } from '../../src/lib/ruleEngine/types.js';
+
+// Disable PDF.js worker in Node.js — not needed server-side
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
 // Polyfill browser globals that pdfjs-dist may reference
 if (typeof globalThis.navigator === 'undefined') {
@@ -58,7 +58,7 @@ export async function processPDFBuffer(
   const uint8Array = new Uint8Array(buffer);
 
   // Load the PDF document
-  const document = await getDocument({ data: uint8Array, useSystemFonts: true }).promise;
+  const document = await pdfjsLib.getDocument({ data: uint8Array, useSystemFonts: true }).promise;
   const totalPages = document.numPages;
 
   // Step 1: Analyze PDF type from page 1
