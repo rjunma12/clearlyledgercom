@@ -16,6 +16,7 @@ import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth.
 import { processPDFBuffer } from '../lib/pdfProcessor.js';
 import { SUPABASE_URL, SUPABASE_SERVICE_KEY, MAX_FILE_SIZE, MIN_FILE_SIZE, PDF_MAGIC_BYTES } from '../lib/config.js';
 import { cleanupFile } from '../lib/utils.js';
+import { processPdfBodySchema } from '../lib/validation.js';
 
 const router = Router();
 
