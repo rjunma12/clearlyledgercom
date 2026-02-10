@@ -191,7 +191,34 @@ app.get('/api/jobs', authenticateUser, async (req: AuthenticatedRequest, res) =>
   }
 });
 
-// PDF Processing endpoint
+// Get single job with full transactions
+app.get('/api/jobs/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data, error } = await supabase
+      .from('processing_jobs')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId!)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[Server] Failed to fetch job:', error);
+      res.status(500).json({ error: 'Failed to fetch job' });
+      return;
+    }
+
+    if (!data) {
+      res.status(404).json({ error: 'Job not found' });
+      return;
+    }
+
+    res.json({ job: data });
+  } catch (err) {
+    console.error('[Server] Job detail error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 app.post(
   '/api/process-pdf',
   authenticateUser,
