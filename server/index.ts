@@ -177,6 +177,7 @@ app.post(
   async (req: AuthenticatedRequest, res) => {
     const file = req.file!;
     const jobId = uuidv4();
+    const startTime = Date.now();
 
     try {
       // Read PDF buffer
