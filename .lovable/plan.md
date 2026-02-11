@@ -1,73 +1,66 @@
 
 
-## Remove Lifetime Tier from ClearlyLedger
+## Update Privacy Policy and Terms of Service
 
-This plan removes all traces of the Lifetime pricing tier across frontend components, backend functions, types, locales, and marketing copy.
+This plan rewrites both legal pages with comprehensive, detailed content reflecting ClearlyLedger's actual data processing practices (Railway backend, immediate file deletion, anonymized format retention). It also updates the Footer with additional legal links and compliance badges.
 
 ---
 
-### Files to Modify (19 files)
+### Files to Modify (3 files)
 
-**Types and Hooks (foundational -- update first)**
+#### 1. `src/pages/PrivacyPolicy.tsx` -- Complete rewrite
 
-1. **`src/hooks/use-checkout.tsx`** -- Remove `'lifetime'` from `PlanName` type union
-2. **`src/hooks/use-usage.tsx`** -- Remove `'lifetime'` from `PlanType` union, remove `lifetime: 10` from `BATCH_LIMITS`, remove `'lifetime'` from `canBatchUpload` check, remove `lifetimeSpotsRemaining` state and the `get_lifetime_spots_remaining` RPC call
-3. **`src/lib/payments/types.ts`** -- Change `BillingInterval` from `'monthly' | 'annual' | 'lifetime'` to `'monthly' | 'annual'`
-4. **`src/contexts/UsageContext.tsx`** -- Remove `lifetimeSpotsRemaining` from the context interface and default values
+Replace the current sparse 11-section page with a comprehensive privacy policy containing:
 
-**Components**
+- **Section 1: Data Collection and Processing** -- Account info, bank statement processing flow (HTTPS upload to Railway, temporary processing, immediate deletion, zero storage), and anonymized data retention explanation with concrete examples of what is/isn't kept
+- **Section 2: Data Storage and Security** -- Infrastructure details (database on secure cloud, processing on Railway), file storage policy table (0-second retention for PDFs, 90 days for results), security measures (TLS 1.3, AES-256, JWT, rate limiting)
+- **Section 3: How We Use Your Information** -- Service delivery, service improvement with data anonymization process (6-step PII removal), legal obligations
+- **Section 4: Data Sharing and Third Parties** -- No-sell policy, service providers list (Railway for processing, database for auth/storage, Resend for email, Dodo Payments for billing) with purpose and retention for each
+- **Section 5: Cookies** -- Authentication and preferences only, no third-party tracking
+- **Section 6: Your Data Rights** -- Access, delete, portability (export as Excel/CSV/JSON)
+- **Section 7: Data Retention Periods** -- Visual table with retention periods for each data type
+- **Section 8: Children's Privacy** -- 18+ requirement
+- **Section 9: International Transfers** -- Global processing with encryption safeguards
+- **Section 10: Changes to Policy** -- Material changes via email, minor via page update
+- **Section 11: Contact** -- helppropsal@outlook.com
 
-5. **`src/components/PricingSection.tsx`** -- Remove `lifetimeSpotsRemaining` usage, remove `spotsRemaining`/`isSoldOut`/`isLowStock` variables, change paid plans grid from `lg:grid-cols-4` to `lg:grid-cols-3`, delete the entire Lifetime card block (lines ~390-474), remove unused imports (`Rocket`)
-6. **`src/components/pricing/LifetimeDealCard.tsx`** -- Delete this entire file (it is a standalone Lifetime component)
-7. **`src/components/pricing/UsageLimitModal.tsx`** -- Remove the Lifetime Deal upgrade option block (lines ~94-115), remove `Rocket` import
-8. **`src/components/dashboard/SubscriptionCard.tsx`** -- Remove `'lifetime'` from `PlanType`, remove `lifetime: '$119 one-time'` from `planPriceDisplay`, remove `isLifetime` variable and its conditional rendering (lines 119, 120, 237-242, 279)
+Add Navbar and Footer components (currently missing from PrivacyPolicy). Update effective/last-updated dates to February 11, 2026.
 
-**Pages**
+#### 2. `src/pages/TermsOfService.tsx` -- Expand existing sections
 
-9. **`src/pages/Pricing.tsx`** -- Remove the "What does Lifetime access include?" FAQ entry, remove the Lifetime `Offer` from `productSchema`, update meta descriptions to remove "Lifetime" mentions, remove "lifetime deal" keyword
-10. **`src/pages/Features.tsx`** -- Remove the Lifetime entry from the plan comparison array (lines 141-144)
-11. **`src/pages/Index.tsx`** -- Update FAQ answer about page limits to remove "Lifetime members ($119 one-time) get unlimited access forever", update PII masking FAQ to remove "Lifetime"
-12. **`src/pages/TermsOfService.tsx`** -- Remove bullet about Lifetime plans being non-transferable (line 179), update refund bullet to remove "including Lifetime plans" (line 190)
-13. **`src/pages/blog/BlogPost3.tsx`** -- Change "Pro and Lifetime plans" to "Pro and Business plans" (line 178)
+Add/expand the following sections while keeping existing structure:
 
-**Locale Files (7 files)**
+- **Section 5 (File Uploads and Data Handling)** -- Expand with: files processed on secure backend servers, transmitted over HTTPS, PDFs permanently deleted immediately after conversion, cannot recover files, results available 90 days. Add user agreement bullets (own files only, no malware, no reverse engineering)
+- **New Section 5.5: Data Usage for Service Improvement** -- Consent to anonymized format patterns, what is/isn't kept, opt-out mention
+- **New Section 5.6: File Storage and Deletion** -- Automatic deletion policy details (0-second retention, memory-only, no backups, no recovery), user-managed data (90-day results, account deletion)
+- **Expand Section 9 (Service Availability)** -- Add parsing accuracy disclaimer (350+ banks, no 100% guarantee, user verification responsibility), permanent deletion acknowledgment
+- **Expand Section 10 (Limitation of Liability)** -- Add data loss and financial consequences disclaimers
+- **New Section after 12: Acceptable Use Policy** -- File upload rules, service abuse prevention, data misuse prohibition, consequences
+- **New Section: Data Retention and Deletion** -- Automatic deletion schedule (immediate for PDFs, 90-day for results, 30-day account deletion), retained data after deletion (anonymized patterns, payment records 7 years)
 
-14. **`src/locales/en/home.json`** -- Remove `pricing.lifetime` block
-15. **`src/locales/ar/home.json`** -- Remove `pricing.lifetime` block
-16. **`src/locales/es/home.json`** -- Remove `pricing.lifetime` block
-17. **`src/locales/fr/home.json`** -- Remove `pricing.lifetime` block
-18. **`src/locales/hi/home.json`** -- Remove `pricing.lifetime` block
-19. **`src/locales/ja/home.json`** -- Remove `pricing.lifetime` block
-20. **`src/locales/ms/home.json`** -- Remove `pricing.lifetime` block
+#### 3. `src/components/Footer.tsx` -- Add links and compliance badges
 
-**Backend Functions**
-
-21. **`supabase/functions/manage-subscription/index.ts`** -- Remove the lifetime cancellation guard (lines 98-104)
-22. **`supabase/functions/send-feature-announcement/index.ts`** -- Repurpose to notify all paid subscribers instead of only lifetime members, or remove the function entirely. The function currently calls `get_lifetime_members_for_announcement` RPC and sends "Lifetime Member Exclusive" emails. Will update to target all paid subscribers with generic "Paid Member" messaging.
-
-### File to Delete
-
-- **`src/components/pricing/LifetimeDealCard.tsx`** -- Entirely lifetime-specific, unused after changes
+- Add "Security" and "Data Processing" links to the Company column
+- Replace "Secure payments" text in the bottom bar with compliance badges: "TLS 1.3 Encrypted" and "GDPR Aligned"
 
 ---
 
 ### Technical Details
 
-**Type changes summary:**
-```text
-PlanName:  remove 'lifetime'
-PlanType:  remove 'lifetime'  
-BillingInterval:  remove 'lifetime'
-SubscriptionCard PlanType:  remove 'lifetime'
-```
+**PrivacyPolicy.tsx changes:**
+- Add `Navbar` and `Footer` imports and render them (matching TermsOfService pattern)
+- Wrap content in container with consistent styling
+- Add `FileText` icon header matching TermsOfService style
+- Content grows from ~100 lines of JSX to ~400 lines
+- All contact emails remain helppropsal@outlook.com per project standard
 
-**Grid layout change in PricingSection:**
-- Paid plans grid: `lg:grid-cols-4` becomes `lg:grid-cols-3`
-- ~85 lines of Lifetime card JSX removed
+**TermsOfService.tsx changes:**
+- Expand from 15 sections to ~20 sections
+- Keep existing section numbering where possible, insert new sections logically
+- Content grows from ~280 lines to ~500 lines
 
-**Backend edge function changes:**
-- `manage-subscription`: Remove 6-line lifetime guard block
-- `send-feature-announcement`: Update to target all paid members instead of lifetime-only (change RPC call and email template text)
-
-**No database migrations needed** -- the `plans` table may have a lifetime row but that is data, not schema. Existing lifetime subscribers (if any) would retain their records.
+**Footer.tsx changes:**
+- Company column: add 2 new Link elements for `/security` and `/data-processing`
+- Bottom bar: replace "Secure payments" span with Lock icon + "TLS 1.3 Encrypted" and Shield icon + "GDPR Aligned"
+- Add `Shield, Lock` imports from lucide-react
 
