@@ -75,11 +75,6 @@
       "name": "Business",
       "price": "$49/month",
       "pages": "Unlimited + Team"
-    },
-    "lifetime": {
-      "name": "Lifetime",
-      "price": "$119 once",
-      "pages": "Unlimited forever"
     }
   },
   "faq": {

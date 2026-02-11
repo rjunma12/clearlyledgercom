@@ -142,7 +142,7 @@ export default function Dashboard() {
         </div>
 
         {/* Upgrade Prompt for Free Users */}
-        {plan && !['pro', 'business', 'lifetime'].includes(plan.planName) && (
+        {plan && !['pro', 'pro_annual', 'business', 'business_annual'].includes(plan.planName) && (
           <div className="mt-8 glass-card p-6 gradient-border">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-start gap-4">

@@ -9,7 +9,7 @@ import { useUsage, type PlanType, type PiiMaskingLevel, type UserPlan, type Usag
 interface UsageContextValue {
   plan: UserPlan | null;
   usage: UsageInfo | null;
-  lifetimeSpotsRemaining: number | null;
+  
   isLoading: boolean;
   isAuthenticated: boolean;
   userId: string | null;
@@ -27,7 +27,7 @@ interface UsageContextValue {
 const defaultValue: UsageContextValue = {
   plan: null,
   usage: null,
-  lifetimeSpotsRemaining: null,
+  
   isLoading: true,
   isAuthenticated: false,
   userId: null,

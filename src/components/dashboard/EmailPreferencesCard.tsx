@@ -74,7 +74,7 @@ export function EmailPreferencesCard() {
                 Feature Announcements
               </Label>
               <p className="text-xs text-muted-foreground">
-                Early access to new features (lifetime members only)
+                Early access to new features (paid subscribers)
               </p>
             </div>
           </div>

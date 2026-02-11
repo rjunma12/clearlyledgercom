@@ -8,8 +8,7 @@ import { PaymentErrorCode } from "@/lib/payments";
 export type PlanName = 
   | 'starter' | 'starter_annual'
   | 'pro' | 'pro_annual'
-  | 'business' | 'business_annual'
-  | 'lifetime';
+  | 'business' | 'business_annual';
 
 interface UseCheckoutReturn {
   isLoading: boolean;

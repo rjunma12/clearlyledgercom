@@ -1,5 +1,5 @@
 import { forwardRef, useState } from "react";
-import { User, UserPlus, Zap, Rocket, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown, Loader2 } from "lucide-react";
+import { User, UserPlus, Zap, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -44,13 +44,8 @@ interface PricingSectionProps {
 
 const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant = 'full' }, ref) => {
   const navigate = useNavigate();
-  const { lifetimeSpotsRemaining } = useUsageContext();
   const { isLoading, loadingPlan, initiateCheckout } = useCheckout();
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
-  
-  const spotsRemaining = lifetimeSpotsRemaining ?? 350;
-  const isSoldOut = spotsRemaining <= 0;
-  const isLowStock = spotsRemaining <= 50 && spotsRemaining > 0;
 
   const handleEnterpriseClick = () => {
     navigate("/contact", { state: { subject: "Enterprise inquiry" } });
@@ -192,7 +187,7 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
 
         {/* Paid Plans Row - Only show in full variant */}
         {variant === 'full' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-6">
 
             {/* Starter (Paid) */}
             <div className="glass-card p-6">
@@ -387,91 +382,6 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
               </Button>
             </div>
 
-            {/* Lifetime (Best Value) */}
-            <div className="glass-card p-6 border border-warning/30 bg-warning/5 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold border border-warning/30">
-                  <Rocket className="w-3 h-3" />
-                  Best Value • Limited
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 mb-2 mt-2">
-                <Rocket className="w-5 h-5 text-warning" />
-                <h3 className="font-display text-xl font-bold text-foreground">
-                  Lifetime
-                </h3>
-              </div>
-              
-              <div className="flex items-baseline gap-1 mb-4">
-                <span className="font-display text-3xl font-bold text-foreground">$119</span>
-                <span className="text-muted-foreground">one-time</span>
-              </div>
-
-              <p className="text-xs text-muted-foreground mb-3">500 pages per month, forever</p>
-              
-              <ul className="space-y-2 mb-4 text-sm">
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-warning" />
-                  Lifetime access
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-warning" />
-                  500 pages/month
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-warning" />
-                  All Business features
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Shield className="w-4 h-4 text-warning" />
-                  PII masking toggle
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="w-4 h-4 text-warning" />
-                  No monthly fees ever
-                </li>
-              </ul>
-
-              {/* Scarcity indicator */}
-              {!isSoldOut && (
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Limited to 350 users</span>
-                    <span className={cn(isLowStock && "text-warning font-medium")}>
-                      {spotsRemaining} left
-                    </span>
-                  </div>
-                  <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-warning to-warning/80 rounded-full transition-all duration-500"
-                      style={{ width: `${((350 - spotsRemaining) / 350) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <Button 
-                variant="glass" 
-                className={cn(
-                  "w-full",
-                  !isSoldOut && "bg-warning/10 border-warning/30 hover:border-warning/50 hover:bg-warning/20"
-                )}
-                disabled={isSoldOut || isLoading}
-                onClick={() => handlePlanClick('lifetime')}
-              >
-                {loadingPlan === 'lifetime' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : isSoldOut ? (
-                  'Sold Out'
-                ) : (
-                  'Get Lifetime Access'
-                )}
-              </Button>
-            </div>
           </div>
         )}
 

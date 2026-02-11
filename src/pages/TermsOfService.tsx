@@ -176,7 +176,6 @@ const TermsOfService = () => {
               <li>Free and paid plans have specific page or usage limits as outlined on the pricing page</li>
               <li>Paid plans are billed according to the terms displayed at the time of purchase</li>
               <li>Prices may change with reasonable notice to existing subscribers</li>
-              <li>Lifetime plans, where offered, are limited in availability and are non-transferable</li>
               <li>You are responsible for providing accurate billing information</li>
             </ul>
           </section>
@@ -187,7 +186,7 @@ const TermsOfService = () => {
               8. Refunds & Cancellations
             </h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>All purchases, including Lifetime plans, are covered by a 14-day refund period in compliance with EU Consumer Rights Directive 2011/83/EU</li>
+              <li>All purchases are covered by a 14-day refund period in compliance with EU Consumer Rights Directive 2011/83/EU</li>
               <li>EU customers have a statutory 14-day cooling-off period from the date of purchase</li>
               <li>To request a refund, contact support within 14 days of purchase at helppropsal@outlook.com</li>
               <li>Subscription users may cancel their subscription at any time</li>

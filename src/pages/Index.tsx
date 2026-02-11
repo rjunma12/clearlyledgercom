@@ -30,7 +30,7 @@ const homepageFaqs = [
   },
   {
     question: "How many pages can I convert for free?",
-    answer: "Anonymous users can convert 1 page per 24 hours. Free registered accounts get 5 pages daily. Pro subscribers ($19/month) get unlimited pages, and Lifetime members ($119 one-time) get unlimited access forever. All paid plans include a 14-day money-back guarantee."
+    answer: "Anonymous users can convert 1 page per 24 hours. Free registered accounts get 5 pages daily. Paid plans (Starter, Professional, Business) offer higher page limits. All paid plans include a 14-day money-back guarantee."
   },
   {
     question: "Does ClearlyLedger work with Indian and international bank statements?",
@@ -38,7 +38,7 @@ const homepageFaqs = [
   },
   {
     question: "What is PII masking in bank statement conversion?",
-    answer: "PII (Personally Identifiable Information) masking replaces sensitive data like account numbers and names with anonymized placeholders. This is useful when sharing statements with third parties while protecting privacy. Available on Pro and Lifetime plans."
+    answer: "PII (Personally Identifiable Information) masking replaces sensitive data like account numbers and names with anonymized placeholders. This is useful when sharing statements with third parties while protecting privacy. Available on all paid plans."
   },
   {
     question: "How does balance verification work?",
@@ -89,9 +89,9 @@ const Index = () => {
         "offers": {
           "@type": "AggregateOffer",
           "lowPrice": "0",
-          "highPrice": "119",
+          "highPrice": "50",
           "priceCurrency": "USD",
-          "offerCount": "4"
+          "offerCount": "3"
         },
         "featureList": [
           "Bank statement to Excel conversion",

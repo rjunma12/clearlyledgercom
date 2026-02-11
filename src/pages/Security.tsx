@@ -134,7 +134,7 @@ const Security = () => {
               Optional PII Masking
             </h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              For Pro and Lifetime users, sensitive personally identifiable information (names, account numbers) can be automatically anonymized during processing, providing an extra layer of privacy.
+              For paid plan users, sensitive personally identifiable information (names, account numbers) can be automatically anonymized during processing, providing an extra layer of privacy.
             </p>
           </div>
 

@@ -95,14 +95,6 @@ serve(async (req) => {
           );
         }
 
-        // For lifetime plans, cancellation doesn't make sense
-        if (subscription.plans?.name === 'lifetime') {
-          return new Response(
-            JSON.stringify({ error: 'Lifetime plans cannot be cancelled' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
         // Update local subscription status
         // Note: When a payment provider is integrated, this should also call the provider's API
         await supabaseAdmin

@@ -137,10 +137,6 @@ const Features = () => {
     {
       plan: "Pro",
       features: ["Unlimited pages", "Faster processing", "PII masking included"]
-    },
-    {
-      plan: "Lifetime",
-      features: ["Unlimited pages", "PII masking included", "One-time payment"]
     }
   ];
 
@@ -277,7 +273,7 @@ const Features = () => {
             Choose the plan that fits your needs.
           </p>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {planComparison.map((plan, index) => (
               <div 
                 key={index}

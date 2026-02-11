@@ -5,8 +5,7 @@ export type PlanType =
   | 'anonymous' | 'registered_free' 
   | 'starter' | 'starter_annual'
   | 'pro' | 'pro_annual'
-  | 'business' | 'business_annual'
-  | 'lifetime';
+  | 'business' | 'business_annual';
 export type PiiMaskingLevel = 'none' | 'optional' | 'enforced';
 export type ExportFormat = 'csv' | 'xlsx';
 
@@ -37,13 +36,12 @@ const BATCH_LIMITS: Record<PlanType, number> = {
   pro_annual: 10,
   business: 20,
   business_annual: 20,
-  lifetime: 10,
 };
 
 interface UseUsageReturn {
   plan: UserPlan | null;
   usage: UsageInfo | null;
-  lifetimeSpotsRemaining: number | null;
+  
   isLoading: boolean;
   isAuthenticated: boolean;
   userId: string | null;
@@ -60,7 +58,7 @@ interface UseUsageReturn {
 export function useUsage(): UseUsageReturn {
   const [plan, setPlan] = useState<UserPlan | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
-  const [lifetimeSpotsRemaining, setLifetimeSpotsRemaining] = useState<number | null>(null);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -147,14 +145,6 @@ export function useUsage(): UseUsageReturn {
         });
       }
 
-      // Fetch lifetime spots remaining
-      const { data: spotsData, error: spotsError } = await supabase
-        .rpc('get_lifetime_spots_remaining');
-      
-      if (!spotsError && spotsData !== null) {
-        setLifetimeSpotsRemaining(spotsData);
-      }
-
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error in fetchPlanAndUsage:', error);
@@ -227,8 +217,8 @@ export function useUsage(): UseUsageReturn {
   const canUsePiiMasking = plan?.piiMasking === 'optional' || plan?.piiMasking === 'enforced';
   const isPiiMaskingEnforced = plan?.piiMasking === 'enforced';
   
-  // Batch upload is available for Pro, Business, and Lifetime plans (including annual variants)
-  const canBatchUpload = ['pro', 'pro_annual', 'business', 'business_annual', 'lifetime'].includes(plan?.planName ?? '');
+  // Batch upload is available for Pro and Business plans (including annual variants)
+  const canBatchUpload = ['pro', 'pro_annual', 'business', 'business_annual'].includes(plan?.planName ?? '');
   const maxBatchFiles = plan?.planName ? BATCH_LIMITS[plan.planName] : 1;
   
   // Allowed export formats based on plan
@@ -237,7 +227,7 @@ export function useUsage(): UseUsageReturn {
   return {
     plan,
     usage,
-    lifetimeSpotsRemaining,
+    
     isLoading,
     isAuthenticated,
     userId,

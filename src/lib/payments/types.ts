@@ -8,7 +8,7 @@
 /**
  * Billing intervals supported by the payment system
  */
-export type BillingInterval = 'monthly' | 'annual' | 'lifetime';
+export type BillingInterval = 'monthly' | 'annual';
 
 /**
  * Subscription status values

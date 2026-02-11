@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
-type PlanType = 'anonymous' | 'registered_free' | 'starter' | 'pro' | 'business' | 'lifetime';
+type PlanType = 'anonymous' | 'registered_free' | 'starter' | 'pro' | 'business';
 
 interface PlanDetails {
   name: string;
@@ -48,7 +48,6 @@ const planPriceDisplay: Record<string, string> = {
   starter: '$15/month',
   pro: '$30/month',
   business: '$50/month',
-  lifetime: '$119 one-time',
 };
 
 export function SubscriptionCard() {
@@ -115,9 +114,8 @@ export function SubscriptionCard() {
     fetchSubscription();
   }, []);
 
-  const isPaidPlan = subscription && ['starter', 'pro', 'business', 'lifetime'].includes(subscription.planName);
-  const isLifetime = subscription?.planName === 'lifetime';
-  const isCancelling = subscription?.cancelAtPeriodEnd && !isLifetime;
+  const isPaidPlan = subscription && ['starter', 'pro', 'business'].includes(subscription.planName);
+  const isCancelling = subscription?.cancelAtPeriodEnd;
 
   const handleCancel = async () => {
     const success = await cancelSubscription();
@@ -234,13 +232,6 @@ export function SubscriptionCard() {
             </div>
           )}
 
-          {isLifetime && (
-            <div className="flex items-center justify-between py-2 border-b border-muted/20">
-              <span className="text-sm text-muted-foreground">Access</span>
-              <span className="text-sm font-medium text-primary">Lifetime</span>
-            </div>
-          )}
-
           {/* Cancelling warning */}
           {isCancelling && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
@@ -276,7 +267,7 @@ export function SubscriptionCard() {
                   </>
                 )}
               </Button>
-            ) : !isLifetime && (
+            ) : (
               <>
                 <Button 
                   variant="outline" 
