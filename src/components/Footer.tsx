@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Shield, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Footer = forwardRef<HTMLElement>((_, ref) => {
@@ -55,6 +55,16 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
                 </Link>
               </li>
               <li>
+                <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Security
+                </Link>
+              </li>
+              <li>
+                <Link to="/data-processing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Data Processing
+                </Link>
+              </li>
+              <li>
                 <Link to="/terms-of-service" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Terms of Service
                 </Link>
@@ -94,8 +104,13 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
             © {new Date().getFullYear()} ClearlyLedger. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <span className="text-sm text-muted-foreground">
-              Secure payments
+            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Lock className="w-3.5 h-3.5" />
+              TLS 1.3 Encrypted
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Shield className="w-3.5 h-3.5" />
+              GDPR Aligned
             </span>
           </div>
         </div>

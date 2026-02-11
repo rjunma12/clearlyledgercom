@@ -5,12 +5,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 const TermsOfService = () => {
-  const lastUpdated = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   const schemaOrg = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -42,14 +36,10 @@ const TermsOfService = () => {
         <title>Terms of Service - ClearlyLedger</title>
         <meta name="description" content="Read the terms of service for ClearlyLedger bank statement to Excel converter. Includes usage policies, data handling, and user responsibilities." />
         <link rel="canonical" href="https://clearlyledger.com/terms" />
-        
-        {/* Open Graph */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://clearlyledger.com/terms" />
         <meta property="og:title" content="Terms of Service - ClearlyLedger" />
         <meta property="og:description" content="Read the terms of service for ClearlyLedger bank statement converter." />
-        
-        {/* Schema.org JSON-LD */}
         <script type="application/ld+json">
           {JSON.stringify(schemaOrg)}
         </script>
@@ -74,7 +64,7 @@ const TermsOfService = () => {
               Terms of Service
             </h1>
             <p className="text-sm text-muted-foreground">
-              Last updated: {lastUpdated}
+              Effective Date: February 11, 2026 · Last Updated: February 11, 2026
             </p>
           </div>
         </div>
@@ -99,9 +89,9 @@ const TermsOfService = () => {
               ClearlyLedger provides an automated document conversion service that:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Converts uploaded documents (PDF, Excel, CSV) into structured Excel output</li>
-              <li>Processes files automatically using proprietary algorithms</li>
-              <li>Offers optional features depending on your plan, such as PII masking</li>
+              <li>Converts uploaded bank statement PDFs into structured Excel, CSV, or JSON output</li>
+              <li>Processes files automatically on secure backend servers using proprietary rule-based algorithms</li>
+              <li>Offers optional features depending on your plan, such as PII masking and batch processing</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-3">
               Features, capabilities, and usage limits vary by plan. Please refer to the pricing page for current plan details.
@@ -114,7 +104,7 @@ const TermsOfService = () => {
               3. Eligibility
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              You must be legally permitted to use the Service in your jurisdiction. You are responsible for ensuring that your use of the Service complies with all applicable local, state, national, and international laws and regulations.
+              You must be at least 18 years of age and legally permitted to use the Service in your jurisdiction. You are responsible for ensuring that your use of the Service complies with all applicable local, state, national, and international laws and regulations.
             </p>
           </section>
 
@@ -134,24 +124,57 @@ const TermsOfService = () => {
             </ul>
           </section>
 
-          {/* 5. File Uploads & Data Handling */}
+          {/* 5. File Uploads and Data Handling */}
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">
-              5. File Uploads & Data Handling
+              5. File Uploads and Data Handling
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-3">
-              Regarding your uploaded files:
+              By uploading bank statement PDFs to ClearlyLedger, you acknowledge and agree to the following:
             </p>
+
+            <h3 className="text-lg font-medium text-foreground mb-2">5.1 Processing</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Supported file types include PDF, Excel, and CSV formats</li>
+              <li>Files are processed on our secure backend servers hosted on Railway infrastructure</li>
+              <li>Files are transmitted over HTTPS encrypted connections</li>
+              <li>Original PDF files are <strong>permanently deleted immediately</strong> after conversion completes</li>
+              <li>We cannot recover your files after processing is complete</li>
+              <li>Conversion results are available for download for 90 days</li>
               <li>Maximum file size is 10 MB per file</li>
-              <li>Files are used solely to perform the requested conversion</li>
-              <li>Files are automatically deleted after processing is complete</li>
-              <li>The Service does not sell, reuse, share, or train on your uploaded files</li>
+              <li>The Service does not sell, reuse, share, or train AI on your uploaded files</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-3">
               You retain full ownership of your data at all times.
             </p>
+
+            <h3 className="text-lg font-medium text-foreground mt-6 mb-2">5.2 Data Usage for Service Improvement</h3>
+            <p className="text-muted-foreground leading-relaxed mb-3">
+              By using ClearlyLedger, you consent to our use of <strong>anonymized, non-personal data</strong> to improve the service:
+            </p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>We retain anonymized bank statement format patterns (layout structure, column arrangements, date formats)</li>
+              <li>All personally identifiable information (names, account numbers, amounts, descriptions) is removed before any data is retained</li>
+              <li>This data helps us improve parsing accuracy and add support for more banks</li>
+            </ul>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              We use rule-based parsing, not AI training. Anonymized patterns are used solely to improve our detection algorithms.
+            </p>
+
+            <h3 className="text-lg font-medium text-foreground mt-6 mb-2">5.3 File Storage and Deletion</h3>
+            <p className="text-muted-foreground leading-relaxed mb-3"><strong>Automatic Deletion Policy:</strong></p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>All uploaded PDF files are automatically deleted from our servers immediately upon completion of conversion</li>
+              <li>Files exist only in temporary server memory during processing — they are never written to permanent disk storage</li>
+              <li>Processing typically completes within 5–30 seconds</li>
+              <li>No backup copies of your files are made</li>
+              <li>No recovery is possible after deletion</li>
+            </ul>
+            <p className="text-muted-foreground leading-relaxed mt-3"><strong>User-Managed Data:</strong></p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>Conversion results (Excel/CSV downloads) are available for 90 days</li>
+              <li>You can delete conversion results anytime from your dashboard</li>
+              <li>You can delete your entire account and all associated data at any time</li>
+            </ul>
           </section>
 
           {/* 6. Privacy */}
@@ -174,7 +197,7 @@ const TermsOfService = () => {
             </h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Free and paid plans have specific page or usage limits as outlined on the pricing page</li>
-              <li>Paid plans are billed according to the terms displayed at the time of purchase</li>
+              <li>Paid plans are billed monthly or annually according to the terms displayed at the time of purchase</li>
               <li>Prices may change with reasonable notice to existing subscribers</li>
               <li>You are responsible for providing accurate billing information</li>
             </ul>
@@ -194,13 +217,24 @@ const TermsOfService = () => {
             </ul>
           </section>
 
-          {/* 9. Service Availability */}
+          {/* 9. Service Availability and Accuracy */}
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">
-              9. Service Availability
+              9. Service Availability and Accuracy
             </h2>
+            <p className="text-muted-foreground leading-relaxed mb-3">
+              The Service is provided on an "as is" and "as available" basis. We do not guarantee uninterrupted or error-free operation. Scheduled maintenance, updates, or unforeseen outages may occur.
+            </p>
+            <h3 className="text-lg font-medium text-foreground mb-2">9.1 Parsing Accuracy</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>We support 350+ bank formats but do not guarantee perfect parsing for all formats or statement variations</li>
+              <li>Accuracy depends on bank format, PDF quality, scan resolution, and statement structure</li>
+              <li>You are responsible for verifying the accuracy of converted data against your original statements</li>
+              <li>We recommend reviewing important data before using it for tax filing, auditing, or financial decisions</li>
+            </ul>
+            <h3 className="text-lg font-medium text-foreground mt-4 mb-2">9.2 Permanent File Deletion</h3>
             <p className="text-muted-foreground leading-relaxed">
-              The Service is provided on an "as is" and "as available" basis. We do not guarantee uninterrupted or error-free operation. Scheduled maintenance, updates, or unforeseen outages may occur. We will make reasonable efforts to minimize disruption and provide advance notice of planned maintenance when possible.
+              You acknowledge that once your uploaded PDF is processed and deleted, we cannot recover it under any circumstances. You should maintain your own backup copies of all original bank statements.
             </p>
           </section>
 
@@ -216,6 +250,9 @@ const TermsOfService = () => {
               <li>The Service is not responsible for any financial, legal, or business decisions made using the conversion output</li>
               <li>We are not liable for any indirect, incidental, special, consequential, or punitive damages</li>
               <li>Our total liability is limited to the amount you paid for the Service during the twelve (12) months preceding the claim</li>
+              <li>We are not liable for loss of data due to automatic file deletion after processing</li>
+              <li>We are not liable for inaccuracies in converted transaction data, amounts, or balances</li>
+              <li>You are responsible for verifying converted data before using it for tax filing, accounting, or financial decisions</li>
             </ul>
           </section>
 
@@ -241,30 +278,118 @@ const TermsOfService = () => {
             </ul>
           </section>
 
-          {/* 13. Changes to Terms */}
+          {/* 13. Acceptable Use Policy */}
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">
-              13. Changes to Terms
+              13. Acceptable Use Policy
             </h2>
-            <p className="text-muted-foreground leading-relaxed">
-              We may update these Terms of Service from time to time. When we make changes, we will update the "Last updated" date at the top of this page. Your continued use of the Service after any changes constitutes acceptance of the updated Terms.
+            <p className="text-muted-foreground leading-relaxed mb-3">You agree NOT to:</p>
+
+            <h3 className="text-lg font-medium text-foreground mb-2">File Uploads</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>Upload files you don't own or have permission to process</li>
+              <li>Upload files containing malware, viruses, or exploits</li>
+              <li>Upload non-bank-statement files to test or abuse the system</li>
+              <li>Upload excessively large files to consume server resources</li>
+            </ul>
+
+            <h3 className="text-lg font-medium text-foreground mt-4 mb-2">Service Abuse</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>Attempt to reverse-engineer our parsing algorithms</li>
+              <li>Scrape or automate requests beyond API rate limits</li>
+              <li>Create multiple accounts to circumvent usage limits</li>
+              <li>Share account credentials with others</li>
+              <li>Use the Service for illegal activities</li>
+            </ul>
+
+            <h3 className="text-lg font-medium text-foreground mt-4 mb-2">Data Misuse</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>Attempt to access other users' data</li>
+              <li>Attempt to recover deleted files from our servers</li>
+              <li>Perform security testing without written permission</li>
+              <li>Interfere with service operation or infrastructure</li>
+            </ul>
+
+            <p className="text-muted-foreground leading-relaxed mt-4">
+              <strong>Consequences:</strong> Violation of these terms may result in immediate account suspension, termination of service access, legal action if applicable, or reporting to authorities for illegal activities.
             </p>
           </section>
 
-          {/* 14. Governing Law */}
+          {/* 14. Data Retention and Deletion */}
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">
-              14. Governing Law
+              14. Data Retention and Deletion
+            </h2>
+
+            <h3 className="text-lg font-medium text-foreground mb-2">14.1 Automatic Deletion</h3>
+            <div className="overflow-x-auto mt-3">
+              <table className="w-full text-sm border border-border rounded-lg">
+                <thead>
+                  <tr className="bg-muted/50">
+                    <th className="text-left p-3 font-medium text-foreground border-b border-border">Data Type</th>
+                    <th className="text-left p-3 font-medium text-foreground border-b border-border">Retention</th>
+                  </tr>
+                </thead>
+                <tbody className="text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <td className="p-3">Uploaded PDF files</td>
+                    <td className="p-3 font-semibold">Immediate deletion (0 seconds)</td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="p-3">Conversion results</td>
+                    <td className="p-3">90 days</td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="p-3">Processing job metadata</td>
+                    <td className="p-3">90 days</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3">Account data (upon deletion)</td>
+                    <td className="p-3">Removed within 30 days</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="text-lg font-medium text-foreground mt-6 mb-2">14.2 Data Retained After Account Deletion</h3>
+            <p className="text-muted-foreground leading-relaxed mb-3">
+              Even after account deletion, we may retain:
+            </p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>Anonymized format patterns (contain no PII) for service improvement</li>
+              <li>Aggregated usage statistics (no user identification)</li>
+              <li>Payment records for 7 years (legal requirement)</li>
+            </ul>
+          </section>
+
+          {/* 15. Changes to Terms */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-3">
+              15. Changes to Terms
+            </h2>
+            <p className="text-muted-foreground leading-relaxed mb-3">
+              We will notify you of material changes to these Terms via email and in-app notification. Minor updates will be posted on this page.
+            </p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>Continue using the service after changes = acceptance of new terms</li>
+              <li>If you disagree with updated terms, you may cancel within 30 days</li>
+            </ul>
+          </section>
+
+          {/* 16. Governing Law */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-3">
+              16. Governing Law
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               These Terms of Service shall be governed by and construed in accordance with applicable laws, without regard to conflict of law principles. Any disputes arising from these Terms or your use of the Service shall be resolved in accordance with applicable legal procedures.
             </p>
           </section>
 
-          {/* 15. Contact Information */}
+          {/* 17. Contact Information */}
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">
-              15. Contact Information
+              17. Contact Information
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               For questions or concerns about these Terms of Service, please contact us at:
