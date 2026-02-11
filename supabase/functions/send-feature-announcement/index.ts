@@ -80,21 +80,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get lifetime members
-    const { data: members, error: membersError } = await supabaseAdmin
-      .rpc('get_lifetime_members_for_announcement');
+    // Get paid subscribers who opted in to feature announcements
+    const { data: preferences, error: prefError } = await supabaseAdmin
+      .from('email_preferences')
+      .select('email, user_id')
+      .eq('feature_announcements', true);
 
-    if (membersError) {
-      console.error('Error fetching members:', membersError);
+    if (prefError) {
+      console.error('Error fetching email preferences:', prefError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch members' }),
+        JSON.stringify({ error: 'Failed to fetch subscribers' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!members || members.length === 0) {
+    if (!preferences || preferences.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No lifetime members to notify', sent: 0 }),
+        JSON.stringify({ message: 'No subscribers to notify', sent: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -115,7 +117,7 @@ Deno.serve(async (req) => {
     const safeTitle = escapeHtml(announcement.title);
     const safeContent = escapeHtml(announcement.content);
 
-    for (const member of members) {
+    for (const subscriber of preferences) {
       try {
         const emailHtml = `
           <!DOCTYPE html>
@@ -124,7 +126,7 @@ Deno.serve(async (req) => {
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a2e; }
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #f59e0b, #eab308); padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
+              .header { background: linear-gradient(135deg, #10b981, #14b8a6); padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
               .header h1 { color: white; margin: 0; font-size: 24px; }
               .badge { display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 10px; }
               .content { background: #f8fafc; padding: 30px; border-radius: 0 0 12px 12px; }
@@ -136,25 +138,25 @@ Deno.serve(async (req) => {
           <body>
             <div class="container">
               <div class="header">
-                <span class="badge">🚀 Lifetime Member Exclusive</span>
-                <h1>New Feature Announcement</h1>
+                <span class="badge">🚀 New Feature</span>
+                <h1>Feature Announcement</h1>
               </div>
               <div class="content">
-                <p>Hi Lifetime Member,</p>
-                <p>As one of our valued lifetime supporters, you get <strong>early access</strong> to our latest features!</p>
+                <p>Hi there,</p>
+                <p>We're excited to share a new update with you!</p>
                 
                 <div class="feature-box">
                   <h2 style="margin-top: 0; color: #1a1a2e;">${safeTitle}</h2>
                   <p style="color: #64748b; margin-bottom: 0;">${safeContent}</p>
                 </div>
                 
-                <p>Thank you for being part of our early supporter community. Your lifetime membership ensures you'll always have access to the latest and greatest features.</p>
+                <p>Thank you for being a valued ClearlyLedger subscriber.</p>
                 
-                <a href="https://clearlyexcel.com/dashboard" class="cta">Try It Now</a>
+                <a href="https://clearlyledger.com/dashboard" class="cta">Try It Now</a>
               </div>
               <div class="footer">
                 <p>ClearlyLedger • Bank Statement Processing Made Simple</p>
-                <p><a href="https://clearlyexcel.com/unsubscribe" style="color: #64748b;">Unsubscribe from announcements</a></p>
+                <p><a href="https://clearlyledger.com/unsubscribe" style="color: #64748b;">Unsubscribe from announcements</a></p>
               </div>
             </div>
           </body>
@@ -163,15 +165,15 @@ Deno.serve(async (req) => {
 
         await resend.emails.send({
           from: 'ClearlyLedger <announcements@clearlyexcel.com>',
-          to: [member.email],
+          to: [subscriber.email],
           subject: `🚀 New Feature: ${safeTitle}`,
           html: emailHtml,
         });
 
         sentCount++;
       } catch (emailError: any) {
-        console.error(`Failed to send to ${member.email}:`, emailError);
-        errors.push(`${member.email}: ${emailError.message}`);
+        console.error(`Failed to send to ${subscriber.email}:`, emailError);
+        errors.push(`${subscriber.email}: ${emailError.message}`);
       }
     }
 
@@ -185,7 +187,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true,
         sent: sentCount,
-        total: members.length,
+        total: preferences.length,
         errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

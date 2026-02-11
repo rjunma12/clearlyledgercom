@@ -11,11 +11,7 @@ const pricingFaqs = [
   },
   {
     question: "Is there a money-back guarantee?",
-    answer: "Yes! All paid plans include a 14-day money-back guarantee in compliance with EU consumer protection standards. For Pro subscriptions, we extend this to a 30-day satisfaction guarantee. Lifetime purchases are covered by the 14-day policy from date of purchase."
-  },
-  {
-    question: "What does Lifetime access include?",
-    answer: "Lifetime membership ($119 one-time payment) includes everything in Pro—unlimited pages, PII masking, priority support—plus all future features forever. No recurring fees."
+    answer: "Yes! All paid plans include a 14-day money-back guarantee in compliance with EU consumer protection standards. For Pro subscriptions, we extend this to a 30-day satisfaction guarantee."
   },
   {
     question: "Can I cancel my Pro subscription anytime?",
@@ -36,7 +32,7 @@ const Pricing = () => {
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": "Pricing - ClearlyLedger",
-    "description": "Choose your plan for converting bank statements to Excel. Free tier available, Pro plan for unlimited pages, and Lifetime access with one-time payment.",
+    "description": "Choose your plan for converting bank statements to Excel. Free tier available with paid plans for higher limits.",
     "url": "https://clearlyledger.com/pricing",
     "breadcrumb": {
       "@type": "BreadcrumbList",
@@ -86,15 +82,6 @@ const Pricing = () => {
         "billingIncrement": "P1M",
         "description": "Unlimited pages, PII masking, priority support"
       },
-      {
-        "@type": "Offer",
-        "name": "Lifetime Plan",
-        "price": "119",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/LimitedAvailability",
-        "priceValidUntil": "2026-12-31",
-        "description": "One-time payment, unlimited forever, all future features"
-      }
     ]
   };
 
@@ -102,15 +89,15 @@ const Pricing = () => {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>Pricing - ClearlyLedger | Bank Statement to Excel Converter</title>
-        <meta name="description" content="Choose your plan for converting bank statements to Excel. Free tier available, Pro plan for unlimited pages, and Lifetime access with one-time payment." />
-        <meta name="keywords" content="bank statement converter pricing, PDF to Excel price, ClearlyLedger plans, lifetime deal" />
+        <meta name="description" content="Choose your plan for converting bank statements to Excel. Free tier available with Starter, Professional, and Business plans." />
+        <meta name="keywords" content="bank statement converter pricing, PDF to Excel price, ClearlyLedger plans" />
         <link rel="canonical" href="https://clearlyledger.com/pricing" />
         
         {/* Open Graph */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://clearlyledger.com/pricing" />
         <meta property="og:title" content="Pricing - ClearlyLedger | Bank Statement Converter" />
-        <meta property="og:description" content="Choose your plan for converting bank statements to Excel. Free tier available, Pro plan for unlimited pages." />
+        <meta property="og:description" content="Choose your plan for converting bank statements to Excel. Free tier available with paid plans for higher limits." />
         <meta property="og:image" content="https://clearlyledger.com/og-image.png" />
         
         {/* Twitter */}

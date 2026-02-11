@@ -75,11 +75,6 @@
       "name": "Entreprise",
       "price": "49€/mois",
       "pages": "Illimité + Équipe"
-    },
-    "lifetime": {
-      "name": "À Vie",
-      "price": "119€ une fois",
-      "pages": "Illimité pour toujours"
     }
   },
   "faq": {

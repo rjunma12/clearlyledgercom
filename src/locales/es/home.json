@@ -75,11 +75,6 @@
       "name": "Empresarial",
       "price": "$49/mes",
       "pages": "Ilimitado + Equipo"
-    },
-    "lifetime": {
-      "name": "De por Vida",
-      "price": "$119 una vez",
-      "pages": "Ilimitado para siempre"
     }
   },
   "faq": {

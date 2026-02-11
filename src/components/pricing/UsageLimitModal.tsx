@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Zap, Users, Rocket } from "lucide-react";
+import { AlertTriangle, Zap, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface UsageLimitModalProps {
@@ -91,28 +91,6 @@ export function UsageLimitModal({
             </div>
           </div>
 
-          {/* Lifetime option */}
-          <div className="p-4 rounded-lg border border-warning/30 bg-warning/5 hover:border-warning/50 transition-colors">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <Rocket className="w-5 h-5 text-warning mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-foreground">Lifetime Deal</h4>
-                  <p className="text-sm text-muted-foreground">
-                    One-time $119 • Limited spots available
-                  </p>
-                </div>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-warning/30 hover:border-warning/50"
-                onClick={() => handleUpgrade('lifetime')}
-              >
-                Get Access
-              </Button>
-            </div>
-          </div>
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-4">

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Check, Zap, Crown, Rocket } from "lucide-react";
+import { Check, Zap, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlanType, PiiMaskingLevel } from "@/hooks/use-usage";
 import { Link } from "react-router-dom";
@@ -25,7 +25,6 @@ const planIcons: Record<PlanType, typeof Zap> = {
   pro_annual: Zap,
   business: Crown,
   business_annual: Crown,
-  lifetime: Rocket,
 };
 
 const planColors: Record<PlanType, string> = {
@@ -37,7 +36,6 @@ const planColors: Record<PlanType, string> = {
   pro_annual: 'text-primary',
   business: 'text-primary',
   business_annual: 'text-primary',
-  lifetime: 'text-warning',
 };
 
 export function PlanCard({
@@ -52,11 +50,10 @@ export function PlanCard({
 }: PlanCardProps) {
   const Icon = planIcons[planName] || planIcons.starter;
   const iconColor = planColors[planName] || planColors.starter;
-  const isPaid = ['starter', 'starter_annual', 'pro', 'pro_annual', 'business', 'business_annual', 'lifetime'].includes(planName);
+  const isPaid = ['starter', 'starter_annual', 'pro', 'pro_annual', 'business', 'business_annual'].includes(planName);
   
   // Determine billing interval from plan name
   const isAnnualPlan = planName.includes('annual');
-  const isLifetime = planName === 'lifetime';
   
   // Determine if this plan uses monthly or daily limits
   const isMonthlyPlan = monthlyLimit !== null && dailyLimit === null;
@@ -72,23 +69,20 @@ export function PlanCard({
   // Labels based on billing interval
   const usageLabel = isAnnualPlan ? 'Yearly Usage' : 'Monthly Usage';
   const limitLabel = isAnnualPlan ? 'pages/year' : isMonthlyPlan ? 'pages/month' : 'pages/day';
-  const billingLabel = isLifetime 
-    ? 'Lifetime Access' 
-    : isAnnualPlan 
+  const billingLabel = isAnnualPlan 
       ? 'Annual Subscription' 
       : 'Monthly Subscription';
 
   return (
     <div className={cn(
       "glass-card p-6",
-      planName === 'lifetime' && "border-warning/30",
       planName === 'business' && "border-primary/30"
     )}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={cn(
             "p-2 rounded-lg",
-            planName === 'lifetime' ? "bg-warning/10" : "bg-primary/10"
+            "bg-primary/10"
           )}>
             <Icon className={cn("w-5 h-5", iconColor)} />
           </div>

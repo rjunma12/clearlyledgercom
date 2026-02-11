@@ -175,7 +175,7 @@ const BlogPost3 = () => {
               <li><strong>Selective masking:</strong> Choose which fields to protect</li>
             </ul>
             <p>
-              PII masking is available on <Link to="/pricing" className="text-primary hover:underline">Pro and Lifetime plans</Link>.
+              PII masking is available on <Link to="/pricing" className="text-primary hover:underline">all paid plans</Link>.
             </p>
 
             <h2>Choosing Tools With Responsible Data Policies</h2>
