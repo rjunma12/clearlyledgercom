@@ -288,11 +288,13 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
                 </li>
               </ul>
 
-              <a href={proDetails.checkoutUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="glass" className="w-full">
-                  Upgrade / Buy Now
-                </Button>
-              </a>
+              <Button 
+                variant="glass" 
+                className="w-full"
+                onClick={() => window.location.href = proDetails.checkoutUrl}
+              >
+                Upgrade / Buy Now
+              </Button>
             </div>
 
             {/* Business (Most Popular) */}
