@@ -23,8 +23,8 @@ const PLAN_PRICING: Record<string, PlanPricing> = {
 const DODO_CHECKOUT_URLS: Record<string, string> = {
   starter: 'https://checkout.dodopayments.com/buy/pdt_0NXbRQzmQzNOnmObfjYOY?quantity=100000000',
   starter_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbh4iiiPhfpmhLbwg4l?quantity=1000000000000000',
-  pro: 'https://checkout.dodopayments.com/buy/pdt_0NXbRHnKJtNDow3qjSRDV?quantity=1000000000000',
-  pro_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbh4iiiPhfpmhLbwg4l?quantity=1000000000000000',
+  pro: 'https://checkout.dodopayments.com/buy/pdt_0NXbRMq3TvlNcCzwLPfMt?quantity=100000000000000',
+  pro_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=10000000',
   business: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=10000000',
   business_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=1000000000000000',
 };
