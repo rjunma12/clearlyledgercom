@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 interface ManageRequest {
@@ -11,18 +11,7 @@ interface ManageRequest {
   newPlanName?: string;
 }
 
-/**
- * Manage Subscription - Provider-Agnostic Implementation
- * 
- * This edge function handles subscription management operations.
- * Currently operates only on local database state.
- * 
- * When a payment provider is integrated, this should also:
- * - Call the provider's API to cancel/reactivate subscriptions
- * - Sync subscription state with the provider
- */
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -31,33 +20,33 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const dodoApiKey = Deno.env.get('DODO_PAYMENTS_API_KEY');
 
-    // Get authorization header
+    // Authenticate user
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create Supabase client with user's token
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: 'Invalid authentication' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse request body
-    const { action, newPlanName }: ManageRequest = await req.json();
+    const userId = claimsData.claims.sub as string;
 
+    const { action, newPlanName }: ManageRequest = await req.json();
     if (!action) {
       return new Response(
         JSON.stringify({ error: 'Action is required' }),
@@ -65,14 +54,13 @@ serve(async (req) => {
       );
     }
 
-    // Create admin client for database operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user's current active subscription
+    // Get active subscription
     const { data: subscription, error: subError } = await supabaseAdmin
       .from('user_subscriptions')
       .select('*, plans(*)')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -95,33 +83,54 @@ serve(async (req) => {
           );
         }
 
-        // Update local subscription status
-        // Note: When a payment provider is integrated, this should also call the provider's API
+        // Call Dodo API if subscription has a provider ID
+        if (dodoApiKey && subscription.provider_subscription_id && subscription.provider_name === 'dodo') {
+          const dodoRes = await fetch(
+            `https://live.dodopayments.com/subscriptions/${subscription.provider_subscription_id}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${dodoApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ status: 'cancelled' }),
+            }
+          );
+          if (!dodoRes.ok) {
+            const errBody = await dodoRes.text();
+            console.error('Dodo cancel error:', dodoRes.status, errBody);
+            return new Response(
+              JSON.stringify({ error: 'Failed to cancel with payment provider' }),
+              { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          await dodoRes.text(); // consume body
+        }
+
         await supabaseAdmin
           .from('user_subscriptions')
           .update({
             cancelled_at: new Date().toISOString(),
             cancel_at_period_end: true,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', subscription.id);
 
-        // Log the cancellation event
         await supabaseAdmin.from('payment_events').insert({
-          user_id: user.id,
+          user_id: userId,
           event_type: 'subscription_cancelled',
           provider_subscription_id: subscription.provider_subscription_id,
           provider_name: subscription.provider_name,
           plan_name: subscription.plans?.name,
           status: 'cancelled',
-          raw_payload: { action: 'cancel', cancelled_at: new Date().toISOString() }
+          raw_payload: { action: 'cancel', cancelled_at: new Date().toISOString() },
         });
 
         return new Response(
-          JSON.stringify({ 
-            success: true, 
+          JSON.stringify({
+            success: true,
             message: 'Subscription will be cancelled at the end of the billing period',
-            expiresAt: subscription.expires_at
+            expiresAt: subscription.expires_at,
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -142,26 +151,47 @@ serve(async (req) => {
           );
         }
 
-        // Update local subscription status
-        // Note: When a payment provider is integrated, this should also call the provider's API
+        // Call Dodo API to reactivate
+        if (dodoApiKey && subscription.provider_subscription_id && subscription.provider_name === 'dodo') {
+          const dodoRes = await fetch(
+            `https://live.dodopayments.com/subscriptions/${subscription.provider_subscription_id}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${dodoApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ status: 'active' }),
+            }
+          );
+          if (!dodoRes.ok) {
+            const errBody = await dodoRes.text();
+            console.error('Dodo reactivate error:', dodoRes.status, errBody);
+            return new Response(
+              JSON.stringify({ error: 'Failed to reactivate with payment provider' }),
+              { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          await dodoRes.text(); // consume body
+        }
+
         await supabaseAdmin
           .from('user_subscriptions')
           .update({
             cancelled_at: null,
             cancel_at_period_end: false,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', subscription.id);
 
-        // Log the reactivation event
         await supabaseAdmin.from('payment_events').insert({
-          user_id: user.id,
+          user_id: userId,
           event_type: 'subscription_reactivated',
           provider_subscription_id: subscription.provider_subscription_id,
           provider_name: subscription.provider_name,
           plan_name: subscription.plans?.name,
           status: 'active',
-          raw_payload: { action: 'reactivate' }
+          raw_payload: { action: 'reactivate' },
         });
 
         return new Response(
@@ -178,7 +208,6 @@ serve(async (req) => {
           );
         }
 
-        // Get the new plan
         const { data: newPlan } = await supabaseAdmin
           .from('plans')
           .select('*')
@@ -192,12 +221,11 @@ serve(async (req) => {
           );
         }
 
-        // For plan changes, redirect to checkout for the new plan
         return new Response(
-          JSON.stringify({ 
-            success: true, 
+          JSON.stringify({
+            success: true,
             action: 'redirect_to_checkout',
-            message: 'Please complete checkout for the new plan'
+            message: 'Please complete checkout for the new plan',
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -209,7 +237,6 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
-
   } catch (error) {
     console.error('Manage subscription error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
