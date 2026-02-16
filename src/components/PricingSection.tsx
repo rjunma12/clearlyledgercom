@@ -1,10 +1,8 @@
 import { forwardRef, useState } from "react";
-import { User, UserPlus, Zap, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown, Loader2 } from "lucide-react";
+import { User, UserPlus, Zap, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { useUsageContext } from "@/contexts/UsageContext";
-import { useCheckout, PlanName } from "@/hooks/use-checkout";
 import { Link, useNavigate } from "react-router-dom";
 
 type BillingInterval = 'monthly' | 'annual';
@@ -22,18 +20,29 @@ const PLAN_PRICING: Record<string, PlanPricing> = {
   business: { monthly: 50, annual: 500, monthlyPages: 4000, annualPages: 48000 },
 };
 
+const DODO_CHECKOUT_URLS: Record<string, string> = {
+  starter: 'https://checkout.dodopayments.com/buy/pdt_0NXbRQzmQzNOnmObfjYOY?quantity=1',
+  starter_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbRMq3TvlNcCzwLPfMt?quantity=1',
+  pro: 'https://checkout.dodopayments.com/buy/pdt_0NXbRHnKJtNDow3qjSRDV?quantity=1',
+  pro_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbh4iiiPhfpmhLbwg4l?quantity=1',
+  business: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=1',
+  business_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=1',
+};
+
 function getPlanDetails(basePlan: string, billingInterval: BillingInterval) {
   const pricing = PLAN_PRICING[basePlan];
   if (!pricing) return null;
   
   const isAnnual = billingInterval === 'annual';
+  const planKey = isAnnual ? `${basePlan}_annual` : basePlan;
   return {
     price: isAnnual ? pricing.annual : pricing.monthly,
     period: isAnnual ? '/year' : '/month',
     pages: isAnnual 
       ? `${pricing.annualPages.toLocaleString()} pages/year` 
       : `${pricing.monthlyPages.toLocaleString()} pages/month`,
-    planName: (isAnnual ? `${basePlan}_annual` : basePlan) as PlanName,
+    planKey,
+    checkoutUrl: DODO_CHECKOUT_URLS[planKey],
     monthlyEquivalent: isAnnual ? Math.round(pricing.annual / 12) : null,
   };
 }
@@ -44,16 +53,7 @@ interface PricingSectionProps {
 
 const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant = 'full' }, ref) => {
   const navigate = useNavigate();
-  const { isLoading, loadingPlan, initiateCheckout } = useCheckout();
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
-
-  const handleEnterpriseClick = () => {
-    navigate("/contact", { state: { subject: "Enterprise inquiry" } });
-  };
-
-  const handlePlanClick = (planName: PlanName) => {
-    initiateCheckout(planName);
-  };
 
   const starterDetails = getPlanDetails('starter', billingInterval)!;
   const proDetails = getPlanDetails('pro', billingInterval)!;
@@ -234,21 +234,11 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
                 </li>
               </ul>
 
-              <Button 
-                variant="glass" 
-                className="w-full"
-                onClick={() => handlePlanClick(starterDetails.planName)}
-                disabled={isLoading}
-              >
-                {loadingPlan === starterDetails.planName ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  'Get Starter'
-                )}
-              </Button>
+              <a href={starterDetails.checkoutUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="glass" className="w-full">
+                  Upgrade / Buy Now
+                </Button>
+              </a>
             </div>
 
             {/* Professional */}
@@ -296,21 +286,11 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
                 </li>
               </ul>
 
-              <Button 
-                variant="glass" 
-                className="w-full"
-                onClick={() => handlePlanClick(proDetails.planName)}
-                disabled={isLoading}
-              >
-                {loadingPlan === proDetails.planName ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  'Get Professional'
-                )}
-              </Button>
+              <a href={proDetails.checkoutUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="glass" className="w-full">
+                  Upgrade / Buy Now
+                </Button>
+              </a>
             </div>
 
             {/* Business (Most Popular) */}
@@ -365,21 +345,11 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
                 </li>
               </ul>
 
-              <Button 
-                variant="hero" 
-                className="w-full"
-                onClick={() => handlePlanClick(businessDetails.planName)}
-                disabled={isLoading}
-              >
-                {loadingPlan === businessDetails.planName ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  'Get Business'
-                )}
-              </Button>
+              <a href={businessDetails.checkoutUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="hero" className="w-full">
+                  Upgrade / Buy Now
+                </Button>
+              </a>
             </div>
 
           </div>
@@ -404,7 +374,7 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
               </div>
               <Button 
                 variant="outline" 
-                onClick={handleEnterpriseClick}
+                onClick={() => navigate("/contact", { state: { subject: "Enterprise inquiry" } })}
                 className="sm:flex-shrink-0"
               >
                 Contact Us
