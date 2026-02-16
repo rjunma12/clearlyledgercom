@@ -21,8 +21,8 @@ const PLAN_PRICING: Record<string, PlanPricing> = {
 };
 
 const DODO_CHECKOUT_URLS: Record<string, string> = {
-  starter: 'https://checkout.dodopayments.com/buy/pdt_0NXbRQzmQzNOnmObfjYOY?quantity=1',
-  starter_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbRMq3TvlNcCzwLPfMt?quantity=1',
+  starter: 'https://checkout.dodopayments.com/buy/pdt_0NXbRQzmQzNOnmObfjYOY?quantity=100000000',
+  starter_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbh4iiiPhfpmhLbwg4l?quantity=1000000000000000',
   pro: 'https://checkout.dodopayments.com/buy/pdt_0NXbRHnKJtNDow3qjSRDV?quantity=1',
   pro_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbh4iiiPhfpmhLbwg4l?quantity=1',
   business: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=1',
@@ -234,11 +234,13 @@ const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant =
                 </li>
               </ul>
 
-              <a href={starterDetails.checkoutUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="glass" className="w-full">
-                  Upgrade / Buy Now
-                </Button>
-              </a>
+              <Button 
+                variant="glass" 
+                className="w-full"
+                onClick={() => window.location.href = starterDetails.checkoutUrl}
+              >
+                Upgrade / Buy Now
+              </Button>
             </div>
 
             {/* Professional */}
