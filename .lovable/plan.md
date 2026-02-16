@@ -1,66 +1,102 @@
 
 
-## Update Privacy Policy and Terms of Service
+## Integrate Dodo Payments into ClearlyLedger
 
-This plan rewrites both legal pages with comprehensive, detailed content reflecting ClearlyLedger's actual data processing practices (Railway backend, immediate file deletion, anonymized format retention). It also updates the Footer with additional legal links and compliance badges.
+This plan implements the full Dodo Payments integration: checkout session creation, webhook handling for subscription lifecycle, and subscription management via the Dodo API.
 
 ---
 
-### Files to Modify (3 files)
+### Prerequisites: Two Secrets Needed
 
-#### 1. `src/pages/PrivacyPolicy.tsx` -- Complete rewrite
+Before any code changes, two secrets must be added:
 
-Replace the current sparse 11-section page with a comprehensive privacy policy containing:
+1. **DODO_PAYMENTS_API_KEY** -- Your API key from the Dodo Payments dashboard (Dashboard > Developers > API Keys)
+2. **DODO_PAYMENTS_WEBHOOK_KEY** -- Your webhook signing secret (will be obtained after deploying the webhook function and registering the endpoint URL in Dodo's dashboard)
 
-- **Section 1: Data Collection and Processing** -- Account info, bank statement processing flow (HTTPS upload to Railway, temporary processing, immediate deletion, zero storage), and anonymized data retention explanation with concrete examples of what is/isn't kept
-- **Section 2: Data Storage and Security** -- Infrastructure details (database on secure cloud, processing on Railway), file storage policy table (0-second retention for PDFs, 90 days for results), security measures (TLS 1.3, AES-256, JWT, rate limiting)
-- **Section 3: How We Use Your Information** -- Service delivery, service improvement with data anonymization process (6-step PII removal), legal obligations
-- **Section 4: Data Sharing and Third Parties** -- No-sell policy, service providers list (Railway for processing, database for auth/storage, Resend for email, Dodo Payments for billing) with purpose and retention for each
-- **Section 5: Cookies** -- Authentication and preferences only, no third-party tracking
-- **Section 6: Your Data Rights** -- Access, delete, portability (export as Excel/CSV/JSON)
-- **Section 7: Data Retention Periods** -- Visual table with retention periods for each data type
-- **Section 8: Children's Privacy** -- 18+ requirement
-- **Section 9: International Transfers** -- Global processing with encryption safeguards
-- **Section 10: Changes to Policy** -- Material changes via email, minor via page update
-- **Section 11: Contact** -- helppropsal@outlook.com
+The webhook URL to register in Dodo Payments will be:
+`https://ymybvkzjboqslyjabuac.supabase.co/functions/v1/payment-webhook`
 
-Add Navbar and Footer components (currently missing from PrivacyPolicy). Update effective/last-updated dates to February 11, 2026.
+Events to enable: `subscription.active`, `subscription.cancelled`, `subscription.renewed`, `subscription.on_hold`, `payment.succeeded`, `payment.failed`
 
-#### 2. `src/pages/TermsOfService.tsx` -- Expand existing sections
+---
 
-Add/expand the following sections while keeping existing structure:
+### Files to Modify (4 files)
 
-- **Section 5 (File Uploads and Data Handling)** -- Expand with: files processed on secure backend servers, transmitted over HTTPS, PDFs permanently deleted immediately after conversion, cannot recover files, results available 90 days. Add user agreement bullets (own files only, no malware, no reverse engineering)
-- **New Section 5.5: Data Usage for Service Improvement** -- Consent to anonymized format patterns, what is/isn't kept, opt-out mention
-- **New Section 5.6: File Storage and Deletion** -- Automatic deletion policy details (0-second retention, memory-only, no backups, no recovery), user-managed data (90-day results, account deletion)
-- **Expand Section 9 (Service Availability)** -- Add parsing accuracy disclaimer (350+ banks, no 100% guarantee, user verification responsibility), permanent deletion acknowledgment
-- **Expand Section 10 (Limitation of Liability)** -- Add data loss and financial consequences disclaimers
-- **New Section after 12: Acceptable Use Policy** -- File upload rules, service abuse prevention, data misuse prohibition, consequences
-- **New Section: Data Retention and Deletion** -- Automatic deletion schedule (immediate for PDFs, 90-day for results, 30-day account deletion), retained data after deletion (anonymized patterns, payment records 7 years)
+#### 1. `supabase/config.toml` -- Add JWT bypass for webhook
 
-#### 3. `src/components/Footer.tsx` -- Add links and compliance badges
+The payment-webhook function receives calls from Dodo's servers (no JWT). Add:
 
-- Add "Security" and "Data Processing" links to the Company column
-- Replace "Secure payments" text in the bottom bar with compliance badges: "TLS 1.3 Encrypted" and "GDPR Aligned"
+```toml
+[functions.payment-webhook]
+verify_jwt = false
+```
+
+#### 2. `supabase/functions/create-checkout-session/index.ts` -- Full implementation
+
+Replace the stub with a working implementation that:
+
+- Authenticates the user via JWT (Authorization header)
+- Reads `planName`, `successUrl`, `cancelUrl` from request body
+- Looks up the plan's `provider_product_id` from the `plans` table
+- Calls the Dodo Payments REST API (`POST https://live.dodopayments.com/checkouts`) with:
+  - `product_cart: [{ product_id, quantity: 1 }]`
+  - `customer: { email }` (from auth user)
+  - `return_url` (the successUrl)
+  - `metadata: { user_id, plan_name }` for webhook correlation
+  - `payment_method_types: ["credit", "debit"]`
+- Returns `{ checkoutUrl, sessionId }` to the frontend
+
+#### 3. `supabase/functions/payment-webhook/index.ts` -- Full implementation
+
+Replace the stub with a working Dodo webhook handler that:
+
+- Verifies the webhook signature using the `dodopayments` npm package (`DodoPayments.webhooks.unwrap`)
+- Implements idempotency checking via `webhook-id` header against `payment_events` table
+- Handles these event types:
+  - **`subscription.active`**: Creates/updates `user_subscriptions` row (maps `product_id` to plan, sets status=active, billing dates), logs to `payment_events`
+  - **`subscription.renewed`**: Updates `expires_at`/next billing date, logs event
+  - **`subscription.cancelled`**: Sets `status=cancelled`, `cancelled_at`, logs event
+  - **`subscription.on_hold`**: Sets `status=past_due`, logs event
+  - **`payment.succeeded`**: Logs payment event with amount/currency
+  - **`payment.failed`**: Logs payment failure event
+- Uses `metadata.user_id` from the webhook payload to link subscriptions to users
+- Uses `provider_product_id` on the `plans` table to resolve which plan was purchased
+- Sets `provider_name = 'dodo'` on all records
+
+#### 4. `supabase/functions/manage-subscription/index.ts` -- Add Dodo API calls
+
+Extend the existing local-only implementation to also call the Dodo API:
+
+- **Cancel**: If `provider_subscription_id` exists, call `PATCH https://live.dodopayments.com/subscriptions/{id}` with `{ status: "cancelled" }` before updating local DB
+- **Reactivate**: Call `PATCH https://live.dodopayments.com/subscriptions/{id}` with `{ status: "active" }` before updating local DB
+- Add `DODO_PAYMENTS_API_KEY` env var check at the start
 
 ---
 
 ### Technical Details
 
-**PrivacyPolicy.tsx changes:**
-- Add `Navbar` and `Footer` imports and render them (matching TermsOfService pattern)
-- Wrap content in container with consistent styling
-- Add `FileText` icon header matching TermsOfService style
-- Content grows from ~100 lines of JSX to ~400 lines
-- All contact emails remain helppropsal@outlook.com per project standard
+**Dodo Payments API endpoints used:**
+- `POST https://live.dodopayments.com/checkouts` -- Create checkout session
+- `PATCH https://live.dodopayments.com/subscriptions/{id}` -- Update subscription status
 
-**TermsOfService.tsx changes:**
-- Expand from 15 sections to ~20 sections
-- Keep existing section numbering where possible, insert new sections logically
-- Content grows from ~280 lines to ~500 lines
+**Webhook signature verification:**
+Using the official `dodopayments` package (imported via esm.sh in Deno):
+```text
+import { DodoPayments } from 'https://esm.sh/dodopayments@2.4.1';
+const client = new DodoPayments({ bearerToken: apiKey, webhookKey: webhookKey });
+client.webhooks.unwrap(rawBody, { headers: webhookHeaders });
+```
 
-**Footer.tsx changes:**
-- Company column: add 2 new Link elements for `/security` and `/data-processing`
-- Bottom bar: replace "Secure payments" span with Lock icon + "TLS 1.3 Encrypted" and Shield icon + "GDPR Aligned"
-- Add `Shield, Lock` imports from lucide-react
+**Plan mapping in webhook:**
+The webhook payload includes `data.product_id`. The function queries the `plans` table matching `provider_product_id` to resolve the internal plan, then creates/updates the `user_subscriptions` row with the correct `plan_id`.
+
+**User correlation:**
+The checkout session includes `metadata: { user_id }`. The webhook payload returns this metadata, allowing the webhook to link subscriptions to the correct user.
+
+**CORS headers updated:**
+The payment-webhook function needs additional allowed headers for Dodo's webhook signature headers: `webhook-id, webhook-signature, webhook-timestamp`.
+
+**No database migration needed** -- all required tables and columns already exist (`user_subscriptions`, `payment_events`, `plans.provider_product_id`).
+
+**No frontend changes needed** -- the `useCheckout` hook and `CheckoutSuccess` page already handle the flow correctly (call edge function, redirect to `checkoutUrl`, poll for subscription on return).
 
