@@ -21,12 +21,12 @@ const PLAN_PRICING: Record<string, PlanPricing> = {
 };
 
 const DODO_CHECKOUT_URLS: Record<string, string> = {
-  starter: 'https://checkout.dodopayments.com/buy/pdt_0NXbRQzmQzNOnmObfjYOY?quantity=1',
-  starter_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbh4iiiPhfpmhLbwg4l?quantity=1',
-  pro: 'https://checkout.dodopayments.com/buy/pdt_0NXbRMq3TvlNcCzwLPfMt?quantity=1',
-  pro_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=1',
-  business: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=1',
-  business_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b?quantity=1',
+  starter: 'https://checkout.dodopayments.com/buy/pdt_0NXbRQzmQzNOnmObfjYOY',
+  starter_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbh4iiiPhfpmhLbwg4l',
+  pro: 'https://checkout.dodopayments.com/buy/pdt_0NXbRMq3TvlNcCzwLPfMt',
+  pro_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b',
+  business: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b',
+  business_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b',
 };
 
 function getPlanDetails(basePlan: string, billingInterval: BillingInterval) {
