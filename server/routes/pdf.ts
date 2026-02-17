@@ -6,19 +6,22 @@ import { Router } from 'express';
 import express from 'express';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
+import { createHash } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import rateLimit from 'express-rate-limit';
 
 import { authenticateUser, type AuthenticatedRequest } from '../middleware/auth.js';
 import { processPDFBuffer } from '../lib/pdfProcessor.js';
 import { SUPABASE_URL, SUPABASE_SERVICE_KEY, MAX_FILE_SIZE, MIN_FILE_SIZE, PDF_MAGIC_BYTES } from '../lib/config.js';
-import { cleanupFile } from '../lib/utils.js';
 import { processPdfBodySchema } from '../lib/validation.js';
 
 const router = Router();
+
+// =============================================================================
+// SINGLETON SUPABASE CLIENT (module-level, reused across all requests)
+// =============================================================================
+
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 // =============================================================================
 // RATE LIMITING
@@ -34,21 +37,11 @@ const uploadLimiter = rateLimit({
 });
 
 // =============================================================================
-// FILE UPLOAD (multer with temp directory)
+// FILE UPLOAD (multer with memoryStorage — no disk writes)
 // =============================================================================
 
-const uploadDir = path.join(os.tmpdir(), 'clearlyledger-uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: uploadDir,
-  filename: (_req, _file, cb) => cb(null, `${uuidv4()}.pdf`),
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype !== 'application/pdf') {
@@ -60,7 +53,7 @@ const upload = multer({
 });
 
 // =============================================================================
-// PDF VALIDATION MIDDLEWARE
+// PDF VALIDATION MIDDLEWARE (buffer-based, no disk I/O)
 // =============================================================================
 
 function validatePDF(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction): void {
@@ -71,33 +64,23 @@ function validatePDF(req: AuthenticatedRequest, res: express.Response, next: exp
   }
 
   if (file.size < MIN_FILE_SIZE) {
-    cleanupFile(file.path);
     res.status(400).json({ error: 'File too small to be a valid PDF' });
     return;
   }
 
-  try {
-    const fd = fs.openSync(file.path, 'r');
-    const header = Buffer.alloc(5);
-    fs.readSync(fd, header, 0, 5, 0);
-    fs.closeSync(fd);
+  const buffer = file.buffer;
 
-    if (!header.subarray(0, 4).equals(PDF_MAGIC_BYTES)) {
-      cleanupFile(file.path);
-      res.status(400).json({ error: 'File does not have valid PDF magic bytes (%PDF)' });
-      return;
-    }
-  } catch {
-    cleanupFile(file.path);
-    res.status(400).json({ error: 'Failed to read uploaded file' });
+  // Check PDF magic bytes from buffer directly
+  const header = buffer.subarray(0, 4);
+  if (!header.equals(PDF_MAGIC_BYTES)) {
+    res.status(400).json({ error: 'File does not have valid PDF magic bytes (%PDF)' });
     return;
   }
 
+  // Check for embedded JavaScript (security)
   try {
-    const content = fs.readFileSync(file.path);
-    const contentStr = content.toString('latin1');
+    const contentStr = buffer.toString('latin1');
     if (/\/JavaScript\s/i.test(contentStr) || /\/JS\s/i.test(contentStr)) {
-      cleanupFile(file.path);
       res.status(400).json({ error: 'PDF contains JavaScript, which is not allowed for security reasons' });
       return;
     }
@@ -140,12 +123,11 @@ router.post(
   validatePDF,
   async (req: AuthenticatedRequest, res) => {
     const file = req.file!;
+    const buffer = file.buffer;
     const jobId = uuidv4();
     const startTime = Date.now();
 
     try {
-      const buffer = fs.readFileSync(file.path);
-
       // Validate and parse form fields
       const parsed = processPdfBodySchema.safeParse(req.body || {});
       if (!parsed.success) {
@@ -155,6 +137,52 @@ router.post(
 
       const { locale, confidenceThreshold, maxPages } = parsed.data;
 
+      // ── Quota check via RPC ──
+      try {
+        const { data: quotaResult, error: quotaErr } = await supabaseAdmin.rpc('check_and_reserve_pages', {
+          p_user_id: req.userId!,
+          p_pages: 1,
+        });
+
+        if (quotaErr) {
+          console.warn('[Server] Quota RPC not available, continuing:', quotaErr.message);
+        } else if (quotaResult && quotaResult.allowed === false) {
+          res.status(402).json({
+            error: 'Page quota exceeded. Please upgrade your plan.',
+            quotaExceeded: true,
+            remaining: quotaResult.remaining,
+          });
+          return;
+        }
+      } catch (quotaCheckErr) {
+        console.warn('[Server] Quota check failed, continuing without quota enforcement:', quotaCheckErr instanceof Error ? quotaCheckErr.message : quotaCheckErr);
+      }
+
+      // ── Cache check (SHA-256 dedup) ──
+      const fileHash = createHash('sha256').update(buffer).digest('hex');
+      let cacheHit = false;
+
+      try {
+        const { data: cached } = await supabaseAdmin
+          .from('conversion_cache')
+          .select('result')
+          .eq('file_hash', fileHash)
+          .eq('user_id', req.userId!)
+          .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (cached?.result) {
+          cacheHit = true;
+          res.json({ ...cached.result, jobId, cached: true });
+          return;
+        }
+      } catch {
+        // Cache miss or cache table doesn't exist — continue with conversion
+      }
+
+      // ── Process PDF ──
       const result = await processPDFBuffer(buffer, {
         fileName: file.originalname,
         locale,
@@ -170,26 +198,9 @@ router.post(
         || result.document?.totalTransactions
         || 0;
 
-      try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-        await supabase.from('processing_jobs').insert({
-          id: jobId,
-          user_id: req.userId!,
-          status: result.success ? 'completed' : 'failed',
-          filename: file.originalname,
-          file_size: file.size,
-          transactions,
-          total_transactions: totalTransactions,
-          started_at: new Date(startTime).toISOString(),
-          completed_at: new Date().toISOString(),
-        });
-      } catch (dbErr) {
-        console.error('[Server] Failed to store processing job:', dbErr);
-      }
-
       const header = result.document?.extractedHeader;
 
-      res.json({
+      const responsePayload = {
         jobId,
         success: result.success,
         pdfType: result.pdfType,
@@ -225,7 +236,39 @@ router.post(
           recoverable: e.recoverable,
         })) : [],
         warnings: result.warnings || [],
+      };
+
+      // ── DB insert for processing_jobs (BEFORE sending response) ──
+      const { error: dbErr } = await supabaseAdmin.from('processing_jobs').insert({
+        id: jobId,
+        user_id: req.userId!,
+        status: result.success ? 'completed' : 'failed',
+        filename: file.originalname,
+        file_size: file.size,
+        transactions,
+        total_transactions: totalTransactions,
+        started_at: new Date(startTime).toISOString(),
+        completed_at: new Date().toISOString(),
       });
+
+      if (dbErr) {
+        console.error('[Server] Failed to store processing job:', dbErr.message);
+      }
+
+      // ── Cache the result (non-blocking, errors logged) ──
+      if (!cacheHit) {
+        supabaseAdmin.from('conversion_cache').insert({
+          file_hash: fileHash,
+          user_id: req.userId!,
+          result: responsePayload,
+        }).then(({ error: cacheErr }) => {
+          if (cacheErr) {
+            console.error('[Server] Failed to cache conversion result:', cacheErr.message);
+          }
+        });
+      }
+
+      res.json(responsePayload);
     } catch (err) {
       console.error('[Server] PDF processing failed:', err);
       res.status(500).json({
@@ -233,9 +276,8 @@ router.post(
         success: false,
         error: 'PDF processing failed. Please try again or use client-side processing.',
       });
-    } finally {
-      cleanupFile(file.path);
     }
+    // No finally/cleanup needed — memoryStorage, no disk files
   }
 );
 

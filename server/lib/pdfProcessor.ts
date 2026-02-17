@@ -25,7 +25,7 @@ if (typeof globalThis.canvas === 'undefined') {
   (globalThis as any).canvas = {};
 }
 
-// Text threshold: >100 chars on page 1 = text-based PDF
+// Text threshold: >100 chars on page = text-based PDF
 const TEXT_THRESHOLD = 100;
 
 // Parallel batch size
@@ -61,7 +61,7 @@ export async function processPDFBuffer(
   const document = await pdfjsLib.getDocument({ data: uint8Array, useSystemFonts: true }).promise;
   const totalPages = document.numPages;
 
-  // Step 1: Analyze PDF type from page 1
+  // Step 1: Analyze PDF type from page 1 (and page 2 if it exists)
   const pdfType = await analyzePdfType(document);
 
   if (pdfType === 'SCANNED') {
@@ -107,10 +107,35 @@ export async function processPDFBuffer(
 }
 
 /**
- * Check page 1 text length to determine if PDF is text-based or scanned.
+ * Check page 1 AND page 2 (if exists) text length to determine if PDF is text-based or scanned.
+ * Only returns 'SCANNED' if BOTH pages are below the threshold.
  */
 async function analyzePdfType(document: PDFDocumentProxy): Promise<'TEXT_BASED' | 'SCANNED'> {
-  const page = await document.getPage(1);
+  const page1TextLength = await getPageTextLength(document, 1);
+  console.log(`[Server PDF] Page 1 text length: ${page1TextLength} chars (threshold: ${TEXT_THRESHOLD})`);
+
+  if (page1TextLength > TEXT_THRESHOLD) {
+    return 'TEXT_BASED';
+  }
+
+  // Page 1 is below threshold — check page 2 if it exists
+  if (document.numPages >= 2) {
+    const page2TextLength = await getPageTextLength(document, 2);
+    console.log(`[Server PDF] Page 2 text length: ${page2TextLength} chars (threshold: ${TEXT_THRESHOLD})`);
+
+    if (page2TextLength > TEXT_THRESHOLD) {
+      return 'TEXT_BASED';
+    }
+  }
+
+  return 'SCANNED';
+}
+
+/**
+ * Get the total text character count for a single page.
+ */
+async function getPageTextLength(document: PDFDocumentProxy, pageNum: number): Promise<number> {
+  const page = await document.getPage(pageNum);
   const textContent = await page.getTextContent();
 
   const totalText = textContent.items
@@ -118,14 +143,12 @@ async function analyzePdfType(document: PDFDocumentProxy): Promise<'TEXT_BASED' 
     .map(item => item.str)
     .join('');
 
-  const textLength = totalText.trim().length;
-  console.log(`[Server PDF] Page 1 text length: ${textLength} chars (threshold: ${TEXT_THRESHOLD})`);
-
-  return textLength > TEXT_THRESHOLD ? 'TEXT_BASED' : 'SCANNED';
+  return totalText.trim().length;
 }
 
 /**
  * Extract text elements from all pages using parallel batches.
+ * Each page is wrapped in try/catch so a single corrupt page doesn't kill the batch.
  */
 async function extractAllPages(
   document: PDFDocumentProxy,
@@ -140,7 +163,14 @@ async function extractAllPages(
     );
 
     const results = await Promise.all(
-      pageNumbers.map(pageNum => extractTextFromPage(document, pageNum))
+      pageNumbers.map(async (pageNum) => {
+        try {
+          return await extractTextFromPage(document, pageNum);
+        } catch (err) {
+          console.warn(`[Server PDF] Skipping corrupt page ${pageNum}:`, err instanceof Error ? err.message : err);
+          return [] as TextElement[];
+        }
+      })
     );
 
     results.forEach(elements => allElements.push(...elements));
