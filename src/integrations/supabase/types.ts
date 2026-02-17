@@ -296,6 +296,30 @@ export type Database = {
         }
         Relationships: []
       }
+      conversion_cache: {
+        Row: {
+          created_at: string
+          file_hash: string
+          id: string
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_hash: string
+          id?: string
+          result: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_hash?: string
+          id?: string
+          result?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_preferences: {
         Row: {
           created_at: string
@@ -799,6 +823,10 @@ export type Database = {
       }
     }
     Functions: {
+      check_and_reserve_pages: {
+        Args: { p_pages: number; p_user_id: string }
+        Returns: Json
+      }
       get_lifetime_members_for_announcement: {
         Args: never
         Returns: {
