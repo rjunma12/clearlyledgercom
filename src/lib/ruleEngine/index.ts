@@ -397,8 +397,10 @@ export async function processDocument(
       : fullConfig.localeDetection;
     
     const numberFormat = detectNumberFormat(sampleNumbers);
-    console.log('[RuleEngine] Detected locale:', detectedLocale);
-    console.log('[RuleEngine] Number format:', numberFormat);
+    if (process.env.LOG_LEVEL === 'debug') {
+      console.log('[RuleEngine] Detected locale:', detectedLocale);
+      console.log('[RuleEngine] Number format:', numberFormat);
+    }
     
     stages[2] = { ...stages[2], status: 'complete', progress: 100 };
     
