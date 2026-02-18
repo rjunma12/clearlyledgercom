@@ -246,7 +246,7 @@ export function parseNumber(
   // Apply sign
   const sign = (isNegative || hasExplicitMinus || isDebitIndicator) ? -1 : 1;
   
-  return Math.abs(parsed) * sign;
+  return parsed * sign;
 }
 
 /**

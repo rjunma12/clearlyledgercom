@@ -175,6 +175,12 @@ async function extractAllPages(
 
     results.forEach(elements => allElements.push(...elements));
   }
+  // Sort for determinism: by page, then Y (within 2px tolerance), then X
+  allElements.sort((a, b) =>
+    a.pageNumber !== b.pageNumber ? a.pageNumber - b.pageNumber :
+    Math.abs(a.boundingBox.y - b.boundingBox.y) < 2 ? a.boundingBox.x - b.boundingBox.x :
+    a.boundingBox.y - b.boundingBox.y
+  );
 
   return allElements;
 }
@@ -191,12 +197,10 @@ function computeTextConfidence(textItem: TextItem): number {
   const expectedWidth = charCount * fontSize * 0.55;
   const actualWidth = textItem.width ?? expectedWidth;
 
-  if (expectedWidth === 0) return 0.5;
+  if (expectedWidth === 0) return 1.0;
 
   const ratio = actualWidth / expectedWidth;
-  // Perfect match = 1.0, deviations reduce confidence
-  const confidence = Math.max(0.1, Math.min(1.0, 1.0 - Math.abs(1.0 - ratio) * 0.5));
-  return Math.round(confidence * 100) / 100;
+  return Math.min(1.0, Math.max(0.1, 1.0 - Math.abs(1.0 - ratio)));
 }
 
 /**
