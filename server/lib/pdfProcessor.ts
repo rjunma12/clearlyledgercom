@@ -180,6 +180,26 @@ async function extractAllPages(
 }
 
 /**
+ * Compute a confidence score for a text item based on width consistency.
+ * Compares actual rendered width to expected width (charCount × fontSize × avgCharWidth).
+ */
+function computeTextConfidence(textItem: TextItem): number {
+  const charCount = textItem.str.length;
+  if (charCount === 0) return 0;
+
+  const fontSize = Math.abs((textItem as any).transform?.[3] ?? 12);
+  const expectedWidth = charCount * fontSize * 0.55;
+  const actualWidth = textItem.width ?? expectedWidth;
+
+  if (expectedWidth === 0) return 0.5;
+
+  const ratio = actualWidth / expectedWidth;
+  // Perfect match = 1.0, deviations reduce confidence
+  const confidence = Math.max(0.1, Math.min(1.0, 1.0 - Math.abs(1.0 - ratio) * 0.5));
+  return Math.round(confidence * 100) / 100;
+}
+
+/**
  * Extract TextElement[] from a single PDF page using getTextContent().
  */
 async function extractTextFromPage(
@@ -207,7 +227,7 @@ async function extractTextFromPage(
       text: textItem.str,
       boundingBox: { x, y, width, height },
       pageNumber: pageNum,
-      confidence: 1.0,
+      confidence: computeTextConfidence(textItem),
       source: 'text-layer',
     });
   }
