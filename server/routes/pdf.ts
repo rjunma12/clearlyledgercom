@@ -137,28 +137,7 @@ router.post(
 
       const { locale, confidenceThreshold, maxPages } = parsed.data;
 
-      // ── Quota check via RPC ──
-      try {
-        const { data: quotaResult, error: quotaErr } = await supabaseAdmin.rpc('check_and_reserve_pages', {
-          p_user_id: req.userId!,
-          p_pages: 1,
-        });
-
-        if (quotaErr) {
-          console.warn('[Server] Quota RPC not available, continuing:', quotaErr.message);
-        } else if (quotaResult && quotaResult.allowed === false) {
-          res.status(402).json({
-            error: 'Page quota exceeded. Please upgrade your plan.',
-            quotaExceeded: true,
-            remaining: quotaResult.remaining,
-          });
-          return;
-        }
-      } catch (quotaCheckErr) {
-        console.warn('[Server] Quota check failed, continuing without quota enforcement:', quotaCheckErr instanceof Error ? quotaCheckErr.message : quotaCheckErr);
-      }
-
-      // ── Cache check (SHA-256 dedup) ──
+      // ── Cache check (SHA-256 dedup) — runs BEFORE quota to avoid double-charging ──
       const fileHash = createHash('sha256').update(buffer).digest('hex');
       let cacheHit = false;
 
@@ -180,6 +159,27 @@ router.post(
         }
       } catch {
         // Cache miss or cache table doesn't exist — continue with conversion
+      }
+
+      // ── Quota check via RPC (only reached on cache miss) ──
+      try {
+        const { data: quotaResult, error: quotaErr } = await supabaseAdmin.rpc('check_and_reserve_pages', {
+          p_user_id: req.userId!,
+          p_pages: 1,
+        });
+
+        if (quotaErr) {
+          console.warn('[Server] Quota RPC not available, continuing:', quotaErr.message);
+        } else if (quotaResult && quotaResult.allowed === false) {
+          res.status(402).json({
+            error: 'Page quota exceeded. Please upgrade your plan.',
+            quotaExceeded: true,
+            remaining: quotaResult.remaining,
+          });
+          return;
+        }
+      } catch (quotaCheckErr) {
+        console.warn('[Server] Quota check failed, continuing without quota enforcement:', quotaCheckErr instanceof Error ? quotaCheckErr.message : quotaCheckErr);
       }
 
       // ── Process PDF ──
