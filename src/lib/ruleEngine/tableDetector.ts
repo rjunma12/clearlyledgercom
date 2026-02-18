@@ -950,13 +950,18 @@ function ensureUniqueAmountColumns(boundaries: ColumnBoundary[]): void {
     .map((b, i) => ({ boundary: b, index: i }))
     .filter(({ boundary }) => boundary.inferredType === 'credit');
   
-  // If multiple debits, keep leftmost as debit, mark others as unknown
+  // If multiple debits, keep the one with highest confidence; tie-break by rightmost (closer to balance)
   if (debits.length > 1) {
-    debits.sort((a, b) => a.boundary.centerX - b.boundary.centerX);
+    debits.sort((a, b) => {
+      const confDiff = b.boundary.confidence - a.boundary.confidence;
+      if (Math.abs(confDiff) > 0.05) return confDiff; // higher confidence wins
+      return b.boundary.centerX - a.boundary.centerX; // rightmost wins (closer to balance)
+    });
+    const kept = debits[0];
     for (let i = 1; i < debits.length; i++) {
       boundaries[debits[i].index].inferredType = 'unknown';
       boundaries[debits[i].index].confidence = 0.3;
-      console.log(`[PostProcess] Removed duplicate debit at x=${debits[i].boundary.centerX.toFixed(0)}`);
+      console.log(`[PostProcess] Removed duplicate debit at x=${debits[i].boundary.centerX.toFixed(0)} (kept x=${kept.boundary.centerX.toFixed(0)} with conf=${kept.boundary.confidence.toFixed(2)})`);
     }
   }
   
