@@ -397,9 +397,41 @@ export async function processDocument(
       : fullConfig.localeDetection;
     
     const numberFormat = detectNumberFormat(sampleNumbers);
+
+    // Date format detection pass
+    const sampleDates = rawTransactions
+      .map(t => t.rawDate)
+      .filter((d): d is string => typeof d === 'string' && d.length > 0);
+
+    const detectedDateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | 'unknown' = (() => {
+      const isoPattern = /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/;
+      const slashDot = /^(\d{1,2})[./\-](\d{1,2})[./\-](\d{2,4})/;
+
+      let isoCount = 0;
+      let dayFirstCount = 0;
+      let monthFirstCount = 0;
+
+      for (const d of sampleDates.slice(0, 20)) {
+        if (isoPattern.test(d)) { isoCount++; continue; }
+        const m = d.match(slashDot);
+        if (m) {
+          const first = parseInt(m[1], 10);
+          const second = parseInt(m[2], 10);
+          if (first > 12 && second <= 12) dayFirstCount++;
+          else if (second > 12 && first <= 12) monthFirstCount++;
+        }
+      }
+
+      if (isoCount > dayFirstCount && isoCount > monthFirstCount) return 'YYYY-MM-DD';
+      if (dayFirstCount > monthFirstCount) return 'DD/MM/YYYY';
+      if (monthFirstCount > dayFirstCount) return 'MM/DD/YYYY';
+      return 'unknown';
+    })();
+
     if (process.env.LOG_LEVEL === 'debug') {
       console.log('[RuleEngine] Detected locale:', detectedLocale);
       console.log('[RuleEngine] Number format:', numberFormat);
+      console.log('[RuleEngine] Detected date format:', detectedDateFormat);
     }
     
     stages[2] = { ...stages[2], status: 'complete', progress: 100 };
