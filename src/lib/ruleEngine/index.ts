@@ -265,6 +265,13 @@ export {
   type DateSequenceWarning,
 } from './chronologicalOrder';
 
+// Post-Processing Passes (CCY fill, balance fill, multi-year fix)
+export {
+  forwardFillCurrency,
+  fillBalanceGaps,
+  isMultiYearAscending,
+} from './postProcessingPasses';
+
 // Transaction Categorization
 export {
   categorizeDescription,
@@ -333,6 +340,7 @@ import { applyLookBackStitching, convertToRawTransactions as convertStitchedToRa
 import { canAttemptRepair, attemptSafeRepair } from './autoRepair';
 import { extractStatementHeader, type ExtractedStatementHeader as HeaderExtraction } from './statementHeaderExtractor';
 import { detectBank } from './bankProfiles';
+import { forwardFillCurrency, fillBalanceGaps, isMultiYearAscending } from './postProcessingPasses';
 
 /**
  * Main processing pipeline - converts raw text elements to validated transactions
@@ -464,12 +472,26 @@ export async function processDocument(
         originalLines: stitched?.continuationRows?.map(r => r.description || '').filter(Boolean) ?? [],
       };
     });
+
+    // Post-processing pass 1: Fill balance gaps (backward then forward)
+    parsedTransactions = fillBalanceGaps(parsedTransactions);
+
+    // Post-processing pass 2: Forward-fill empty currency codes
+    const detectedCurrency = fullConfig.localCurrency || 'USD';
+    parsedTransactions = forwardFillCurrency(parsedTransactions, detectedCurrency);
     
-    // Apply chronological ordering
+    // Apply chronological ordering (with multi-year PDF protection)
     if (fullConfig.autoReverseChronological) {
-      const chronoResult = analyzeChronologicalOrder(parsedTransactions, true);
+      // Check if this is a multi-year ascending doc before allowing reversal
+      const multiYear = isMultiYearAscending(parsedTransactions);
+      const shouldReverse = !multiYear;
+
+      const chronoResult = analyzeChronologicalOrder(parsedTransactions, shouldReverse);
       parsedTransactions = chronoResult.transactions;
       
+      if (multiYear) {
+        warnings.push('Multi-year statement detected — chronological order preserved without reversal');
+      }
       if (chronoResult.analysis.wasReversed) {
         warnings.push('Transactions were automatically reversed to chronological order (oldest first)');
       }
