@@ -179,7 +179,9 @@ router.post(
           return;
         }
       } catch (quotaCheckErr) {
-        console.warn('[Server] Quota check failed, continuing without quota enforcement:', quotaCheckErr instanceof Error ? quotaCheckErr.message : quotaCheckErr);
+        console.error('[Server] Quota check unavailable — blocking request:', quotaCheckErr);
+        res.status(503).json({ error: 'Service temporarily unavailable. Please retry in a moment.', retryable: true });
+        return;
       }
 
       // ── Process PDF ──
