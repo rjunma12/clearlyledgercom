@@ -184,13 +184,32 @@ router.post(
         return;
       }
 
-      // ── Process PDF ──
-      const result = await processPDFBuffer(buffer, {
-        fileName: file.originalname,
-        locale,
-        confidenceThreshold,
-        maxPages: maxPages > 0 ? maxPages : undefined,
-      });
+      // ── Process PDF (with 120s timeout) ──
+      const CONVERSION_TIMEOUT_MS = 120_000;
+      const result = await Promise.race([
+        processPDFBuffer(buffer, {
+          fileName: file.originalname,
+          locale,
+          confidenceThreshold,
+          maxPages: maxPages > 0 ? maxPages : undefined,
+        }),
+        new Promise<never>((_resolve, reject) =>
+          setTimeout(() => reject(new Error('Conversion timeout after 120s')), CONVERSION_TIMEOUT_MS)
+        ),
+      ]);
+
+      // ── Block 200 OK when validation failed ──
+      if (result.success && result.document?.overallValidation === 'error') {
+        res.status(422).json({
+          jobId,
+          success: false,
+          error: 'Validation failed — output may be incomplete. Try re-uploading or use the client-side processor.',
+          pdfType: result.pdfType,
+          totalPages: result.totalPages,
+          details: result.errors ?? [],
+        });
+        return;
+      }
 
       // Extract transactions: prefer rawTransactions, fallback to segment flatMap
       const transactions = result.document?.rawTransactions
