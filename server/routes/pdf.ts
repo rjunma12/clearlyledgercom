@@ -77,10 +77,12 @@ function validatePDF(req: AuthenticatedRequest, res: express.Response, next: exp
     return;
   }
 
-  // Check for embedded JavaScript (security)
+  // Check for embedded JavaScript (security) — scan first 64KB + last 4KB only
   try {
-    const contentStr = buffer.toString('latin1');
-    if (/\/JavaScript\s/i.test(contentStr) || /\/JS\s/i.test(contentStr)) {
+    const headerSlice = buffer.subarray(0, 65536).toString('latin1');
+    const tailSlice = buffer.subarray(Math.max(0, buffer.length - 4096)).toString('latin1');
+    const scanStr = headerSlice + tailSlice;
+    if (/\/JavaScript\s/i.test(scanStr) || /\/JS\s/i.test(scanStr)) {
       res.status(400).json({ error: 'PDF contains JavaScript, which is not allowed for security reasons' });
       return;
     }
