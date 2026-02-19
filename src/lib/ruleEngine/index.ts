@@ -459,7 +459,7 @@ export async function processDocument(
       return {
         id: `tx-${index}`,
         rowIndex: index,
-        date: parseDate(raw.rawDate ?? '', detectedLocale) ?? '',
+        date: parseDate(raw.rawDate ?? '', detectedLocale, detectedDateFormat !== 'unknown' ? detectedDateFormat : undefined) ?? '',
         description,
         debit: parseNumber(raw.rawDebit ?? '', numberFormat),
         credit: parseNumber(raw.rawCredit ?? '', numberFormat),
