@@ -59,9 +59,9 @@ export function fillBalanceGaps(
 
   const result = transactions.map(tx => ({ ...tx }));
 
-  // Build a "missing" mask: balance is 0 and both debit/credit are null
+  // Build a "missing" mask: balance is NaN (unparseable) OR (balance is 0 and both debit/credit are null)
   const missing = result.map(
-    tx => tx.balance === 0 && tx.debit === null && tx.credit === null
+    tx => isNaN(tx.balance) || (tx.balance === 0 && tx.debit === null && tx.credit === null)
   );
 
   // Backward fill: scan from second-to-last row upward
