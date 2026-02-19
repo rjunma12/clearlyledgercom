@@ -463,7 +463,7 @@ export async function processDocument(
         description,
         debit: parseNumber(raw.rawDebit ?? '', numberFormat),
         credit: parseNumber(raw.rawCredit ?? '', numberFormat),
-        balance: parseNumber(raw.rawBalance ?? '', numberFormat) ?? 0,
+        balance: parseNumber(raw.rawBalance ?? '', numberFormat) ?? NaN,
         category: categoryMatch?.category,
         categoryConfidence: categoryMatch?.confidence,
         validationStatus: 'unchecked',
