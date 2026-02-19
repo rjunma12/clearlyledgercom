@@ -1,68 +1,70 @@
 
+# Issues Preventing Statement Conversion
 
-## Add Dodo Webhook Handler to the Express Server
-
-Create a new `server/webhooks/dodo.ts` file that handles Dodo payment webhooks on the Express server, and register it as a route in `server/index.ts`. This mirrors the logic already in the edge function but runs on the Node.js/Express backend.
-
----
-
-### Files to Create (1 file)
-
-#### `server/webhooks/dodo.ts`
-
-A standalone Express route handler that:
-
-- **Verifies the webhook signature** using Node.js `crypto.createHmac('sha256', secret)` with HMAC-SHA256, comparing `x-dodo-signature` header against computed hash of `${timestamp}.${rawBody}` using `crypto.timingSafeEqual`
-- **Validates timestamp** to reject replays older than 5 minutes
-- **Checks idempotency** via `webhook-id` header against the `payment_events` table
-- **Handles event types**: `payment.succeeded`, `payment.failed`, `subscription.active`, `subscription.renewed`, `subscription.cancelled`, `subscription.on_hold`
-- **Uses the shared Supabase client** (`server/lib/supabaseClient.ts`) for all database operations
-- **Logs events** to `payment_events` table and updates `user_subscriptions` table (same logic as the edge function)
-
-Exports a default Express `Router` mounted at `POST /`.
-
-#### Env var required: `DODO_WEBHOOK_SECRET` in the server's `.env` (the raw HMAC secret for the Express endpoint -- distinct from the edge function's `DODO_PAYMENTS_WEBHOOK_KEY`)
+After a deep analysis of the rule engine pipeline, I found **4 issues** that can cause balance validation failures and blocked exports. These are in addition to the column detection fix already applied.
 
 ---
 
-### Files to Modify (1 file)
+## Issue 1: Detected Date Format is Computed but Never Passed to `parseDate()`
 
-#### `server/index.ts`
+**File:** `src/lib/ruleEngine/index.ts` (lines 414-464)
 
-- Import the new webhook router: `import dodoWebhookRouter from './webhooks/dodo.js'`
-- **Add raw body parsing middleware** for the webhook route only (before `express.json()`), since signature verification needs the raw request body:
-  ```text
-  app.use('/api/webhooks/dodo', express.raw({ type: 'application/json' }));
-  ```
-- Mount the route: `app.use('/api/webhooks/dodo', dodoWebhookRouter)`
-- Place this **before** the general `express.json()` middleware so the raw body is preserved
+The pipeline runs a date format detection pass that correctly identifies whether dates are DD/MM/YYYY or MM/DD/YYYY. However, the result (`detectedDateFormat`) is never used -- `parseDate()` is called with only the locale, not the detected format.
+
+**What goes wrong:** For dates like `04/07/2025` (July 4 in DD/MM format), the `parseDate` function iterates through regex patterns in order. The `MM/DD/YYYY` pattern at line 268 matches first, and unless the locale is explicitly non-US, it may parse as April 7 instead of July 4. Wrong dates cause incorrect chronological ordering and cascading validation failures.
+
+**Fix:** Pass `detectedDateFormat` into `parseDate()` and use it to prioritize the correct pattern. When `detectedDateFormat === 'DD/MM/YYYY'`, force DD/MM interpretation regardless of which regex matches first.
 
 ---
 
-### Technical Details
+## Issue 2: Opening Balance Not Used from Detected Opening Balance Row
 
-**Signature verification approach:**
-The edge function uses the `dodopayments` SDK. The Express handler uses native `crypto` for HMAC-SHA256, matching the code fragments you provided:
+**File:** `src/lib/ruleEngine/balanceValidator.ts` (lines 362-370)
 
-```text
-const signedPayload = `${timestamp}.${rawBody}`;
-const expectedSignature = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
-return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+The `processExtractedRows` function correctly detects the "Opening Balance" row and stores it in `processingResult.openingBalance`. However, the `splitIntoSegments` function ignores this and instead derives the opening balance by back-calculating from the first transaction: `balance - credit + debit`.
+
+**What goes wrong:** If the first transaction has any parsing issue (wrong amount, wrong column, missing value), the derived opening balance will be wrong, causing every subsequent row to fail validation. The explicit opening balance from the PDF is more reliable.
+
+**Fix:** In `processDocument`, pass the detected opening balance value into the segment when available. Fall back to the calculation method only when no explicit opening balance row was found.
+
+---
+
+## Issue 3: Unparseable Balance Defaults to 0, Not Treated as Missing
+
+**File:** `src/lib/ruleEngine/index.ts` (line 466)
+
+When `parseNumber(raw.rawBalance)` returns `null` (unparseable), the code defaults to `0`:
+```
+balance: parseNumber(raw.rawBalance ?? '', numberFormat) ?? 0
 ```
 
-**Raw body handling:**
-Express's `express.json()` parses the body before the webhook handler can access the raw string. The route-specific `express.raw()` middleware is applied only to `/api/webhooks/dodo` and must be registered before `express.json()`.
+Meanwhile, `fillBalanceGaps` only marks a balance as "missing" when `balance === 0 AND debit === null AND credit === null`. If a transaction has valid amounts but a balance that failed to parse (now incorrectly 0), it won't be identified as a gap and won't be filled.
 
-**Shared logic with edge function:**
-Both the edge function (`supabase/functions/payment-webhook/index.ts`) and this Express handler will process the same event types with the same database operations. They serve as independent endpoints -- you can register either URL in the Dodo dashboard depending on your deployment topology.
+**What goes wrong:** Transactions with legitimate amounts but unparseable balances get balance=0, which causes a massive validation error because the running balance equation fails.
 
-**Event handler functions** (all using the shared Supabase service-role client):
-- `handlePaymentSucceeded` -- logs to `payment_events`
-- `handlePaymentFailed` -- logs to `payment_events`
-- `handleSubscriptionActive` -- resolves plan via `provider_product_id`, supersedes existing active subs, inserts new `user_subscriptions` row, logs event
-- `handleSubscriptionRenewed` -- extends `expires_at`, logs event
-- `handleSubscriptionCancelled` -- sets status to `cancelled`, logs event
-- `handleSubscriptionOnHold` -- sets status to `past_due`, logs event
+**Fix:** Track which balances came from actual parsing vs. the `?? 0` fallback using a flag or sentinel value (e.g., `NaN` or a separate `balanceMissing` boolean). Update `fillBalanceGaps` to use this flag instead of the heuristic.
 
-**No new dependencies needed** -- `crypto` is a Node.js built-in, and `@supabase/supabase-js` is already in `server/package.json`.
+---
 
+## Issue 4: Segment Opening Balance Should Prefer Explicit Value
+
+**File:** `src/lib/ruleEngine/index.ts` (lines 508-513) and `balanceValidator.ts` (lines 331-360)
+
+When `splitIntoSegments` creates segments, it calls `calculateOpeningBalance(firstTx)` which computes: `firstTx.balance - credit + debit`. This is fragile because:
+- If the first transaction's balance was unparseable (now 0 per Issue 3), the opening balance becomes completely wrong.
+- The explicit "Opening Balance" row detected by `processExtractedRows` is only used later during auto-repair (lines 594-603), not during the primary validation pass.
+
+**Fix:** Before calling `splitIntoSegments`, inject the parsed opening balance from `processingResult.openingBalance` into the first segment's `openingBalance` field.
+
+---
+
+## Implementation Summary
+
+| Issue | File(s) | Impact |
+|-------|---------|--------|
+| 1. Date format not wired | `index.ts`, `numberParser.ts` | Wrong date parse for ambiguous dates, causing ordering and validation failures |
+| 2. Opening balance ignored | `index.ts`, `balanceValidator.ts` | Cascading balance errors when first row has any issue |
+| 3. Unparseable balance = 0 | `index.ts`, `postProcessingPasses.ts` | False validation errors on rows with parse failures |
+| 4. Segment uses fragile derivation | `index.ts` | Compounds issues 2 and 3 |
+
+All four fixes reinforce each other. Issues 2-4 specifically explain how 15 out of 19 transactions could show balance errors from a single root cause (wrong opening balance propagating through the chain).
