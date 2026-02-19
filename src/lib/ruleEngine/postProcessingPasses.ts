@@ -73,7 +73,8 @@ export function fillBalanceGaps(
     const belowCredit = below.credit ?? 0;
     const belowDebit = below.debit ?? 0;
     // balance[i] = balance[i+1] - credit[i+1] + debit[i+1]
-    result[i].balance = below.balance - belowCredit + belowDebit;
+    const computed = below.balance - belowCredit + belowDebit;
+    result[i].balance = isNaN(computed) ? 0 : computed;
     missing[i] = false;
   }
 

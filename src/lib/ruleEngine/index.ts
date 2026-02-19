@@ -512,6 +512,16 @@ export async function processDocument(
     
     const segments = splitIntoSegments(parsedTransactions, boundaries);
     
+    // Issue 2 & 4 fix: Inject explicit opening balance into first segment
+    if (segments.length > 0 && processingResult.openingBalance) {
+      const obRow = processingResult.openingBalance.primaryRow;
+      const explicitOB = obRow?.balance ? parseNumber(obRow.balance, numberFormat) : null;
+      if (explicitOB !== null) {
+        console.log('[RuleEngine] Using explicit opening balance:', explicitOB, '(was derived:', segments[0].openingBalance, ')');
+        segments[0].openingBalance = explicitOB;
+      }
+    }
+    
     // Apply multi-currency handling if enabled
     const localCurrency = fullConfig.localCurrency as CurrencyCode;
     let hasMultipleCurrencies = false;

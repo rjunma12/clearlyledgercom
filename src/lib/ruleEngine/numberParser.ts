@@ -344,7 +344,8 @@ const MONTH_NAMES: Record<string, number> = {
  */
 export function parseDate(
   dateStr: string,
-  locale: Locale = 'auto'
+  locale: Locale = 'auto',
+  detectedFormat?: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | 'unknown'
 ): string | null {
   // Apply OCR correction first (handles O->0, l->1, etc.)
   const corrected = correctOCRDate(dateStr.trim());
@@ -363,8 +364,11 @@ export function parseDate(
         break;
         
       case 'MM/DD/YYYY':
-        // Ambiguous - use locale hint
-        if (locale === 'en-US') {
+        // Use detected date format first, then locale hint
+        if (detectedFormat === 'DD/MM/YYYY') {
+          day = parseInt(match[1]);
+          month = parseInt(match[2]);
+        } else if (detectedFormat === 'MM/DD/YYYY' || locale === 'en-US') {
           month = parseInt(match[1]);
           day = parseInt(match[2]);
         } else {
