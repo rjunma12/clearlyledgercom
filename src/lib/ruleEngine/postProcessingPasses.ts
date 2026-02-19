@@ -59,9 +59,9 @@ export function fillBalanceGaps(
 
   const result = transactions.map(tx => ({ ...tx }));
 
-  // Build a "missing" mask: balance is 0 and both debit/credit are null
+  // Build a "missing" mask: balance is NaN (unparseable) OR (balance is 0 and both debit/credit are null)
   const missing = result.map(
-    tx => tx.balance === 0 && tx.debit === null && tx.credit === null
+    tx => isNaN(tx.balance) || (tx.balance === 0 && tx.debit === null && tx.credit === null)
   );
 
   // Backward fill: scan from second-to-last row upward
@@ -73,7 +73,8 @@ export function fillBalanceGaps(
     const belowCredit = below.credit ?? 0;
     const belowDebit = below.debit ?? 0;
     // balance[i] = balance[i+1] - credit[i+1] + debit[i+1]
-    result[i].balance = below.balance - belowCredit + belowDebit;
+    const computed = below.balance - belowCredit + belowDebit;
+    result[i].balance = isNaN(computed) ? 0 : computed;
     missing[i] = false;
   }
 
@@ -85,6 +86,13 @@ export function fillBalanceGaps(
     } else if (lastKnown !== null) {
       result[i].balance = lastKnown;
       missing[i] = false;
+    }
+  }
+
+  // Final sanitization: any remaining NaN balances become 0
+  for (let i = 0; i < result.length; i++) {
+    if (isNaN(result[i].balance)) {
+      result[i].balance = 0;
     }
   }
 

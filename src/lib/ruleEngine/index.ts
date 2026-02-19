@@ -459,11 +459,11 @@ export async function processDocument(
       return {
         id: `tx-${index}`,
         rowIndex: index,
-        date: parseDate(raw.rawDate ?? '', detectedLocale) ?? '',
+        date: parseDate(raw.rawDate ?? '', detectedLocale, detectedDateFormat !== 'unknown' ? detectedDateFormat : undefined) ?? '',
         description,
         debit: parseNumber(raw.rawDebit ?? '', numberFormat),
         credit: parseNumber(raw.rawCredit ?? '', numberFormat),
-        balance: parseNumber(raw.rawBalance ?? '', numberFormat) ?? 0,
+        balance: parseNumber(raw.rawBalance ?? '', numberFormat) ?? NaN,
         category: categoryMatch?.category,
         categoryConfidence: categoryMatch?.confidence,
         validationStatus: 'unchecked',
@@ -511,6 +511,16 @@ export async function processDocument(
       : [0];
     
     const segments = splitIntoSegments(parsedTransactions, boundaries);
+    
+    // Issue 2 & 4 fix: Inject explicit opening balance into first segment
+    if (segments.length > 0 && processingResult.openingBalance) {
+      const obRow = processingResult.openingBalance.primaryRow;
+      const explicitOB = obRow?.balance ? parseNumber(obRow.balance, numberFormat) : null;
+      if (explicitOB !== null) {
+        console.log('[RuleEngine] Using explicit opening balance:', explicitOB, '(was derived:', segments[0].openingBalance, ')');
+        segments[0].openingBalance = explicitOB;
+      }
+    }
     
     // Apply multi-currency handling if enabled
     const localCurrency = fullConfig.localCurrency as CurrencyCode;
