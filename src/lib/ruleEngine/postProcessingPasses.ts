@@ -89,6 +89,13 @@ export function fillBalanceGaps(
     }
   }
 
+  // Final sanitization: any remaining NaN balances become 0
+  for (let i = 0; i < result.length; i++) {
+    if (isNaN(result[i].balance)) {
+      result[i].balance = 0;
+    }
+  }
+
   return result;
 }
 

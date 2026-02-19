@@ -363,6 +363,8 @@ export function splitIntoSegments(
  * Calculate the opening balance from the first transaction
  */
 function calculateOpeningBalance(firstTransaction: ParsedTransaction): number {
+  // If balance is NaN (unparseable), return 0 as fallback
+  if (isNaN(firstTransaction.balance)) return 0;
   // Opening balance = Current balance - Credits + Debits
   const credit = firstTransaction.credit ?? 0;
   const debit = firstTransaction.debit ?? 0;
