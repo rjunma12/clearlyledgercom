@@ -108,7 +108,7 @@ const blogPosts = [
   }
 ];
 
-const categories = ["All", "Thought Leadership", "Tutorial", "Regional", "Security", "Productivity"];
+const categories = ["All", "Comparison", "Thought Leadership", "Tutorial", "Regional", "Security", "Productivity"];
 
 // JSON-LD Schema for CollectionPage + ItemList
 const collectionPageSchema = {
