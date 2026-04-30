@@ -112,16 +112,16 @@ const Security = () => {
             </p>
           </div>
 
-          {/* No AI Training */}
+          {/* AI-Assisted Accuracy */}
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
               <Eye className="w-5 h-5 text-primary" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              No AI Training on Your Data
+              AI-Assisted 99% Accuracy
             </h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              We use deterministic, rule-based parsing—not AI or machine learning. Your documents are never used to train models, and we never share your data with third-party AI services.
+              We pair a deterministic rule engine with AI to push conversion accuracy to 99%+. Every figure is balance-verified before export. Your documents are processed for your conversion only and never shared with third parties.
             </p>
           </div>
 

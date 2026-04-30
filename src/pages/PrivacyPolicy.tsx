@@ -136,7 +136,6 @@ const PrivacyPolicy = () => {
             <h2 className="text-xl font-semibold text-foreground mb-3">3. What We Do Not Do</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>We do not sell your data to any third party.</li>
-              <li>We do not use your financial data to train AI models that benefit other parties.</li>
               <li>We do not share your transactions with anyone.</li>
               <li>We do not retain your bank statements after conversion.</li>
               <li>We do not have access to your bank accounts.</li>
@@ -193,7 +192,7 @@ const PrivacyPolicy = () => {
                     <td className="p-3 font-medium">Anthropic</td>
                     <td className="p-3">
                       AI fallback for low-confidence row parsing (only individual row text is sent, never full
-                      statements; Anthropic does not train on API requests per their usage policy)
+                      statements)
                     </td>
                     <td className="p-3">USA — SCCs apply</td>
                   </tr>

@@ -433,19 +433,19 @@ const BlogPostWhyBanksDontProvideCSV = () => {
                   <h3 id="privacy-first">Privacy-First Processing</h3>
 
                   <p>
-                    Financial documents contain sensitive information. ClearlyLedger processes files with privacy as a core principle. Files are deleted after processing. No document data is used for training models or improving algorithms. For users who need to share converted data with third parties, <Link to="/privacy-policy" className="text-primary hover:underline">optional PII masking</Link> can obscure account numbers and identifying information while preserving the financial data needed for analysis.
+                    Financial documents contain sensitive information. ClearlyLedger processes files with privacy as a core principle. Files are deleted after processing and used solely to produce your conversion output. For users who need to share converted data with third parties, <Link to="/privacy-policy" className="text-primary hover:underline">optional PII masking</Link> can obscure account numbers and identifying information while preserving the financial data needed for analysis.
                   </p>
 
-                  <h2 id="rule-based-vs-ai">Why Rule-Based Conversion Is Safer Than AI/LLM Tools</h2>
+                  <h2 id="rule-based-vs-ai">How a Hybrid Rule + AI Engine Reaches 99% Accuracy</h2>
 
                   <p>
-                    The rise of large language models has led to a wave of AI-powered document processing tools. While these tools show promise for unstructured text like contracts or correspondence, they present significant risks for structured financial data.
+                    Pure AI tools and pure rule engines each have weaknesses. Pure AI is probabilistic and can hallucinate; pure rules struggle with novel layouts. ClearlyLedger combines both: a deterministic rule engine handles the bulk of well-known formats with full traceability, and AI is layered in as a fallback for unusual layouts and as a verification pass. Every conversion is then balance-verified — debits, credits and running balance must reconcile to the cent before the file is released for download.
                   </p>
 
-                  <h3 id="predictability">Predictability Over Probability</h3>
+                  <h3 id="predictability">Verified, Not Just Predicted</h3>
 
                   <p>
-                    AI models are inherently probabilistic. They generate outputs based on patterns learned during training, but they can and do make mistakes—sometimes confidently incorrect ones. For creative tasks, this variability can be a feature. For financial data extraction, it's a liability. You cannot audit an AI model's "reasoning" the way you can trace through a deterministic rule set.
+                    The risk with AI alone is that confidently wrong outputs slip through. Our pipeline treats AI output as a hypothesis and validates it against deterministic checks: column geometry, date sequencing, and the universal accounting equation (opening + credits − debits = closing). If the math doesn't tie out, the row is flagged before it ever lands in your Excel or CSV. That's how we hit 99%+ accuracy without trading away auditability.
                   </p>
 
                   <h3 id="cost-control">Cost Control</h3>

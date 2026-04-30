@@ -24,7 +24,7 @@ const homepageFaqs = [
   },
   {
     question: "Is ClearlyLedger safe for sensitive financial data?",
-    answer: "Yes. We use HTTPS encryption for all uploads, process files in memory without persistent storage, and automatically delete all data after conversion. We never store, share, or use your documents for AI training."
+    answer: "Yes. We use HTTPS encryption for all uploads, process files in memory without persistent storage, and automatically delete all data after conversion. Your statements are used only to produce your output — they are never shared or resold."
   },
   {
     question: "What file formats does ClearlyLedger support?",

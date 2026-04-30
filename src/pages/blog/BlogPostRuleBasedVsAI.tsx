@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Sparkles } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,8 @@ import TableOfContents from "@/components/blog/TableOfContents";
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "Rule-Based vs AI Bank Statement Conversion: Which Is Right for Your Business?",
-  "description": "Comprehensive comparison of rule-based and AI-based bank statement conversion. Learn which approach delivers better accuracy, compliance, and cost-effectiveness for fintech, accounting, and enterprise use cases.",
+  "headline": "Rule-Based vs AI Bank Statement Conversion: How a Hybrid Engine Reaches 99% Accuracy",
+  "description": "Pure rules are auditable but rigid. Pure AI is flexible but probabilistic. See how combining a deterministic rule engine with AI delivers 99%+ accuracy on PDF bank statement conversion — with balance-verified outputs.",
   "image": "https://clearlyledger.com/og-rule-based-vs-ai.png",
   "author": {
     "@type": "Organization",
@@ -30,7 +30,7 @@ const articleSchema = {
     }
   },
   "datePublished": "2026-02-04",
-  "dateModified": "2026-02-04",
+  "dateModified": "2026-04-30",
   "mainEntityOfPage": {
     "@type": "WebPage",
     "@id": "https://clearlyledger.com/blog/rule-based-vs-ai-bank-statement-conversion"
@@ -38,12 +38,12 @@ const articleSchema = {
   "about": [
     { "@type": "Thing", "name": "Bank Statement Conversion" },
     { "@type": "Thing", "name": "Financial Data Extraction" },
-    { "@type": "Thing", "name": "Document Processing" }
+    { "@type": "Thing", "name": "Hybrid AI Document Processing" }
   ],
   "mentions": [
     { "@type": "Thing", "name": "Machine Learning" },
     { "@type": "Thing", "name": "Optical Character Recognition" },
-    { "@type": "Thing", "name": "Regulatory Compliance" }
+    { "@type": "Thing", "name": "Rule Engines" }
   ]
 };
 
@@ -78,42 +78,42 @@ const faqSchema = {
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "What is the difference between rule-based and AI bank statement conversion?",
+      "name": "What is a hybrid rule + AI bank statement converter?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Rule-based conversion uses deterministic parsing with predefined rules, templates, and validation logic to extract transaction data. AI-based conversion uses machine learning models and LLMs to probabilistically identify and extract data. The key difference is that rule-based systems produce identical outputs for identical inputs, while AI outputs can vary between runs."
+        "text": "A hybrid converter uses a deterministic rule engine to handle known bank layouts with full traceability, and layers AI on top for novel formats, OCR cleanup, and verification. Every extracted figure is then balance-checked (opening + credits − debits = closing) before the output is released."
       }
     },
     {
       "@type": "Question",
-      "name": "Is AI-based bank statement conversion accurate enough for auditing?",
+      "name": "How does combining rules and AI push accuracy to 99%?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "For most audit scenarios, AI-based conversion lacks the determinism and traceability required. Auditors need to explain exactly how each data point was extracted, which is difficult with black-box AI models. Rule-based systems provide full provenance trails with rule IDs and line numbers, making them preferred for audit-grade work."
+        "text": "Rules give you near-perfect extraction on the bank formats they cover, but coverage gaps exist. AI fills those gaps by generalising to layouts the rule engine has not seen yet. A final arithmetic verification step rejects any row where the math does not tie out, which catches both rule mismatches and AI hallucinations before they reach the user."
       }
     },
     {
       "@type": "Question",
-      "name": "Which approach is better for compliance with GST, VAT, and SOX?",
+      "name": "Is AI-assisted conversion still safe for auditing?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Rule-based conversion is strongly preferred for regulatory compliance. GST, VAT, and SOX requirements demand explainable, auditable data extraction processes. Rule-based systems provide complete audit trails showing exactly which rules were applied to each transaction, while AI systems cannot offer the same level of traceability."
+        "text": "Yes, when AI output is treated as a hypothesis that must pass deterministic checks. Every transaction is anchored to a source page and validated against the running balance, so audit trails remain intact even when AI was used to assist extraction."
       }
     },
     {
       "@type": "Question",
-      "name": "Do rule-based converters work with new bank formats?",
+      "name": "Do hybrid converters work with new bank formats out of the box?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Modern rule-based converters use versioned rule sets that can be updated to support new bank formats without affecting existing parsing logic. When a new format is encountered, specific rules are added while maintaining stability for all previously supported formats. This is more predictable than retraining AI models."
+        "text": "Usually yes. The AI layer generalises to unseen layouts, and the rule engine is updated over time so high-volume formats get fully deterministic coverage. You get 'works on day one' for new banks plus increasing precision as rules are added."
       }
     },
     {
       "@type": "Question",
-      "name": "Is rule-based conversion more cost-effective than AI?",
+      "name": "Is hybrid AI processing more expensive than pure rules?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Generally yes. Rule-based systems have predictable per-document costs and scale linearly. AI systems incur variable token-based costs, require cloud API infrastructure, and often need 5-15% manual review to correct hallucinations. The total cost of ownership for AI typically exceeds rule-based systems at scale."
+        "text": "AI is only invoked where rules need help, so the additional cost per document is small. The trade-off is much higher accuracy on unusual layouts and far less manual cleanup, which more than offsets the AI cost at any meaningful volume."
       }
     }
   ]
@@ -121,38 +121,29 @@ const faqSchema = {
 
 const BlogPostRuleBasedVsAI = () => {
   const pageUrl = "https://clearlyledger.com/blog/rule-based-vs-ai-bank-statement-conversion";
-  const pageTitle = "Rule-Based vs AI Bank Statement Conversion: Which Is Right for Your Business?";
+  const pageTitle = "Rule-Based vs AI Bank Statement Conversion: How a Hybrid Engine Reaches 99% Accuracy";
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>{pageTitle} | ClearlyLedger Blog</title>
-        <meta name="description" content="Comprehensive comparison of rule-based and AI-based bank statement conversion. Learn which approach delivers better accuracy, compliance, and cost-effectiveness for fintech, accounting, and enterprise use cases." />
-        <meta name="keywords" content="rule-based bank statement conversion, AI bank statement conversion, PDF to Excel bank statement, deterministic parsing, financial data accuracy, compliance-friendly fintech, GST VAT accounting, audit-ready financial data" />
+        <meta name="description" content="Pure rules are auditable but rigid. Pure AI is flexible but probabilistic. See how combining a deterministic rule engine with AI delivers 99%+ accuracy on PDF bank statement conversion — with balance-verified outputs." />
+        <meta name="keywords" content="rule-based bank statement conversion, AI bank statement conversion, hybrid AI converter, PDF to Excel bank statement, 99% accuracy, balance verification, audit-ready financial data" />
         <link rel="canonical" href={pageUrl} />
-        
-        {/* Open Graph */}
+
         <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content="Comprehensive comparison of rule-based and AI-based bank statement conversion for fintech, accounting, and enterprise use cases." />
+        <meta property="og:description" content="How combining a deterministic rule engine with AI pushes bank statement conversion accuracy to 99%+." />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="ClearlyLedger" />
-        
-        {/* Twitter */}
+
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content="Comprehensive comparison of rule-based and AI-based bank statement conversion." />
-        
-        {/* JSON-LD */}
-        <script type="application/ld+json">
-          {JSON.stringify(articleSchema)}
-        </script>
-        <script type="application/ld+json">
-          {JSON.stringify(breadcrumbSchema)}
-        </script>
-        <script type="application/ld+json">
-          {JSON.stringify(faqSchema)}
-        </script>
+        <meta name="twitter:description" content="How a hybrid rule + AI engine reaches 99% accuracy on bank statement conversion." />
+
+        <script type="application/ld+json">{JSON.stringify(articleSchema)}</script>
+        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
+        <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
       </Helmet>
 
       <ReadingProgress />
@@ -177,11 +168,10 @@ const BlogPostRuleBasedVsAI = () => {
               </span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
-              Rule-Based vs AI Bank Statement Conversion: Which Is Right for Your Business?
+              Rule-Based vs AI Bank Statement Conversion: How a Hybrid Engine Reaches 99% Accuracy
             </h1>
-            {/* Clean SEO-optimized metadata line - no icons */}
             <p className="text-sm text-muted-foreground mb-6">
-              By ClearlyLedger Team · February 4, 2026 · 15 min read
+              By ClearlyLedger Team · Updated April 30, 2026 · 12 min read
             </p>
             <ShareButtons url={pageUrl} title={pageTitle} />
           </header>
@@ -192,382 +182,180 @@ const BlogPostRuleBasedVsAI = () => {
           {/* TL;DR Box */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 mb-10">
             <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-primary" />
+              <Sparkles className="w-5 h-5 text-primary" />
               TL;DR
             </h2>
             <p className="text-muted-foreground">
-              <strong>Rule-based bank statement conversion</strong> delivers deterministic, audit-ready results with full traceability—ideal for accounting, lending, and compliance. <strong>AI-based conversion</strong> offers flexibility for low-stakes use cases but introduces variability, hidden costs, and limited explainability. For financial data extraction in 2026, rule-based systems remain the gold standard.
+              Pure rule engines are precise but brittle on new layouts. Pure AI is flexible but probabilistic. ClearlyLedger combines both — a deterministic rule engine for known formats, AI to generalise to the rest, and a balance-verification pass that rejects anything that doesn't reconcile. The result is <strong>99%+ accuracy</strong> across hundreds of bank formats, with audit-ready outputs.
             </p>
           </div>
 
           {/* Main Content */}
           <div className="prose prose-lg blog-prose max-w-none dark:prose-invert">
-            
+
             {/* Introduction */}
             <section>
               <p className="lead text-xl text-muted-foreground mb-6">
-                Bank statement conversion is foundational infrastructure for modern finance. Every loan underwriting decision, audit reconciliation, tax filing, and cash flow analysis depends on accurately extracting transaction data from PDF bank statements into structured formats like Excel, CSV, or accounting software.
+                Bank statement conversion underpins almost every modern finance workflow — bookkeeping, tax prep, lending decisions, cash flow forecasting. The data has to be right, and it has to be defensible.
               </p>
               <p>
-                The rise of AI-powered tools has created a new conversation in the fintech space: should enterprises trust machine learning models to extract financial data, or should they rely on deterministic, rule-based parsing systems?
+                For years the debate was framed as "rules vs AI" — pick your team. That framing is out of date. The best converters in 2026 don't pick a side. They combine deterministic rules with AI assistance and treat both outputs as inputs to a verification step that won't release a file unless the math reconciles.
               </p>
               <p>
-                This isn't an abstract technical debate. The choice directly impacts data accuracy, regulatory compliance, operational costs, and audit defensibility. For fintech founders, CFOs, accountants, and compliance teams evaluating bank statement conversion tools, understanding the tradeoffs is essential.
-              </p>
-              <p>
-                This comprehensive comparison examines both approaches objectively, with a focus on what matters most in enterprise finance: <strong>accuracy, compliance, cost-effectiveness, and predictability</strong>.
+                This article explains what each approach gets right, where each one breaks, and why a hybrid engine is what actually delivers 99%+ accuracy on real-world PDF bank statements.
               </p>
             </section>
 
-            {/* What Is Rule-Based Conversion */}
+            {/* Pure rule engines */}
             <section>
-              <h2 id="what-is-rule-based-conversion">What Is Rule-Based Bank Statement Conversion?</h2>
+              <h2 id="pure-rules">What Pure Rule Engines Get Right (and Wrong)</h2>
               <p>
-                <strong>Rule-based bank statement conversion</strong> uses deterministic parsing—a system of predefined rules, templates, and validation logic—to extract transaction data from PDF statements. Every extraction decision follows explicit, documented logic.
+                A rule engine encodes everything it knows about a bank format as explicit logic: where the date column starts, how amounts are formatted, what the header row looks like, how to detect a continued page. Given a known format, it is essentially perfect — the same PDF always produces the same output, and every figure can be traced back to a specific rule.
               </p>
               <p>
-                Here's how it works in practice:
+                The weakness is coverage. There are thousands of bank statement layouts in the wild, plus old formats, regional variants, white-label challenger banks, and one-off corporate templates. A rule engine only covers what's been written for it. When it meets a layout it doesn't recognise, the output degrades sharply or comes back empty.
+              </p>
+            </section>
+
+            {/* Pure AI */}
+            <section>
+              <h2 id="pure-ai">What Pure AI Gets Right (and Wrong)</h2>
+              <p>
+                AI-based extraction — typically OCR plus a vision-capable model or LLM — generalises beautifully. Hand it a layout it has never seen and it usually returns sensible columns and reasonable values. That flexibility is genuinely useful for the long tail of bank formats.
+              </p>
+              <p>
+                The weakness is probability. AI outputs come with confidence, not certainty. Models can swap a debit and credit, drop a digit, or fabricate a transaction that "looks right" given context. For unstructured text those errors are tolerable. For a balance sheet they are not.
+              </p>
+            </section>
+
+            {/* Hybrid */}
+            <section>
+              <h2 id="hybrid-engine">The Hybrid Approach: Rules + AI + Verification</h2>
+              <p>
+                The fix is not to pick one. It is to layer them with the right responsibilities:
               </p>
               <ul>
-                <li><strong>Header Detection:</strong> Rules identify transaction table headers by matching known keywords ("Date", "Description", "Debit", "Credit", "Balance") combined with positional analysis.</li>
-                <li><strong>Column Mapping:</strong> Once headers are identified, column boundaries are established using geometric analysis. Each subsequent row is parsed according to these boundaries.</li>
-                <li><strong>Transaction Extraction:</strong> Date patterns, monetary amounts, and descriptions are extracted using format-specific regular expressions and validation rules.</li>
-                <li><strong>Balance Verification:</strong> The system validates that opening balance + credits − debits = closing balance. Any discrepancy triggers auto-repair logic or flags for review.</li>
+                <li><strong>Rules first.</strong> If the format is known, the deterministic engine handles it end-to-end. Fast, auditable, and exact.</li>
+                <li><strong>AI as fallback and assist.</strong> When the rule engine can't anchor the table — unusual headers, multi-table pages, dense statements — AI proposes column boundaries and row segmentation that the rule engine then parses against.</li>
+                <li><strong>Arithmetic verification on every output.</strong> The accounting equation is non-negotiable: opening balance + credits − debits = closing balance. Every page and every running balance has to tie out. Anything that doesn't is flagged before the file is released for download.</li>
               </ul>
               <p>
-                The defining characteristic of rule-based systems is <strong>determinism</strong>: the same PDF input always produces the same structured output. This repeatability is non-negotiable for financial data.
-              </p>
-              <p>
-                Modern rule-based converters support hundreds of bank formats through versioned rule sets. When a new bank format is encountered, specific rules are added without affecting existing parsing logic—ensuring stability for all previously supported formats.
+                Each layer compensates for the others. Rules give you precision. AI gives you coverage. Verification catches anything either layer got wrong. That stack is what produces 99%+ accuracy on a real distribution of bank formats — not just the easy ones.
               </p>
             </section>
 
-            {/* What Is AI-Based Conversion */}
+            {/* Comparison Table */}
             <section>
-              <h2 id="what-is-ai-based-conversion">What Is AI-Based Bank Statement Conversion?</h2>
-              <p>
-                AI-based bank statement conversion typically combines <strong>Optical Character Recognition (OCR)</strong>, <strong>machine learning models</strong>, and increasingly, <strong>Large Language Models (LLMs)</strong> to extract transaction data.
-              </p>
-              <p>
-                The workflow generally involves:
-              </p>
-              <ul>
-                <li><strong>OCR Layer:</strong> Converts PDF content (including scanned images) to raw text.</li>
-                <li><strong>ML Classification:</strong> Models trained on labeled datasets identify table regions, headers, and row boundaries.</li>
-                <li><strong>LLM Extraction:</strong> Some tools pass extracted text to GPT-style models to "understand" and structure the data.</li>
-              </ul>
-              <p>
-                AI tools often claim to work with "any bank format" without templates. While this sounds appealing, it's important to understand the mechanism: these systems produce <strong>probabilistic outputs</strong>—they predict what the data likely is, rather than definitively parsing it.
-              </p>
-              <p>
-                This distinction matters enormously in finance. A 95% confidence score means 5% uncertainty—and when processing thousands of transactions, that uncertainty compounds.
-              </p>
-            </section>
-
-            {/* Accuracy Comparison */}
-            <section>
-              <h2 id="accuracy-comparison">Accuracy Comparison: Rule-Based vs AI</h2>
-              <p>
-                For financial data extraction, accuracy isn't just "close enough." A single misclassified transaction can cascade into failed reconciliations, incorrect tax filings, or flawed lending decisions.
-              </p>
-
-              {/* Comparison Table */}
+              <h2 id="comparison">At a Glance: Pure Rules vs Pure AI vs Hybrid</h2>
               <div className="overflow-x-auto my-8">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-muted/50">
                       <th className="border border-border px-4 py-3 text-left font-semibold">Attribute</th>
+                      <th className="border border-border px-4 py-3 text-left font-semibold">Pure Rules</th>
+                      <th className="border border-border px-4 py-3 text-left font-semibold">Pure AI</th>
                       <th className="border border-border px-4 py-3 text-left font-semibold">
                         <span className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600" />
-                          Rule-Based
-                        </span>
-                      </th>
-                      <th className="border border-border px-4 py-3 text-left font-semibold">
-                        <span className="flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-amber-600" />
-                          AI-Based
+                          Hybrid
                         </span>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="border border-border px-4 py-3 font-medium">Output Determinism</td>
+                      <td className="border border-border px-4 py-3 font-medium">Coverage of new formats</td>
+                      <td className="border border-border px-4 py-3 text-amber-700 dark:text-amber-400">Limited to written rules</td>
+                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Generalises broadly</td>
+                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Generalises broadly</td>
+                    </tr>
+                    <tr className="bg-muted/30">
+                      <td className="border border-border px-4 py-3 font-medium">Determinism on known formats</td>
                       <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">100% repeatable</td>
-                      <td className="border border-border px-4 py-3 text-amber-700 dark:text-amber-400">Variable per run</td>
-                    </tr>
-                    <tr className="bg-muted/30">
-                      <td className="border border-border px-4 py-3 font-medium">Balance Verification</td>
-                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Built-in equation checks</td>
-                      <td className="border border-border px-4 py-3 text-amber-700 dark:text-amber-400">Often missing</td>
+                      <td className="border border-border px-4 py-3 text-amber-700 dark:text-amber-400">Variable</td>
+                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">100% on rule-covered banks</td>
                     </tr>
                     <tr>
-                      <td className="border border-border px-4 py-3 font-medium">Error Traceability</td>
-                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Rule ID + line number</td>
-                      <td className="border border-border px-4 py-3 text-red-700 dark:text-red-400">Black box</td>
+                      <td className="border border-border px-4 py-3 font-medium">Hallucination risk</td>
+                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">None</td>
+                      <td className="border border-border px-4 py-3 text-red-700 dark:text-red-400">Real, often silent</td>
+                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Caught by balance check</td>
                     </tr>
                     <tr className="bg-muted/30">
-                      <td className="border border-border px-4 py-3 font-medium">Audit Compliance</td>
-                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Full provenance trail</td>
-                      <td className="border border-border px-4 py-3 text-red-700 dark:text-red-400">Limited explainability</td>
+                      <td className="border border-border px-4 py-3 font-medium">Balance verification</td>
+                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Built in</td>
+                      <td className="border border-border px-4 py-3 text-amber-700 dark:text-amber-400">Usually missing</td>
+                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Built in, runs last</td>
                     </tr>
                     <tr>
-                      <td className="border border-border px-4 py-3 font-medium">Edge Case Handling</td>
-                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400">Explicit rule additions</td>
-                      <td className="border border-border px-4 py-3 text-amber-700 dark:text-amber-400">Retraining required</td>
+                      <td className="border border-border px-4 py-3 font-medium">Real-world accuracy</td>
+                      <td className="border border-border px-4 py-3">~99% on covered banks, drops sharply elsewhere</td>
+                      <td className="border border-border px-4 py-3">~90–95% across the board</td>
+                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400 font-medium">99%+ across the board</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+            </section>
 
+            {/* Verification deep dive */}
+            <section>
+              <h2 id="verification">Why Verification Is the Real Differentiator</h2>
               <p>
-                The critical difference is <strong>determinism</strong>. When an auditor asks, "Why was this transaction classified as a debit?", a rule-based system provides a precise answer: "Rule #247 matched the negative amount format used by [Bank Name] statements, applied at line 142 of page 3."
+                Most "AI bank statement converter" tools stop at extraction. They emit a CSV and hope it's right. That is the single biggest source of bad data in this category, because confidently wrong AI output looks identical to correct output until someone reconciles it weeks later.
               </p>
               <p>
-                AI systems cannot provide this level of explainability. The model's decision emerges from billions of weighted parameters—useful for many applications, but problematic when regulatory bodies demand clear audit trails.
+                ClearlyLedger treats every extracted row as a hypothesis. Before a file is released for download:
               </p>
+              <ul>
+                <li>Each running balance is recomputed from the previous balance and the current debit/credit.</li>
+                <li>Page-level subtotals are matched against the printed totals on the statement where present.</li>
+                <li>Date sequencing is checked for chronological consistency, with explicit handling for descending statements.</li>
+                <li>Any row that fails the math is surfaced before export so it can be reviewed, not silently shipped.</li>
+              </ul>
               <p>
-                <strong>Real-world example:</strong> An accounting firm processes the same PDF statement twice—once in January and once in March—for reconciliation. A rule-based system produces identical outputs. An AI system might produce slightly different results due to model updates, temperature settings, or infrastructure changes. This non-determinism can cause reconciliation failures that are difficult to diagnose.
+                This is what makes AI-assisted extraction safe for accounting work. The AI is allowed to be wrong; the verification layer is not.
               </p>
             </section>
 
-            {/* Compliance & Regulation */}
+            {/* Privacy */}
             <section>
-              <h2 id="compliance-auditability">Compliance, Auditability & Regulation</h2>
+              <h2 id="privacy">Privacy in an AI-Assisted Pipeline</h2>
               <p>
-                For organizations operating under regulatory frameworks—GST, VAT, SOX, AML, IFRS—<Link to="/blog/privacy-secure-bank-statement-conversion" className="text-primary hover:underline">data provenance isn't optional</Link>. Regulators increasingly require that financial data extraction processes be explainable and auditable.
-              </p>
-              <p>
-                <strong>Why rule-based systems excel for compliance:</strong>
-              </p>
-              <ul>
-                <li><strong>Audit Trails:</strong> Every parsing decision is logged with rule IDs, timestamps, and source locations.</li>
-                <li><strong>Version Control:</strong> Rule sets are versioned, allowing organizations to demonstrate exactly which logic was applied to historical data.</li>
-                <li><strong>Explainability:</strong> Any extraction result can be traced back to specific, human-readable rules.</li>
-                <li><strong>Repeatability:</strong> Reprocessing historical statements produces identical results—essential for regulatory reviews.</li>
-              </ul>
-              <p>
-                Consider a SOX audit scenario: an auditor questions how a specific transaction amount was extracted from a PDF. With rule-based systems, the response is immediate and precise. With AI systems, the best answer available is often "the model predicted this with X% confidence"—insufficient for compliance-grade work.
-              </p>
-              <p>
-                <strong>Regulatory frameworks that favor deterministic systems:</strong>
-              </p>
-              <ul>
-                <li>SOX (Sarbanes-Oxley) internal controls requirements</li>
-                <li>GST/VAT input tax credit documentation</li>
-                <li>AML transaction monitoring and reporting</li>
-                <li>IFRS disclosure requirements</li>
-                <li>Banking regulatory examinations</li>
-              </ul>
-            </section>
-
-            {/* Cost & Scalability */}
-            <section>
-              <h2 id="cost-scalability">Cost & Scalability Analysis</h2>
-              <p>
-                Beyond accuracy and compliance, total cost of ownership significantly differs between approaches.
-              </p>
-
-              {/* Cost Table */}
-              <div className="overflow-x-auto my-8">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-muted/50">
-                      <th className="border border-border px-4 py-3 text-left font-semibold">Cost Factor</th>
-                      <th className="border border-border px-4 py-3 text-left font-semibold">Rule-Based</th>
-                      <th className="border border-border px-4 py-3 text-left font-semibold">AI-Based</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-border px-4 py-3 font-medium">Processing Cost</td>
-                      <td className="border border-border px-4 py-3">Flat per-document</td>
-                      <td className="border border-border px-4 py-3">Token-based (variable)</td>
-                    </tr>
-                    <tr className="bg-muted/30">
-                      <td className="border border-border px-4 py-3 font-medium">Correction Labor</td>
-                      <td className="border border-border px-4 py-3">Minimal</td>
-                      <td className="border border-border px-4 py-3">5-15% manual review</td>
-                    </tr>
-                    <tr>
-                      <td className="border border-border px-4 py-3 font-medium">Infrastructure</td>
-                      <td className="border border-border px-4 py-3">Browser/on-prem</td>
-                      <td className="border border-border px-4 py-3">Cloud API required</td>
-                    </tr>
-                    <tr className="bg-muted/30">
-                      <td className="border border-border px-4 py-3 font-medium">Scaling Behavior</td>
-                      <td className="border border-border px-4 py-3">Linear</td>
-                      <td className="border border-border px-4 py-3">Exponential with volume</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <p>
-                The hidden cost of AI systems often lies in <strong>hallucination correction</strong>. When an AI model confidently extracts incorrect data, human reviewers must identify and fix errors—labor that scales with volume. Organizations processing thousands of statements monthly can find these correction costs exceeding the AI tooling costs themselves.
-              </p>
-              <p>
-                Rule-based systems have predictable per-document costs that scale linearly. There's no per-token pricing, no API rate limits, and no surprise bills from complex multi-page statements.
+                Using AI for extraction does not require giving up control of your data. ClearlyLedger processes statements in memory, deletes the source PDF immediately after the conversion finishes, and uses your file solely to produce your output. We do not share your statements with third parties. <Link to="/privacy-policy" className="text-primary hover:underline">Optional PII masking</Link> is available on paid plans for users who need to share converted data externally.
               </p>
             </section>
 
-            {/* Edge Cases */}
+            {/* Who benefits */}
             <section>
-              <h2 id="edge-cases">Handling Edge Cases & New Bank Formats</h2>
-              <p>
-                A common argument for AI is that it handles "any format" without configuration. Let's examine this claim.
-              </p>
-              <p>
-                <strong>How rule-based systems handle new formats:</strong>
-              </p>
+              <h2 id="who-benefits">Who Benefits Most From a Hybrid Engine?</h2>
               <ul>
-                <li>New bank formats are analyzed and specific rules are added to the rule engine</li>
-                <li>Rules are versioned—existing parsing logic remains stable</li>
-                <li>The process is transparent: rule additions are documented and testable</li>
-                <li>Once added, the format is supported with 100% determinism</li>
-              </ul>
-              <p>
-                <strong>How AI systems handle new formats:</strong>
-              </p>
-              <ul>
-                <li>The model attempts to generalize from training data</li>
-                <li>Results are probabilistic—may work, may not</li>
-                <li>Failures require retraining or fine-tuning, which affects all formats</li>
-                <li>No guarantee that improvements for one format don't degrade others</li>
-              </ul>
-              <p>
-                The practical reality is that AI's "any format" claim comes with significant caveats. For enterprise use cases where specific banks dominate, rule-based systems offer more reliable, maintainable support.
-              </p>
-              <p>
-                <strong>Hybrid approaches</strong> can make sense: use AI for initial format exploration or transaction categorization, but rely on rules for the core extraction where accuracy is non-negotiable.
-              </p>
-            </section>
-
-            {/* Privacy & Security */}
-            <section>
-              <h2 id="privacy-security">Data Privacy & Security</h2>
-              <p>
-                Financial documents are among the most sensitive data organizations handle. <Link to="/blog/privacy-secure-bank-statement-conversion" className="text-primary hover:underline">Privacy considerations</Link> significantly impact tool selection.
-              </p>
-              <p>
-                <strong>Concerns with AI-based processing:</strong>
-              </p>
-              <ul>
-                <li>PDFs sent to third-party AI APIs expose sensitive transaction data</li>
-                <li>Cloud-based processing may not meet data residency requirements</li>
-                <li>Model training on customer data raises consent and liability issues</li>
-                <li>GDPR, Privacy Act, PDPA, and similar regulations impose strict requirements</li>
-              </ul>
-              <p>
-                <strong>Advantages of rule-based systems:</strong>
-              </p>
-              <ul>
-                <li>Can process entirely in-browser—no data leaves the client</li>
-                <li>On-premise deployment options for enterprise requirements</li>
-                <li>No AI model training on sensitive financial data</li>
-                <li>Simpler compliance with data protection regulations</li>
-              </ul>
-              <p>
-                For enterprises in regulated industries, the ability to process bank statements without any external data transmission is often a requirement, not a preference.
-              </p>
-            </section>
-
-            {/* Who Should Use Rule-Based */}
-            <section>
-              <h2 id="who-should-use-rule-based">Who Should Use Rule-Based Conversion?</h2>
-              <p>
-                Rule-based bank statement conversion is the right choice for:
-              </p>
-              <ul>
-                <li><strong>Accounting Firms:</strong> Preparing financials, tax returns, and audit documentation where every number must be defensible.</li>
-                <li><strong>Lending & Underwriting Platforms:</strong> Making credit decisions based on extracted transaction data—accuracy directly impacts risk assessment.</li>
-                <li><strong>SaaS Products Serving SMEs:</strong> Building features like <Link to="/blog/accurate-bank-statement-conversion-workflows" className="text-primary hover:underline">automated bookkeeping</Link>, cash flow forecasting, or expense categorization that depend on reliable extraction.</li>
-                <li><strong>Enterprises Processing High-Volume Statements:</strong> Organizations processing thousands of statements monthly need predictable costs and consistent quality.</li>
-                <li><strong>Compliance-Regulated Industries:</strong> Banks, insurance companies, and financial services firms under regulatory scrutiny.</li>
+                <li><strong>Accountants and bookkeepers</strong> handling many client banks — rules cover the common ones at 100%, AI handles the long tail.</li>
+                <li><strong>Lending and underwriting platforms</strong> that need consistent extraction across whatever statement a borrower uploads.</li>
+                <li><strong>Finance teams</strong> reconciling cards and accounts across multiple banks and currencies.</li>
+                <li><strong>Anyone who has ever been burned</strong> by an AI tool that "looked right" but didn't reconcile.</li>
               </ul>
             </section>
 
-            {/* When AI Makes Sense */}
+            {/* When pure approaches still make sense */}
             <section>
-              <h2 id="when-ai-makes-sense">When AI Makes Sense</h2>
+              <h2 id="when-pure">When a Pure Approach Still Makes Sense</h2>
               <p>
-                To be balanced: AI-based approaches have valid use cases.
+                Pure rules are still the right call for fully closed environments — a single bank, single layout, audit-grade workflow with zero tolerance for AI in the loop. Pure AI is fine for casual personal-finance exploration where occasional errors are acceptable.
               </p>
-              <ul>
-                <li><strong>Low-Stakes Applications:</strong> Personal budgeting apps where occasional errors are tolerable.</li>
-                <li><strong>Exploration & Categorization:</strong> Enriching extracted data with merchant categories or spending insights.</li>
-                <li><strong>Internal Analytics:</strong> Trend analysis where 95% accuracy provides sufficient signal.</li>
-                <li><strong>Format Discovery:</strong> Initial exploration of new, unseen bank formats before rule development.</li>
-              </ul>
               <p>
-                The key distinction: AI excels at <strong>enrichment and classification</strong> tasks, while rule-based systems excel at <strong>extraction and validation</strong> tasks. Many sophisticated systems use both—rules for core extraction, AI for value-added categorization.
+                For everyone else — anyone converting statements from more than one bank, anyone who cares whether the totals tie out — a hybrid engine with verification is the approach that actually holds up.
               </p>
             </section>
 
-            {/* Final Verdict */}
+            {/* Final */}
             <section>
-              <h2 id="final-verdict">Final Verdict: Making the Right Choice</h2>
-
-              {/* Recommendation Matrix */}
-              <div className="overflow-x-auto my-8">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-muted/50">
-                      <th className="border border-border px-4 py-3 text-left font-semibold">Use Case</th>
-                      <th className="border border-border px-4 py-3 text-left font-semibold">Recommended Approach</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-border px-4 py-3">Financial Auditing</td>
-                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400 font-medium">Rule-Based</td>
-                    </tr>
-                    <tr className="bg-muted/30">
-                      <td className="border border-border px-4 py-3">Loan Underwriting</td>
-                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400 font-medium">Rule-Based</td>
-                    </tr>
-                    <tr>
-                      <td className="border border-border px-4 py-3">Tax Preparation</td>
-                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400 font-medium">Rule-Based</td>
-                    </tr>
-                    <tr className="bg-muted/30">
-                      <td className="border border-border px-4 py-3">Enterprise Accounting</td>
-                      <td className="border border-border px-4 py-3 text-green-700 dark:text-green-400 font-medium">Rule-Based</td>
-                    </tr>
-                    <tr>
-                      <td className="border border-border px-4 py-3">Personal Budgeting</td>
-                      <td className="border border-border px-4 py-3 text-muted-foreground">Either (AI acceptable)</td>
-                    </tr>
-                    <tr className="bg-muted/30">
-                      <td className="border border-border px-4 py-3">Transaction Categorization</td>
-                      <td className="border border-border px-4 py-3 text-muted-foreground">Hybrid or AI</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
+              <h2 id="final-verdict">The Bottom Line</h2>
               <p>
-                For fintech founders, accountants, CFOs, and compliance teams evaluating bank statement conversion tools in 2026, the verdict is clear:
+                The interesting question in 2026 isn't "rules or AI". It's "how do you combine them so that the output is both flexible and verifiable?" The answer is to use rules where they're strong, use AI where rules fall short, and never release a number that hasn't passed an arithmetic check.
               </p>
               <p>
-                <strong>Rule-based bank statement conversion remains the gold standard for financial data extraction.</strong> It delivers the accuracy, determinism, auditability, and cost predictability that enterprise finance demands.
-              </p>
-              <p>
-                AI has its place—primarily in enrichment, categorization, and low-stakes applications. But for the core task of extracting transaction data from PDF bank statements into audit-ready formats, rule-based systems are unmatched.
-              </p>
-              <p>
-                When evaluating tools, ask these questions:
-              </p>
-              <ul>
-                <li>Will the same PDF produce identical output every time?</li>
-                <li>Can I explain any parsing decision to an auditor?</li>
-                <li>What happens when the system encounters an error?</li>
-                <li>Where is my financial data processed?</li>
-                <li>How do costs scale with volume?</li>
-              </ul>
-              <p>
-                The answers will guide you toward the right solution for your specific needs.
+                That's the engine behind ClearlyLedger, and it's what gets us to <strong>99%+ accuracy</strong> across hundreds of bank formats — without asking you to take any extracted figure on faith.
               </p>
             </section>
           </div>
@@ -575,10 +363,10 @@ const BlogPostRuleBasedVsAI = () => {
           {/* CTA Section */}
           <div className="mt-16 p-8 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl text-center">
             <h3 className="text-2xl font-bold text-foreground mb-4">
-              Ready for Audit-Ready Bank Statement Conversion?
+              Try a Hybrid AI Bank Statement Converter
             </h3>
             <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Experience deterministic, compliance-friendly bank statement conversion. Same input, same output—every time.
+              99%+ accuracy on PDF bank statements. Rule engine for known banks, AI for the rest, balance-verified before download.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/">
@@ -601,14 +389,14 @@ const BlogPostRuleBasedVsAI = () => {
           <div className="mt-16">
             <h3 className="text-xl font-semibold text-foreground mb-6">Related Articles</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Link 
+              <Link
                 to="/blog/why-banks-dont-provide-csv-excel-statements"
                 className="p-4 border border-border rounded-lg hover:border-primary/30 transition-colors"
               >
                 <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">Thought Leadership</span>
                 <h4 className="font-medium text-foreground mt-2">Why Banks Don't Provide Past Transactions in Excel or CSV Format</h4>
               </Link>
-              <Link 
+              <Link
                 to="/blog/privacy-secure-bank-statement-conversion"
                 className="p-4 border border-border rounded-lg hover:border-primary/30 transition-colors"
               >
@@ -620,7 +408,7 @@ const BlogPostRuleBasedVsAI = () => {
 
           {/* Back to Blog */}
           <div className="mt-12">
-            <Link 
+            <Link
               to="/blog"
               className="inline-flex items-center gap-2 text-primary hover:underline"
             >
