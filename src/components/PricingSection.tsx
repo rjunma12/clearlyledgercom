@@ -1,402 +1,284 @@
-import { forwardRef, useState } from "react";
-import { User, UserPlus, Zap, Shield, Check, Sparkles, Building2, FileText, Briefcase, Crown } from "lucide-react";
+import { useState } from "react";
+import { Check, FileText, Globe, Shield, Sparkles, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { Link, useNavigate } from "react-router-dom";
+import { useCheckout } from "@/hooks/use-checkout";
 
-type BillingInterval = 'monthly' | 'annual';
+type BillingInterval = "monthly" | "annual";
 
-interface PlanPricing {
-  monthly: number;
-  annual: number;
-  monthlyPages: number;
-  annualPages: number;
-}
-
-const PLAN_PRICING: Record<string, PlanPricing> = {
-  starter: { monthly: 15, annual: 150, monthlyPages: 400, annualPages: 4800 },
-  pro: { monthly: 30, annual: 300, monthlyPages: 1000, annualPages: 12000 },
-  business: { monthly: 50, annual: 500, monthlyPages: 4000, annualPages: 48000 },
-};
-
-// Checkout URLs are intentionally empty after the legacy payment provider was
-// removed. Paddle Billing integration (Step 9) will replace this map with
-// Paddle price IDs and trigger Paddle.Checkout.open() instead of a redirect.
-const CHECKOUT_URLS: Record<string, string> = {};
-
-function getPlanDetails(basePlan: string, billingInterval: BillingInterval) {
-  const pricing = PLAN_PRICING[basePlan];
-  if (!pricing) return null;
-  
-  const isAnnual = billingInterval === 'annual';
-  const planKey = isAnnual ? `${basePlan}_annual` : basePlan;
-  return {
-    price: isAnnual ? pricing.annual : pricing.monthly,
-    period: isAnnual ? '/year' : '/month',
-    pages: isAnnual 
-      ? `${pricing.annualPages.toLocaleString()} pages/year` 
-      : `${pricing.monthlyPages.toLocaleString()} pages/month`,
-    planKey,
-    checkoutUrl: CHECKOUT_URLS[planKey],
-    monthlyEquivalent: isAnnual ? Math.round(pricing.annual / 12) : null,
-  };
-}
+const PRO_MONTHLY_PRICE = 36;
+const PRO_ANNUAL_PRICE = 359;
+const PRO_ANNUAL_MONTHLY_EQUIVALENT = 30;
+const ANNUAL_SAVINGS_PERCENT = 17;
 
 interface PricingSectionProps {
-  variant?: 'full' | 'simplified';
+  variant?: "full" | "simplified";
 }
 
-const PricingSection = forwardRef<HTMLElement, PricingSectionProps>(({ variant = 'full' }, ref) => {
-  const navigate = useNavigate();
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
+const PricingSection = ({ variant = "full" }: PricingSectionProps) => {
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
+  const { initiateCheckout, isLoading, loadingPlan } = useCheckout();
 
-  const starterDetails = getPlanDetails('starter', billingInterval)!;
-  const proDetails = getPlanDetails('pro', billingInterval)!;
-  const businessDetails = getPlanDetails('business', billingInterval)!;
+  const isAnnual = billingInterval === "annual";
+  const proPlanKey = isAnnual ? "pro_annual" : "pro";
+  const proPrice = isAnnual ? PRO_ANNUAL_PRICE : PRO_MONTHLY_PRICE;
+  const proPeriod = isAnnual ? "/year" : "/month";
 
   return (
-    <section ref={ref} id="pricing" className="py-24 relative">
+    <section id="pricing" className="py-24 relative">
       <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-      
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Section Header */}
+        {/* Section header */}
         <div className="max-w-3xl mx-auto text-center mb-8">
           <span className="text-sm font-semibold text-primary uppercase tracking-wider">
-            Pricing & Usage
+            Pricing
           </span>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mt-3 mb-4">
-            Choose Your Plan
+            Simple pricing. Works worldwide.
           </h2>
           <p className="text-lg text-muted-foreground">
-            Start free. Upgrade when you need more power. All prices in USD.
+            Start free. Upgrade to Pro for unlimited conversions. All prices in USD.
           </p>
         </div>
 
-        {/* Billing Toggle - Only show in full variant */}
-        {variant === 'full' && (
-          <div className="flex items-center justify-center gap-4 mb-12">
-            <span className={cn(
-              "text-sm font-medium transition-colors",
-              billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
-            )}>
+        {/* Monthly / annual toggle */}
+        {variant === "full" && (
+          <div className="flex items-center justify-center gap-3 mb-10">
+            <span
+              className={cn(
+                "text-sm font-medium transition-colors",
+                !isAnnual ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
               Monthly
             </span>
-            <Switch 
-              checked={billingInterval === 'annual'}
-              onCheckedChange={(checked) => setBillingInterval(checked ? 'annual' : 'monthly')}
+            <Switch
+              checked={isAnnual}
+              onCheckedChange={(checked) => setBillingInterval(checked ? "annual" : "monthly")}
+              aria-label="Toggle annual billing"
             />
-            <span className={cn(
-              "text-sm font-medium transition-colors flex items-center gap-1.5",
-              billingInterval === 'annual' ? 'text-foreground' : 'text-muted-foreground'
-            )}>
+            <span
+              className={cn(
+                "text-sm font-medium transition-colors flex items-center gap-1.5",
+                isAnnual ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
               Annual
               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                Save 50%
+                Save {ANNUAL_SAVINGS_PERCENT}%
               </span>
             </span>
           </div>
         )}
 
-        {/* Free Tier Row */}
-        <div className={cn(
-          "grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto",
-          variant === 'simplified' ? 'mb-6' : 'mb-6'
-        )}>
-          
-          {/* Anonymous (No Signup) */}
-          <div className="glass-card p-6 opacity-80">
-            <div className="flex items-center gap-2 mb-3">
-              <User className="w-5 h-5 text-muted-foreground" />
-              <h3 className="font-display text-lg font-semibold text-foreground">
-                Anonymous
-              </h3>
-              <span className="text-xs text-muted-foreground">(No Signup)</span>
+        {/* Two-tier grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {/* Free */}
+          <div className="glass-card p-8 flex flex-col">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-display text-xl font-bold text-foreground">Free</h3>
             </div>
-            
-            <ul className="space-y-2 mb-6 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-muted-foreground" />
-                1 page every 24 hours
+            <p className="text-sm text-muted-foreground mb-5">
+              For trying out ClearlyLedger
+            </p>
+
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="font-display text-4xl font-bold text-foreground">$0</span>
+              <span className="text-muted-foreground">/month</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-6">No credit card required</p>
+
+            <ul className="space-y-3 mb-8 text-sm text-muted-foreground flex-1">
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>5 pages per month</span>
               </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-muted-foreground" />
-                Excel output only
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>CSV export</span>
               </li>
-              <li className="flex items-center gap-2 opacity-60">
-                <Shield className="w-4 h-4 text-muted-foreground" />
-                <span className="line-through">PII masking</span>
-                <span className="text-xs">(not available)</span>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>Works with any bank (AI-powered for unknown banks)</span>
               </li>
-              <li className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                Max file size: 10 MB
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>Single file upload</span>
+              </li>
+              <li className="flex items-start gap-2 opacity-60">
+                <X className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <span>Excel export</span>
+              </li>
+              <li className="flex items-start gap-2 opacity-60">
+                <X className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <span>Batch upload</span>
               </li>
             </ul>
 
-            <Button variant="outline" className="w-full" size="sm">
-              Try Once Free
-            </Button>
-          </div>
-
-          {/* Registered (Free) */}
-          <div className="glass-card p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <UserPlus className="w-5 h-5 text-primary" />
-              <h3 className="font-display text-lg font-semibold text-foreground">
-                Registered
-              </h3>
-              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                Free
-              </span>
-            </div>
-            
-            <p className="text-xs text-muted-foreground mb-3">Registration is free</p>
-            
-            <ul className="space-y-2 mb-6 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-primary" />
-                5 pages every 24 hours
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-primary" />
-                Excel output only
-              </li>
-              <li className="flex items-center gap-2 opacity-60">
-                <Shield className="w-4 h-4 text-muted-foreground" />
-                <span>PII masking</span>
-                <span className="text-xs italic">(starts from Starter)</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                Max file size: 10 MB
-              </li>
-            </ul>
-
-            <Link to="/signup">
-              <Button variant="glass" className="w-full" size="sm">
-                Create Free Account
+            <Link to="/signup" className="mt-auto">
+              <Button variant="outline" className="w-full">
+                Try it free
               </Button>
             </Link>
           </div>
+
+          {/* Pro */}
+          <div className="glass-card p-8 border-2 border-primary/50 glow-primary relative flex flex-col">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
+                <Sparkles className="w-3 h-3" />
+                Most popular
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mb-2 mt-2">
+              <h3 className="font-display text-xl font-bold text-foreground">Pro</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-5">
+              For accountants, bookkeepers, and finance teams
+            </p>
+
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="font-display text-4xl font-bold text-foreground">${proPrice}</span>
+              <span className="text-muted-foreground">{proPeriod}</span>
+            </div>
+            {isAnnual ? (
+              <p className="text-xs text-primary mb-6">
+                ${PRO_ANNUAL_MONTHLY_EQUIVALENT}/mo effective · Save {ANNUAL_SAVINGS_PERCENT}%
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground mb-6">Cancel anytime</p>
+            )}
+
+            <ul className="space-y-3 mb-6 text-sm text-muted-foreground flex-1">
+              <li className="flex items-start gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>Unlimited pages</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>All banks worldwide — known profiles and AI-powered fallback</span>
+              </li>
+              <li className="flex items-start gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>Excel + CSV export</span>
+              </li>
+              <li className="flex items-start gap-2 text-foreground font-medium">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>Batch upload up to 50 files at once</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>Basic transaction categorization</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>Priority email support</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <span>Cancel anytime</span>
+              </li>
+            </ul>
+
+            <p className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+              <Globe className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span>
+                Supports banks from the US, UK, India, Australia, Canada, UAE, Singapore, Europe,
+                and 100+ countries worldwide.
+              </span>
+            </p>
+
+            <Button
+              variant="hero"
+              className="w-full mt-auto"
+              onClick={() => initiateCheckout(proPlanKey)}
+              disabled={isLoading && loadingPlan === proPlanKey}
+            >
+              {isLoading && loadingPlan === proPlanKey ? "Starting checkout…" : "Upgrade to Pro"}
+            </Button>
+          </div>
         </div>
 
-        {/* Paid Plans Row - Only show in full variant */}
-        {variant === 'full' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-6">
+        {/* Pricing footnote */}
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          Prices in USD. Local currency and taxes calculated at checkout.
+        </p>
 
-            {/* Starter (Paid) */}
-            <div className="glass-card p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-5 h-5 text-primary" />
-                <h3 className="font-display text-xl font-bold text-foreground">
-                  Starter
-                </h3>
-              </div>
-              
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="font-display text-3xl font-bold text-foreground">${starterDetails.price}</span>
-                <span className="text-muted-foreground">{starterDetails.period}</span>
-              </div>
-              
-              {starterDetails.monthlyEquivalent && (
-                <p className="text-xs text-primary mb-3">
-                  ${starterDetails.monthlyEquivalent}/mo equivalent
-                </p>
-              )}
-
-              <p className="text-xs text-muted-foreground mb-3">{starterDetails.pages}</p>
-              
-              <ul className="space-y-2 mb-6 text-sm">
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary" />
-                  Convert up to {billingInterval === 'annual' ? '4,800' : '400'} pages{billingInterval === 'annual' ? '/year' : '/month'}
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-primary" />
-                  Excel & CSV output
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-primary" />
-                  Automatic balance validation
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary" />
-                  Accounting software compatible
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Shield className="w-4 h-4 text-primary" />
-                  PII masking toggle
-                </li>
-              </ul>
-
-              <Button 
-                variant="glass" 
-                className="w-full"
-                onClick={() => window.location.href = starterDetails.checkoutUrl}
-              >
-                Upgrade / Buy Now
-              </Button>
+        {/* Feature comparison table - full variant only */}
+        {variant === "full" && (
+          <div className="max-w-4xl mx-auto mt-16">
+            <h3 className="font-display text-2xl font-bold text-foreground text-center mb-6">
+              Compare features
+            </h3>
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="text-left p-4 font-medium text-foreground">Feature</th>
+                    <th className="text-center p-4 font-medium text-foreground">Free</th>
+                    <th className="text-center p-4 font-medium text-foreground">Pro</th>
+                  </tr>
+                </thead>
+                <tbody className="text-muted-foreground">
+                  <ComparisonRow label="Pages per month" free="5" pro="Unlimited" />
+                  <ComparisonRow label="CSV export" free={true} pro={true} />
+                  <ComparisonRow label="Excel export" free={false} pro={true} />
+                  <ComparisonRow label="Worldwide bank support" free={true} pro={true} />
+                  <ComparisonRow label="AI fallback for unknown banks" free={true} pro={true} />
+                  <ComparisonRow label="Balance verification" free={true} pro={true} />
+                  <ComparisonRow label="Single file upload" free={true} pro={true} />
+                  <ComparisonRow label="Batch upload (up to 50 files)" free={false} pro={true} />
+                  <ComparisonRow label="Transaction categorization" free={false} pro={true} />
+                  <ComparisonRow label="Priority email support" free={false} pro={true} />
+                </tbody>
+              </table>
             </div>
-
-            {/* Professional */}
-            <div className="glass-card p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Briefcase className="w-5 h-5 text-primary" />
-                <h3 className="font-display text-xl font-bold text-foreground">
-                  Professional
-                </h3>
-              </div>
-              
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="font-display text-3xl font-bold text-foreground">${proDetails.price}</span>
-                <span className="text-muted-foreground">{proDetails.period}</span>
-              </div>
-              
-              {proDetails.monthlyEquivalent && (
-                <p className="text-xs text-primary mb-3">
-                  ${proDetails.monthlyEquivalent}/mo equivalent
-                </p>
-              )}
-
-              <p className="text-xs text-muted-foreground mb-3">{proDetails.pages}</p>
-              
-              <ul className="space-y-2 mb-6 text-sm">
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary" />
-                  Everything in Starter
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-primary" />
-                  Batch upload (up to 10 files)
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-primary" />
-                  Merged output file
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary" />
-                  Priority rule updates
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Shield className="w-4 h-4 text-primary" />
-                  PII masking toggle
-                </li>
-              </ul>
-
-              <Button 
-                variant="glass" 
-                className="w-full"
-                onClick={() => window.location.href = proDetails.checkoutUrl}
-              >
-                Upgrade / Buy Now
-              </Button>
-            </div>
-
-            {/* Business (Most Popular) */}
-            <div className="glass-card p-6 border-2 border-primary/50 glow-primary relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
-                  <Sparkles className="w-3 h-3" />
-                  Most Popular
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 mb-2 mt-2">
-                <Crown className="w-5 h-5 text-primary" />
-                <h3 className="font-display text-xl font-bold text-foreground">
-                  Business
-                </h3>
-              </div>
-              
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="font-display text-3xl font-bold text-foreground">${businessDetails.price}</span>
-                <span className="text-muted-foreground">{businessDetails.period}</span>
-              </div>
-              
-              {businessDetails.monthlyEquivalent && (
-                <p className="text-xs text-primary mb-3">
-                  ${businessDetails.monthlyEquivalent}/mo equivalent
-                </p>
-              )}
-
-              <p className="text-xs text-muted-foreground mb-3">{businessDetails.pages}</p>
-              
-              <ul className="space-y-2 mb-6 text-sm">
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="w-4 h-4 text-primary" />
-                  Everything in Professional
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-primary" />
-                  Batch upload (up to 20 files)
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-primary" />
-                  Multi-bank merged output
-                </li>
-                <li className="flex items-center gap-2 text-foreground font-medium">
-                  <Check className="w-4 h-4 text-primary" />
-                  Priority email support
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <Shield className="w-4 h-4 text-primary" />
-                  PII masking toggle
-                </li>
-              </ul>
-
-              <Button 
-                variant="hero" 
-                className="w-full"
-                onClick={() => window.location.href = businessDetails.checkoutUrl}
-              >
-                Upgrade / Buy Now
-              </Button>
-            </div>
-
           </div>
         )}
 
-        {/* Enterprise - Full Width */}
-        <div className="max-w-6xl mx-auto">
-          <div className="glass-card p-6 border border-muted/30">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-muted/20 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <h3 className="font-display text-lg font-semibold text-foreground">
-                    Enterprise
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    For teams, high-volume usage, or custom requirements
-                  </p>
-                </div>
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate("/contact", { state: { subject: "Enterprise inquiry" } })}
-                className="sm:flex-shrink-0"
-              >
-                Contact Us
-              </Button>
-            </div>
-          </div>
-        </div>
-
         {/* Trust footer */}
         <div className="mt-12 text-center">
-        <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
             <Shield className="w-4 h-4 text-primary" />
-            Secure payments • Cancel anytime • No hidden fees
+            <span>Global payments by Paddle · Cancel anytime · No hidden fees</span>
           </p>
         </div>
       </div>
     </section>
   );
-});
+};
 
-PricingSection.displayName = 'PricingSection';
+interface ComparisonRowProps {
+  label: string;
+  free: boolean | string;
+  pro: boolean | string;
+}
+
+const ComparisonRow = ({ label, free, pro }: ComparisonRowProps) => (
+  <tr className="border-t border-border">
+    <td className="p-4 text-foreground">{label}</td>
+    <td className="p-4 text-center">
+      <ComparisonCell value={free} />
+    </td>
+    <td className="p-4 text-center">
+      <ComparisonCell value={pro} />
+    </td>
+  </tr>
+);
+
+const ComparisonCell = ({ value }: { value: boolean | string }) => {
+  if (typeof value === "string") {
+    return <span className="text-foreground font-medium">{value}</span>;
+  }
+  return value ? (
+    <Check className="w-4 h-4 text-primary inline-block" aria-label="Included" />
+  ) : (
+    <X className="w-4 h-4 text-muted-foreground/60 inline-block" aria-label="Not included" />
+  );
+};
 
 export default PricingSection;
