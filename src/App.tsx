@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { lazy, Suspense, useEffect, useState } from "react";
+const Toaster = lazy(() => import("@/components/ui/toaster").then(m => ({ default: m.Toaster })));
+const Sonner = lazy(() => import("@/components/ui/sonner").then(m => ({ default: m.Toaster })));
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -70,6 +70,8 @@ const PageLoader = () => (
 );
 
 const App = () => {
+  const [toastsReady, setToastsReady] = useState(false);
+
   // Register service worker for offline PDF processing
   useEffect(() => {
     if (import.meta.env.PROD) {
@@ -81,13 +83,28 @@ const App = () => {
     }
   }, []);
 
+  // Defer toaster portals until after first paint to avoid forced reflows
+  // during the initial commit phase.
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    const schedule = w.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200));
+    const id = schedule(() => setToastsReady(true));
+    return () => {
+      if (typeof id === 'number') clearTimeout(id);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <UsageProvider>
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
+            {toastsReady && (
+              <Suspense fallback={null}>
+                <Toaster />
+                <Sonner />
+              </Suspense>
+            )}
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <PaymentTestModeBanner />
               <ScrollToTop />
