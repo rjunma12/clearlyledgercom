@@ -186,8 +186,6 @@ export function useUsage(): UseUsageReturn {
   }, [refreshUsage]);
 
   useEffect(() => {
-    let didInit = false;
-
     const initAuth = async () => {
       setIsLoading(true);
 
@@ -200,16 +198,15 @@ export function useUsage(): UseUsageReturn {
 
       await fetchPlanAndUsage(currentUserId);
       setIsLoading(false);
-      didInit = true;
     };
 
     initAuth();
 
-    // Listen for auth changes. Skip the very first INITIAL_SESSION event because
-    // initAuth() already fetched the same data — this avoids a duplicate
+    // Listen for auth changes. Skip INITIAL_SESSION entirely — initAuth()
+    // already fetched the same data via getSession(). This avoids a duplicate
     // get_user_plan RPC on initial page load (improves Speed Index / LCP).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!didInit && event === 'INITIAL_SESSION') return;
+      if (event === 'INITIAL_SESSION') return;
       const currentUserId = session?.user?.id ?? null;
       setUserId(currentUserId);
       setIsAuthenticated(!!currentUserId);
