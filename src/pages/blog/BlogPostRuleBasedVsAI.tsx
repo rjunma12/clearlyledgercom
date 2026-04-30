@@ -12,7 +12,7 @@ import TableOfContents from "@/components/blog/TableOfContents";
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "Rule-Based vs AI Bank Statement Conversion: How a Hybrid Engine Reaches 99% Accuracy",
+  "headline": "How Hybrid AI Bank Statement Conversion Reaches 99%+ Accuracy",
   "description": "Pure rules are auditable but rigid. Pure AI is flexible but probabilistic. See how combining a deterministic rule engine with AI delivers 99%+ accuracy on PDF bank statement conversion — with balance-verified outputs.",
   "image": "https://clearlyledger.com/og-rule-based-vs-ai.png",
   "author": {
@@ -121,7 +121,7 @@ const faqSchema = {
 
 const BlogPostRuleBasedVsAI = () => {
   const pageUrl = "https://clearlyledger.com/blog/rule-based-vs-ai-bank-statement-conversion";
-  const pageTitle = "Rule-Based vs AI Bank Statement Conversion: How a Hybrid Engine Reaches 99% Accuracy";
+  const pageTitle = "How Hybrid AI Bank Statement Conversion Reaches 99%+ Accuracy";
 
   return (
     <div className="min-h-screen bg-background">
@@ -168,7 +168,7 @@ const BlogPostRuleBasedVsAI = () => {
               </span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
-              Rule-Based vs AI Bank Statement Conversion: How a Hybrid Engine Reaches 99% Accuracy
+              How Hybrid AI Bank Statement Conversion Reaches 99%+ Accuracy
             </h1>
             <p className="text-sm text-muted-foreground mb-6">
               By ClearlyLedger Team · Updated April 30, 2026 · 17 min read
