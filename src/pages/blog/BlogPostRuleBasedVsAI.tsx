@@ -171,7 +171,7 @@ const BlogPostRuleBasedVsAI = () => {
               Rule-Based vs AI Bank Statement Conversion: How a Hybrid Engine Reaches 99% Accuracy
             </h1>
             <p className="text-sm text-muted-foreground mb-6">
-              By ClearlyLedger Team · Updated April 30, 2026 · 12 min read
+              By ClearlyLedger Team · Updated April 30, 2026 · 17 min read
             </p>
             <ShareButtons url={pageUrl} title={pageTitle} />
           </header>
