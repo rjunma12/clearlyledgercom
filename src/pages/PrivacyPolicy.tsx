@@ -192,7 +192,7 @@ const PrivacyPolicy = () => {
                     <td className="p-3 font-medium">Anthropic</td>
                     <td className="p-3">
                       AI fallback for low-confidence row parsing (only individual row text is sent, never full
-                      statements; Anthropic does not train on API requests per their usage policy)
+                      statements)
                     </td>
                     <td className="p-3">USA — SCCs apply</td>
                   </tr>

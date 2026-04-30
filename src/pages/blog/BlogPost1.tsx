@@ -221,7 +221,7 @@ const BlogPost1 = () => {
 
             <h3>Q: Is my data secure?</h3>
             <p>
-              Yes. Files are processed securely and deleted automatically after conversion. We never store, share, or train on your documents.
+              Yes. Files are processed securely and deleted automatically after conversion. Your statements are used only to produce your output and are never shared with third parties.
             </p>
 
             <h3>Q: What if my statement doesn't convert correctly?</h3>
