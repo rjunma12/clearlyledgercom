@@ -8,6 +8,42 @@ import { useState } from "react";
 
 const blogPosts = [
   {
+    slug: "convert-pdf-bank-statement-to-excel-2026-guide",
+    title: "How to Convert PDF Bank Statement to Excel in 2026 (Complete Guide)",
+    excerpt: "Step-by-step guide comparing 4 conversion methods. Learn why ChatGPT and generic PDF tools fail, and the workflow that delivers 99%+ accuracy with balance verification.",
+    date: "April 30, 2026",
+    category: "Tutorial",
+    readTime: "12 min read",
+    featured: true
+  },
+  {
+    slug: "bank-statement-converter-for-accountants",
+    title: "Bank Statement Converter for Accountants: Save 10+ Hours Monthly",
+    excerpt: "Bookkeepers processing 50 client statements lose 12+ hours a month to PDF cleanup. See how Xero/QuickBooks/MYOB-ready CSV, batch processing, and balance verification reclaim that time.",
+    date: "April 30, 2026",
+    category: "Productivity",
+    readTime: "10 min read",
+    featured: true
+  },
+  {
+    slug: "bank-statement-to-csv-format-standards",
+    title: "Bank Statement to CSV: Format Standards and Common Pitfalls",
+    excerpt: "CSV is not one format — it's four dialects. Learn the 7 most common import failures, the universal 5-column schema, and how to make CSV imports work in Xero, QuickBooks, and MYOB.",
+    date: "April 30, 2026",
+    category: "Tutorial",
+    readTime: "11 min read",
+    featured: false
+  },
+  {
+    slug: "clearlyledger-vs-bankstatementconverter-comparison",
+    title: "ClearlyLedger vs Bankstatementconverter.com & Others: Honest 2026 Comparison",
+    excerpt: "Side-by-side comparison of ClearlyLedger against bankstatementconverter.com, DocuClipper, Nanonets, and generic PDF tools. Accuracy, balance verification, pricing, and audit readiness.",
+    date: "April 30, 2026",
+    category: "Comparison",
+    readTime: "14 min read",
+    featured: true
+  },
+  {
     slug: "rule-based-vs-ai-bank-statement-conversion",
     title: "How Hybrid AI Bank Statement Conversion Reaches 99%+ Accuracy",
     excerpt: "Pure rule engines miss new layouts. Pure AI hallucinates numbers. See how a hybrid rule + AI engine with built-in balance verification delivers 99%+ accuracy on real PDF bank statements — without trading away audit trails.",

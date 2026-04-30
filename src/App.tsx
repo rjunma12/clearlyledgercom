@@ -34,6 +34,9 @@ const BlogPostWhyBanksDontProvideCSV = lazy(() => import("./pages/blog/BlogPostW
 const BlogPostAustralia = lazy(() => import("./pages/blog/BlogPostAustralia"));
 const BlogPostRuleBasedVsAI = lazy(() => import("./pages/blog/BlogPostRuleBasedVsAI"));
 const BlogPostComparison = lazy(() => import("./pages/blog/BlogPostComparison"));
+const BlogPostConvertPdfGuide = lazy(() => import("./pages/blog/BlogPostConvertPdfGuide"));
+const BlogPostForAccountants = lazy(() => import("./pages/blog/BlogPostForAccountants"));
+const BlogPostCsvFormat = lazy(() => import("./pages/blog/BlogPostCsvFormat"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -110,6 +113,9 @@ const App = () => {
                   <Route path="/blog/australia-bank-statement-converter" element={<BlogPostAustralia />} />
                   <Route path="/blog/rule-based-vs-ai-bank-statement-conversion" element={<BlogPostRuleBasedVsAI />} />
                   <Route path="/blog/clearlyledger-vs-bankstatementconverter-comparison" element={<BlogPostComparison />} />
+                  <Route path="/blog/convert-pdf-bank-statement-to-excel-2026-guide" element={<BlogPostConvertPdfGuide />} />
+                  <Route path="/blog/bank-statement-converter-for-accountants" element={<BlogPostForAccountants />} />
+                  <Route path="/blog/bank-statement-to-csv-format-standards" element={<BlogPostCsvFormat />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
