@@ -92,11 +92,21 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
                 </Link>
               </li>
               <li>
-                <a 
-                  href="mailto:helppropsal@outlook.com" 
+                <a
+                  href="mailto:helppropsal@outlook.com"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   helppropsal@outlook.com
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/sitemap.xml"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Sitemap
                 </a>
               </li>
             </ul>
