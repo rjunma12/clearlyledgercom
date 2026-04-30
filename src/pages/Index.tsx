@@ -2,12 +2,12 @@ import { lazy, Suspense } from "react";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
-import PricingSection from "@/components/PricingSection";
-import Footer from "@/components/Footer";
 import DemoSkeleton from "@/components/DemoSkeleton";
 
-// Lazy load below-the-fold sections to shrink the initial JS bundle
-// and reduce the longest main-thread task (improves Max Potential FID).
+// Lazy load below-the-fold sections to shrink the initial JS bundle,
+// reduce the longest main-thread task, and improve Speed Index / LCP.
+const PricingSection = lazy(() => import("@/components/PricingSection"));
+const Footer = lazy(() => import("@/components/Footer"));
 const RegionStrip = lazy(() => import("@/components/RegionStrip"));
 const AdvantagesSection = lazy(() => import("@/components/AdvantagesSection"));
 const AccuracySection = lazy(() => import("@/components/AccuracySection"));
