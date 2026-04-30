@@ -70,6 +70,11 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
                 </Link>
               </li>
               <li>
+                <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Refund Policy
+                </Link>
+              </li>
+              <li>
                 <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Privacy Policy
                 </Link>

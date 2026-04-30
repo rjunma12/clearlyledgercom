@@ -69,10 +69,22 @@ const TermsOfService = () => {
           </div>
         </div>
 
-        <p className="text-muted-foreground leading-relaxed mb-10">
-          By using ClearlyLedger ("the Service") you agree to these terms. If you are using the Service on behalf of a
-          company or accounting firm, you agree to these terms on behalf of that organization.
+        <p className="text-muted-foreground leading-relaxed mb-6">
+          ClearlyLedger ("the Service") is operated by <strong className="text-foreground">Akshit Malik</strong>,
+          a sole proprietor based in India ("we", "us", "our"). By accessing or using the Service you agree to
+          these Terms of Service. If you are using the Service on behalf of a company or accounting firm, you
+          represent that you have authority to bind that organization and you agree to these terms on its behalf.
         </p>
+
+        {/* Paddle MoR disclosure — required by Paddle seller policy */}
+        <div className="mb-10 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground leading-relaxed">
+          <strong className="text-foreground">Reseller / Merchant of Record.</strong> Our order process is
+          conducted by our online reseller <a href="https://www.paddle.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Paddle.com</a>.
+          Paddle.com is the Merchant of Record for all our orders. Paddle provides all customer service inquiries
+          and handles returns. By completing a purchase you also agree to Paddle's{" "}
+          <a href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Buyer Terms</a>.
+        </div>
+
 
         <div className="space-y-10">
           {/* 1. The Service */}
@@ -122,25 +134,44 @@ const TermsOfService = () => {
 
           {/* 4. Subscription and Billing */}
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">4. Subscription and Billing</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-3">4. Subscription, Billing and Refunds</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>
-                <strong className="text-foreground">Free Plan:</strong> 5 pages/month, no payment required.
+                <strong className="text-foreground">Free Account:</strong> 6 pages / 24 hours, no payment required.
               </li>
               <li>
-                <strong className="text-foreground">Pro Plan:</strong> $36/month or $359/year, billed via Paddle.
+                <strong className="text-foreground">Starter:</strong> $15/month or $90/year — 400 pages/month.
               </li>
-              <li>All prices in USD; Paddle converts to local currency at checkout.</li>
-              <li>Subscriptions auto-renew until canceled.</li>
-              <li>Cancel anytime from the Manage Subscription portal.</li>
-              <li>Cancellation takes effect at the end of the current billing period.</li>
-              <li>Refunds are handled by Paddle on a case-by-case basis.</li>
               <li>
-                Prices may change with 30 days notice; existing subscribers retain their current rate until next
-                renewal.
+                <strong className="text-foreground">Professional:</strong> $30/month or $180/year — 1,500 pages/month.
+              </li>
+              <li>
+                <strong className="text-foreground">Business:</strong> $50/month or $300/year — 4,000 pages/month.
+              </li>
+              <li>
+                All payments, billing, currency conversion, taxes (VAT/GST/sales tax) and invoicing are processed by
+                Paddle as the Merchant of Record. Prices shown are inclusive of applicable taxes.
+              </li>
+              <li>Subscriptions auto-renew at the end of each billing period until canceled.</li>
+              <li>You can cancel anytime from the Manage Subscription portal; access continues until the end of the paid period.</li>
+              <li>
+                Refunds are governed by our{" "}
+                <Link to="/refund-policy" className="text-primary hover:underline">Refund Policy</Link>{" "}
+                and by Paddle's{" "}
+                <a href="https://www.paddle.com/legal/refund-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Refund Policy</a>.
+                Refund requests are handled directly by Paddle at{" "}
+                <a href="https://paddle.net" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">paddle.net</a>.
+              </li>
+              <li>
+                Prices may change with 30 days notice; existing subscribers retain their current rate until the next renewal.
+              </li>
+              <li>
+                Detailed payment, billing and consumer-protection mechanics are also covered by Paddle's{" "}
+                <a href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Buyer Terms</a>.
               </li>
             </ul>
           </section>
+
 
           {/* 5. Accuracy Disclaimer */}
           <section>
@@ -213,7 +244,7 @@ const TermsOfService = () => {
               <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary hover:underline">
                 {SUPPORT_EMAIL}
               </a>{" "}
-              to resolve any dispute. If unresolved, disputes will be subject to binding arbitration in [Your City],
+              to resolve any dispute. If unresolved, disputes will be subject to binding arbitration in New Delhi,
               India, under the Indian Arbitration and Conciliation Act 1996, conducted in English. Nothing in this
               clause prevents either party from seeking emergency injunctive relief in any competent court.
             </p>

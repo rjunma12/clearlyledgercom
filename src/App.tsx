@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 const NotFound = lazy(() => import("./pages/NotFound"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const DataProcessing = lazy(() => import("./pages/DataProcessing"));
 const Security = lazy(() => import("./pages/Security"));
 const Features = lazy(() => import("./pages/Features"));
@@ -90,6 +91,7 @@ const App = () => {
                    <Route path="/" element={<Index />} />
                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/refund-policy" element={<RefundPolicy />} />
                   <Route path="/data-processing" element={<DataProcessing />} />
                   <Route path="/security" element={<Security />} />
                   <Route path="/features" element={<Features />} />
