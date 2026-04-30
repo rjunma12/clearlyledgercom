@@ -186,8 +186,6 @@ export function useUsage(): UseUsageReturn {
   }, [refreshUsage]);
 
   useEffect(() => {
-    let didInit = false;
-
     const initAuth = async () => {
       setIsLoading(true);
 
@@ -200,7 +198,6 @@ export function useUsage(): UseUsageReturn {
 
       await fetchPlanAndUsage(currentUserId);
       setIsLoading(false);
-      didInit = true;
     };
 
     initAuth();
