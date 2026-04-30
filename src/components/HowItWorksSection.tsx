@@ -7,13 +7,13 @@ const steps = [
     number: "01",
     icon: Upload,
     title: "Upload Your Statements",
-    description: "Drag and drop PDF bank statements from any supported bank. We handle the rest.",
+    description: "Drag and drop PDF bank statements from any bank, in any country, in any language. We handle the rest.",
   },
   {
     number: "02",
     icon: Cog,
     title: "Automatic Processing",
-    description: "Our rule engine identifies the bank, applies the correct parser, and validates all balances.",
+    description: "Our AI reads the layout, extracts every transaction, and validates all balances automatically.",
   },
   {
     number: "03",
@@ -40,14 +40,14 @@ const HowItWorksSection = forwardRef<HTMLElement>((_, ref) => {
         "@type": "HowToStep",
         "position": 1,
         "name": "Upload Your Statements",
-        "text": "Drag and drop PDF bank statements from any supported bank. We handle the rest.",
+        "text": "Drag and drop PDF bank statements from any bank, in any country, in any language. We handle the rest.",
         "url": "https://clearlyledger.com/#how-it-works"
       },
       {
         "@type": "HowToStep",
         "position": 2,
         "name": "Automatic Processing",
-        "text": "Our rule engine identifies the bank, applies the correct parser, and validates all balances.",
+        "text": "Our AI reads the layout, extracts every transaction, and validates all balances automatically.",
         "url": "https://clearlyledger.com/#how-it-works"
       },
       {
