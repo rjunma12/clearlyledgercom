@@ -1,7 +1,16 @@
+# robots.txt for clearlyledger.com
+# Allow all major search and social crawlers full access to public pages
+
 User-agent: Googlebot
 Allow: /
 
+User-agent: Googlebot-Image
+Allow: /
+
 User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
 Allow: /
 
 User-agent: Twitterbot
@@ -10,10 +19,23 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# Default rules: allow public pages, block private / utility routes
 User-agent: *
 Allow: /
-Disallow: /dashboard
 Disallow: /login
 Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /dashboard
+Disallow: /admin/
+Disallow: /checkout/
+Disallow: /upgrade/
 
+# Sitemap
 Sitemap: https://clearlyledger.com/sitemap.xml
