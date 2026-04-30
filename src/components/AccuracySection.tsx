@@ -1,28 +1,29 @@
-import { Grid3x3, Sparkles, ShieldCheck } from "lucide-react";
+import { Sparkles, CheckSquare, ShieldCheck, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const TEAL = "#1D9E75";
 
 const steps = [
   {
     number: "01",
-    icon: Grid3x3,
-    title: "Rule-based engine",
+    icon: Sparkles,
+    title: "AI-powered universal parsing",
     description:
-      "Every supported bank has a precision parsing profile built from real statement data. Column positions, date formats, and layout rules are mapped exactly — no guessing.",
+      "Our AI reads and understands bank statement layouts from any bank, in any country, in any language — automatically. No manual setup, no bank list to check.",
   },
   {
     number: "02",
-    icon: Sparkles,
-    title: "AI verification layer",
+    icon: CheckSquare,
+    title: "Confidence verification on every row",
     description:
-      "When any row falls below our confidence threshold, our AI layer steps in to verify and correct it. The same row that would silently fail in a basic converter gets caught, fixed, and flagged.",
+      "Every extracted row is scored for confidence. Any row below our threshold is automatically re-examined and corrected by the AI before it reaches your spreadsheet.",
   },
   {
     number: "03",
     icon: ShieldCheck,
-    title: "Balance verification on every conversion",
+    title: "Balance reconciliation on every conversion",
     description:
-      "Every conversion runs a final balance check: opening balance + credits − debits = closing balance. If the numbers don't reconcile, we tell you before you download — never after.",
+      "Every conversion runs a final check: opening balance + credits − debits = closing balance. You get a VERIFIED / DISCREPANCY / FAILED status before you download — never after.",
   },
 ];
 
@@ -39,7 +40,7 @@ const AccuracySection = () => {
             id="accuracy-heading"
             className="font-display text-3xl sm:text-4xl font-bold text-foreground"
           >
-            Built for accuracy, not just speed.
+            99% accuracy. Every bank. Every language. Powered by AI.
           </h2>
         </div>
 
@@ -76,13 +77,32 @@ const AccuracySection = () => {
           })}
         </div>
 
-        <div className="max-w-3xl mx-auto mt-12 sm:mt-16 text-center">
+        <div className="max-w-3xl mx-auto mt-12 sm:mt-16 text-center space-y-4">
           <p className="text-base sm:text-lg font-semibold text-foreground leading-relaxed">
-            The result: 99%+ accuracy on supported banks, with a{" "}
-            <span style={{ color: TEAL }}>VERIFIED</span> /{" "}
-            <span className="text-amber-500">DISCREPANCY</span> /{" "}
-            <span className="text-destructive">FAILED</span> status on every
-            conversion so you always know where you stand.
+            The result: 99%+ accuracy on any bank statement from any country —
+            with a clear verification status on every single conversion.
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Works with any bank worldwide — major nationals, regional banks,
+            credit unions, and Islamic banks — in any language including Arabic,
+            Hindi, Chinese, French, Spanish, and more.
+          </p>
+          <p
+            className="flex items-center justify-center gap-1.5 text-[13px] leading-relaxed"
+            style={{ color: "#9C9A92" }}
+          >
+            <Lock className="w-3 h-3" aria-hidden="true" />
+            <span>
+              Your statement is processed in memory and permanently deleted the
+              moment conversion completes. We{" "}
+              <Link
+                to="/privacy"
+                className="underline underline-offset-2 hover:text-foreground transition-colors"
+              >
+                never store your transactions
+              </Link>
+              .
+            </span>
           </p>
         </div>
       </div>

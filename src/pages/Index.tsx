@@ -35,8 +35,8 @@ const homepageFaqs = [
     answer: "Anonymous users can convert 1 page per 24 hours. Free registered accounts get 5 pages daily. Paid plans (Starter, Professional, Business) offer higher page limits. All paid plans include a 14-day money-back guarantee."
   },
   {
-    question: "Does ClearlyLedger work with Indian and international bank statements?",
-    answer: "Yes! We support 50+ countries and 200+ banks including major Indian banks (SBI, HDFC, ICICI, Axis), US banks, UK banks, European banks, and many more. Our multi-region engine handles local date formats and currency conventions."
+    question: "Which banks do you support?",
+    answer: "All of them. ClearlyLedger works with any bank in any country in any language — powered by AI. There is no supported bank list. If it's a bank statement PDF, we can convert it."
   },
   {
     question: "What is PII masking in bank statement conversion?",
