@@ -15,17 +15,14 @@ const HeroSection = forwardRef<HTMLElement>((_, ref) => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Headline */}
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-slide-up text-balance">
+          {/* Headline — rendered without entrance animation so it paints immediately (LCP candidate) */}
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 text-balance">
             Convert Bank Statements to Excel —{" "}
             <span className="gradient-text">Fast and Accurate</span>
           </h1>
 
-          {/* Subheadline */}
-          <p
-            className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-slide-up text-balance"
-            style={{ animationDelay: "0.1s" }}
-          >
+          {/* Subheadline — rendered without entrance animation so it paints immediately (LCP element) */}
+          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-balance">
             Simple, secure, and built for regular use.
           </p>
 
