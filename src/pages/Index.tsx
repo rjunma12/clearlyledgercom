@@ -194,7 +194,9 @@ const Index = () => {
           <CTASection />
         </Suspense>
       </main>
-      <Footer />
+      <Suspense fallback={<SectionFallback className="py-12" />}>
+        <Footer />
+      </Suspense>
     </div>
   );
 };
