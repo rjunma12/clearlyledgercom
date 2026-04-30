@@ -1,7 +1,7 @@
 import { Sparkles, CheckSquare, ShieldCheck, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const TEAL = "#1D9E75";
+const TEAL = "#0C8A5D";
 
 const steps = [
   {

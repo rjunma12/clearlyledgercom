@@ -27,7 +27,7 @@ const RegionStrip = () => {
             </span>
           </span>
         ))}
-        <span className="font-medium" style={{ color: "#1D9E75" }}>
+        <span className="font-medium" style={{ color: "#0C8A5D" }}>
           100+ countries
         </span>
       </div>
