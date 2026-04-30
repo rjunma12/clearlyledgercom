@@ -113,6 +113,9 @@ const App = () => {
                   <Route path="/blog/australia-bank-statement-converter" element={<BlogPostAustralia />} />
                   <Route path="/blog/rule-based-vs-ai-bank-statement-conversion" element={<BlogPostRuleBasedVsAI />} />
                   <Route path="/blog/clearlyledger-vs-bankstatementconverter-comparison" element={<BlogPostComparison />} />
+                  <Route path="/blog/convert-pdf-bank-statement-to-excel-2026-guide" element={<BlogPostConvertPdfGuide />} />
+                  <Route path="/blog/bank-statement-converter-for-accountants" element={<BlogPostForAccountants />} />
+                  <Route path="/blog/bank-statement-to-csv-format-standards" element={<BlogPostCsvFormat />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
