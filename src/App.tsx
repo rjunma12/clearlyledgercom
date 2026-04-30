@@ -40,7 +40,9 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Contact = lazy(() => import("./pages/Contact"));
 const About = lazy(() => import("./pages/About"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const UpgradeSuccess = lazy(() => import("./pages/UpgradeSuccess"));
 const BankProfilesAdmin = lazy(() => import("./pages/admin/BankProfiles"));
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,6 +83,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <PaymentTestModeBanner />
               <ScrollToTop />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
@@ -111,6 +114,7 @@ const App = () => {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/checkout/success" element={<CheckoutSuccess />} />
+                  <Route path="/upgrade/success" element={<UpgradeSuccess />} />
                   <Route path="/admin/bank-profiles" element={<BankProfilesAdmin />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
