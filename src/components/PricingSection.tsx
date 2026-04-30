@@ -20,14 +20,10 @@ const PLAN_PRICING: Record<string, PlanPricing> = {
   business: { monthly: 50, annual: 500, monthlyPages: 4000, annualPages: 48000 },
 };
 
-const DODO_CHECKOUT_URLS: Record<string, string> = {
-  starter: 'https://checkout.dodopayments.com/buy/pdt_0NXbRQzmQzNOnmObfjYOY',
-  starter_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbh4iiiPhfpmhLbwg4l',
-  pro: 'https://checkout.dodopayments.com/buy/pdt_0NXbRMq3TvlNcCzwLPfMt',
-  pro_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b',
-  business: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b',
-  business_annual: 'https://checkout.dodopayments.com/buy/pdt_0NXbhGZNYqR0WbT4RcS6b',
-};
+// Checkout URLs are intentionally empty after the legacy payment provider was
+// removed. Paddle Billing integration (Step 9) will replace this map with
+// Paddle price IDs and trigger Paddle.Checkout.open() instead of a redirect.
+const CHECKOUT_URLS: Record<string, string> = {};
 
 function getPlanDetails(basePlan: string, billingInterval: BillingInterval) {
   const pricing = PLAN_PRICING[basePlan];
@@ -42,7 +38,7 @@ function getPlanDetails(basePlan: string, billingInterval: BillingInterval) {
       ? `${pricing.annualPages.toLocaleString()} pages/year` 
       : `${pricing.monthlyPages.toLocaleString()} pages/month`,
     planKey,
-    checkoutUrl: DODO_CHECKOUT_URLS[planKey],
+    checkoutUrl: CHECKOUT_URLS[planKey],
     monthlyEquivalent: isAnnual ? Math.round(pricing.annual / 12) : null,
   };
 }
