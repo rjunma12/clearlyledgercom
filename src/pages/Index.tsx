@@ -165,7 +165,9 @@ const Index = () => {
         <Suspense fallback={<SectionFallback className="py-20" />}>
           <AdvantagesSection />
         </Suspense>
-        <PricingSection variant="simplified" />
+        <Suspense fallback={<SectionFallback className="py-24" />}>
+          <PricingSection variant="simplified" />
+        </Suspense>
         <Suspense fallback={<DemoSkeleton />}>
           <InteractiveDemo />
         </Suspense>
