@@ -70,6 +70,8 @@ const PageLoader = () => (
 );
 
 const App = () => {
+  const [toastsReady, setToastsReady] = useState(false);
+
   // Register service worker for offline PDF processing
   useEffect(() => {
     if (import.meta.env.PROD) {
@@ -81,13 +83,28 @@ const App = () => {
     }
   }, []);
 
+  // Defer toaster portals until after first paint to avoid forced reflows
+  // during the initial commit phase.
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    const schedule = w.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200));
+    const id = schedule(() => setToastsReady(true));
+    return () => {
+      if (typeof id === 'number') clearTimeout(id);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <UsageProvider>
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
+            {toastsReady && (
+              <Suspense fallback={null}>
+                <Toaster />
+                <Sonner />
+              </Suspense>
+            )}
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <PaymentTestModeBanner />
               <ScrollToTop />
