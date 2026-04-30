@@ -14,7 +14,7 @@ import { requestLogger } from './middleware/requestLogger.js';
 import jobsRouter from './routes/jobs.js';
 import pdfRouter, { multerErrorHandler } from './routes/pdf.js';
 import bankProfilesRouter from './routes/bankProfiles.js';
-// Payment webhooks are handled by the Railway backend, not this server.
+import paddleWebhookRouter from './webhooks/paddle.js';
 
 // =============================================================================
 // EXPRESS SETUP
@@ -30,6 +30,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
+
+// Paddle webhook MUST be mounted before express.json() so the raw body is
+// available for signature verification. The router applies its own
+// express.raw() parser scoped to /webhooks/paddle only.
+app.use('/webhooks', paddleWebhookRouter);
 
 app.use(express.json({ limit: '1mb' }));
 
