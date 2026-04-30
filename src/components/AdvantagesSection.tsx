@@ -32,9 +32,9 @@ const AdvantagesSection = forwardRef<HTMLElement>((_, ref) => {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <advantage.icon className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="font-display text-lg font-semibold text-foreground mb-2">
+              <h2 className="font-display text-lg font-semibold text-foreground mb-2">
                 {advantage.title}
-              </h3>
+              </h2>
               <p className="text-sm text-muted-foreground">
                 {advantage.description}
               </p>

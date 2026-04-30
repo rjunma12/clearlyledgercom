@@ -25,7 +25,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
 
           {/* Product */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Product</h4>
+            <h2 className="font-semibold text-foreground mb-4">Product</h2>
             <ul className="space-y-3">
               <li>
                 <Link to="/features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -47,7 +47,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Company</h4>
+            <h2 className="font-semibold text-foreground mb-4">Company</h2>
             <ul className="space-y-3">
               <li>
                 <Link to="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -84,7 +84,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
 
           {/* Support */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Support</h4>
+            <h2 className="font-semibold text-foreground mb-4">Support</h2>
             <ul className="space-y-3">
               <li>
                 <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
