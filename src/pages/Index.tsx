@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import RegionStrip from "@/components/RegionStrip";
 import AdvantagesSection from "@/components/AdvantagesSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
@@ -151,6 +152,7 @@ const Index = () => {
       <Navbar />
       <main>
         <HeroSection />
+        <RegionStrip />
         <AdvantagesSection />
         <PricingSection variant="simplified" />
         <Suspense fallback={<DemoSkeleton />}>
