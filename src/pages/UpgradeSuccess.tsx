@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, Loader2, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-type Status = "polling" | "success" | "timeout" | "error";
+type Status = "polling" | "success" | "timeout";
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 30_000;
@@ -21,19 +22,24 @@ const PLAN_DISPLAY: Record<string, string> = {
   business_annual: "Business (Annual)",
 };
 
-const PAID_PLANS = new Set(["starter", "pro", "business"]);
+// A subscription row "matches" if its plan name equals the expected key,
+// or shares the same tier (monthly/annual variant of the same product).
+function matchesExpectedPlan(planName: string, expectedKey: string): boolean {
+  if (!expectedKey) return true; // no expectation passed — accept any paid plan
+  if (planName === expectedKey) return true;
+  return planName.replace(/_annual$/, "") === expectedKey.replace(/_annual$/, "");
+}
 
 const UpgradeSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<Status>("polling");
-  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [activePlanName, setActivePlanName] = useState<string | null>(null);
   const stoppedRef = useRef(false);
 
   const expectedPlanKey = searchParams.get("plan") || "";
 
   useEffect(() => {
-    const railwayUrl = import.meta.env.VITE_RAILWAY_API_URL as string | undefined;
     const startedAt = Date.now();
     let timer: number | undefined;
 
@@ -52,39 +58,33 @@ const UpgradeSuccess = () => {
           return;
         }
 
-        if (!railwayUrl) {
-          // No backend URL configured — show timeout copy immediately.
-          setStatus("timeout");
-          stop();
-          return;
-        }
+        // Look for the most recent active subscription for this user.
+        // Webhook (Railway) writes the row after Paddle confirms payment.
+        const { data, error } = await supabase
+          .from("user_subscriptions")
+          .select("status, plans:plan_id (name)")
+          .eq("user_id", session.user.id)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        const url = `${railwayUrl.replace(/\/$/, "")}/usage/${session.user.id}`;
-        const res = await fetch(url, {
-          headers: { Accept: "application/json" },
-        });
-
-        if (res.ok) {
-          const json = await res.json();
-          // Accept either { plan } or { plan_key } from Railway
-          const plan: string | undefined = json?.plan ?? json?.plan_key;
-          if (plan) setCurrentPlan(plan);
-
-          const isUpgraded = plan && (
-            plan === expectedPlanKey ||
-            // Tolerate annual/monthly variants of same tier
-            plan.replace(/_annual$/, "") === expectedPlanKey.replace(/_annual$/, "") &&
-              PAID_PLANS.has(plan.replace(/_annual$/, ""))
-          );
-
-          if (isUpgraded) {
+        if (!error && data) {
+          const planName = (data as { plans: { name: string } | null }).plans?.name;
+          if (planName && matchesExpectedPlan(planName, expectedPlanKey)) {
+            setActivePlanName(planName);
             setStatus("success");
             stop();
+            // Show toast and redirect to dashboard after a short pause so the
+            // user sees the confirmation state.
+            toast.success("Subscription active. Welcome aboard!");
+            window.setTimeout(() => navigate("/dashboard"), 1500);
             return;
           }
         }
       } catch (err) {
-        console.error("Subscription poll error:", err);
+        // Silent — we'll just retry on the next tick.
+        if (import.meta.env.DEV) console.error("Subscription poll error:", err);
       }
 
       if (Date.now() - startedAt >= POLL_TIMEOUT_MS) {
@@ -100,7 +100,10 @@ const UpgradeSuccess = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expectedPlanKey]);
 
-  const planLabel = PLAN_DISPLAY[expectedPlanKey] || expectedPlanKey || "your new plan";
+  const planLabel =
+    PLAN_DISPLAY[activePlanName ?? expectedPlanKey] ||
+    expectedPlanKey ||
+    "your new plan";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -126,7 +129,7 @@ const UpgradeSuccess = () => {
               <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
               <h1 className="mt-6 text-2xl font-semibold">You're on {planLabel}</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Your plan is active{currentPlan ? ` (${currentPlan})` : ""}. Enjoy the new limits.
+                Your plan is active. Redirecting you to your dashboard…
               </p>
               <Button asChild className="mt-6 w-full">
                 <Link to="/dashboard">
