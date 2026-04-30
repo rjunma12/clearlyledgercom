@@ -2,20 +2,26 @@ import { lazy, Suspense } from "react";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
-import RegionStrip from "@/components/RegionStrip";
-import AdvantagesSection from "@/components/AdvantagesSection";
-import AccuracySection from "@/components/AccuracySection";
-import FeaturesSection from "@/components/FeaturesSection";
-import HowItWorksSection from "@/components/HowItWorksSection";
 import PricingSection from "@/components/PricingSection";
 import Footer from "@/components/Footer";
 import DemoSkeleton from "@/components/DemoSkeleton";
 
-// Lazy load heavy components that are below the fold
+// Lazy load below-the-fold sections to shrink the initial JS bundle
+// and reduce the longest main-thread task (improves Max Potential FID).
+const RegionStrip = lazy(() => import("@/components/RegionStrip"));
+const AdvantagesSection = lazy(() => import("@/components/AdvantagesSection"));
+const AccuracySection = lazy(() => import("@/components/AccuracySection"));
+const FeaturesSection = lazy(() => import("@/components/FeaturesSection"));
+const HowItWorksSection = lazy(() => import("@/components/HowItWorksSection"));
 const InteractiveDemo = lazy(() => import("@/components/InteractiveDemo"));
 const SecuritySection = lazy(() => import("@/components/SecuritySection"));
 const CTASection = lazy(() => import("@/components/CTASection"));
 const FAQSection = lazy(() => import("@/components/FAQSection"));
+
+// Lightweight skeleton placeholder that preserves vertical rhythm
+const SectionFallback = ({ className = "py-16" }: { className?: string }) => (
+  <div className={`${className} animate-pulse bg-surface-elevated/30`} aria-hidden="true" />
+);
 
 const homepageFaqs = [
   {
@@ -153,26 +159,36 @@ const Index = () => {
       <Navbar />
       <main>
         <HeroSection />
-        <RegionStrip />
-        <AdvantagesSection />
+        <Suspense fallback={<SectionFallback className="py-8" />}>
+          <RegionStrip />
+        </Suspense>
+        <Suspense fallback={<SectionFallback className="py-20" />}>
+          <AdvantagesSection />
+        </Suspense>
         <PricingSection variant="simplified" />
         <Suspense fallback={<DemoSkeleton />}>
           <InteractiveDemo />
         </Suspense>
-        <FeaturesSection />
-        <AccuracySection />
-        <HowItWorksSection />
-        <Suspense fallback={<div className="py-16 animate-pulse bg-surface-elevated/30" />}>
-          <FAQSection 
+        <Suspense fallback={<SectionFallback className="py-20" />}>
+          <FeaturesSection />
+        </Suspense>
+        <Suspense fallback={<SectionFallback className="py-20" />}>
+          <AccuracySection />
+        </Suspense>
+        <Suspense fallback={<SectionFallback className="py-20" />}>
+          <HowItWorksSection />
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <FAQSection
             faqs={homepageFaqs}
             title="Frequently Asked Questions"
             description="Quick answers to common questions about bank statement conversion."
           />
         </Suspense>
-        <Suspense fallback={<div className="py-24 animate-pulse bg-surface-elevated/50" />}>
+        <Suspense fallback={<SectionFallback className="py-24" />}>
           <SecuritySection />
         </Suspense>
-        <Suspense fallback={<div className="py-24 animate-pulse" />}>
+        <Suspense fallback={<SectionFallback className="py-24" />}>
           <CTASection />
         </Suspense>
       </main>
