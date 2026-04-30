@@ -9,8 +9,8 @@ const securityFeatures = [
   },
   {
     icon: Trash2,
-    title: "Auto-Delete",
-    description: "Uploaded files are automatically deleted within 24 hours. You can also delete manually at any time.",
+    title: "0-Second Retention",
+    description: "Your PDF is processed in memory and permanently deleted the moment your conversion is complete. We never store your bank statements.",
   },
   {
     icon: Lock,
