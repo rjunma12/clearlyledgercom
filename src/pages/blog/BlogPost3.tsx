@@ -99,7 +99,7 @@ const BlogPost3 = () => {
               <div>
                 <p className="font-medium text-foreground mb-1">TL;DR</p>
                 <p className="text-sm text-muted-foreground">
-                  When converting bank statements, choose tools that use HTTPS encryption, delete files immediately after processing, never train AI on your data, and offer optional PII masking. Avoid services with vague privacy policies or persistent file storage.
+                  When converting bank statements, choose tools that use HTTPS encryption, delete files immediately after processing, don't share your data with third parties, and offer optional PII masking. Avoid services with vague privacy policies or persistent file storage.
                 </p>
               </div>
             </div>
@@ -133,7 +133,6 @@ const BlogPost3 = () => {
             <ul>
               <li><strong>Data retention:</strong> Some services keep copies of your files indefinitely</li>
               <li><strong>Third-party sharing:</strong> Your data might be sold or shared with partners</li>
-              <li><strong>AI training:</strong> Documents may be used to train machine learning models</li>
               <li><strong>Security breaches:</strong> Stored data is vulnerable to hacking</li>
               <li><strong>Unclear policies:</strong> Vague terms of service hide actual practices</li>
             </ul>
@@ -146,7 +145,7 @@ const BlogPost3 = () => {
               <li><strong>No persistent storage:</strong> Files exist only during processing</li>
               <li><strong>Automatic deletion:</strong> Documents are removed immediately after conversion</li>
               <li><strong>No data mining:</strong> Content is never analyzed for other purposes</li>
-              <li><strong>No AI training:</strong> Your documents don't train any models</li>
+              <li><strong>Single-use processing:</strong> Your file is used only to generate your export</li>
               <li><strong>Transparent policies:</strong> Clear explanation of data handling</li>
             </ul>
             <p>
@@ -197,7 +196,7 @@ const BlogPost3 = () => {
             <ul>
               <li><strong>Choose tools with no data retention:</strong> Files should be deleted immediately after processing</li>
               <li><strong>Verify HTTPS encryption:</strong> Look for the padlock icon when uploading</li>
-              <li><strong>Avoid AI training risks:</strong> Your documents shouldn't train machine learning models</li>
+              <li><strong>Demand single-use processing:</strong> Your file should be used only to produce your export, not shared or resold</li>
               <li><strong>Use PII masking when sharing:</strong> Anonymize sensitive data before sending to others</li>
               <li><strong>Read privacy policies carefully:</strong> Understand exactly how your data is handled</li>
             </ul>

@@ -136,7 +136,6 @@ const PrivacyPolicy = () => {
             <h2 className="text-xl font-semibold text-foreground mb-3">3. What We Do Not Do</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>We do not sell your data to any third party.</li>
-              <li>We do not use your financial data to train AI models that benefit other parties.</li>
               <li>We do not share your transactions with anyone.</li>
               <li>We do not retain your bank statements after conversion.</li>
               <li>We do not have access to your bank accounts.</li>

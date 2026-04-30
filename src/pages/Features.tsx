@@ -78,11 +78,11 @@ const Features = () => {
     {
       icon: Shield,
       title: "Privacy-First Processing",
-      description: "Files are processed securely and deleted after conversion. No reuse, resale, or training on your documents.",
+      description: "Files are processed securely and deleted after conversion. Used only to produce your output — never shared or resold.",
       points: [
         "Automatic file deletion after processing",
         "No data shared with third parties",
-        "Rule-based processing—no AI training"
+        "Hybrid rule + AI engine for 99%+ accuracy"
       ]
     },
     {
