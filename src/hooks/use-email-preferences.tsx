@@ -118,7 +118,11 @@ export function useEmailPreferences(): UseEmailPreferencesReturn {
       
       if (!user) return false;
 
-      const updateData: Record<string, boolean> = {};
+      const updateData: {
+        usage_alerts?: boolean;
+        feature_announcements?: boolean;
+        marketing?: boolean;
+      } = {};
       if (prefs.usageAlerts !== undefined) updateData.usage_alerts = prefs.usageAlerts;
       if (prefs.featureAnnouncements !== undefined) updateData.feature_announcements = prefs.featureAnnouncements;
       if (prefs.marketing !== undefined) updateData.marketing = prefs.marketing;
