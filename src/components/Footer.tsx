@@ -103,7 +103,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} ClearlyLedger. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <Lock className="w-3.5 h-3.5" />
               TLS 1.3 Encrypted
@@ -111,6 +111,10 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
             <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <Shield className="w-3.5 h-3.5" />
               GDPR Aligned
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Shield className="w-3.5 h-3.5" />
+              PII never stored — GDPR &amp; DPDPA compliant
             </span>
           </div>
         </div>
