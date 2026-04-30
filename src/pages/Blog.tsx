@@ -13,7 +13,7 @@ const blogPosts = [
     excerpt: "Comprehensive comparison of rule-based and AI-based bank statement conversion. Learn which approach delivers better accuracy, compliance, and cost-effectiveness for fintech, accounting, and enterprise use cases.",
     date: "February 4, 2026",
     category: "Thought Leadership",
-    readTime: "15 min read",
+    readTime: "17 min read",
     featured: true
   },
   {
