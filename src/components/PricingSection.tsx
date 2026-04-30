@@ -1,17 +1,76 @@
 import { useState } from "react";
-import { Check, FileText, Globe, Shield, Sparkles, X } from "lucide-react";
+import { Check, Globe, Shield, Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { useCheckout } from "@/hooks/use-checkout";
+import { useCheckout, type PlanName } from "@/hooks/use-checkout";
 
 type BillingInterval = "monthly" | "annual";
 
-const PRO_MONTHLY_PRICE = 36;
-const PRO_ANNUAL_PRICE = 359;
-const PRO_ANNUAL_MONTHLY_EQUIVALENT = 30;
-const ANNUAL_SAVINGS_PERCENT = 17;
+interface PaidTier {
+  key: string;
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  monthlyPlanKey: PlanName;
+  annualPlanKey: PlanName;
+  popular?: boolean;
+  features: string[];
+}
+
+const PAID_TIERS: PaidTier[] = [
+  {
+    key: "starter",
+    name: "Starter",
+    description: "For occasional conversions",
+    monthlyPrice: 15,
+    annualPrice: 90,
+    monthlyPlanKey: "starter",
+    annualPlanKey: "starter_annual",
+    features: [
+      "400 pages per month",
+      "CSV + Excel export",
+      "Works with any bank worldwide",
+      "Single file upload",
+      "Email support",
+    ],
+  },
+  {
+    key: "professional",
+    name: "Professional",
+    description: "For accountants and bookkeepers",
+    monthlyPrice: 30,
+    annualPrice: 180,
+    monthlyPlanKey: "pro",
+    annualPlanKey: "pro_annual",
+    popular: true,
+    features: [
+      "1,500 pages per month",
+      "CSV + Excel export",
+      "Batch upload up to 50 files",
+      "Transaction categorization",
+      "Priority email support",
+    ],
+  },
+  {
+    key: "business",
+    name: "Business",
+    description: "For finance teams and firms",
+    monthlyPrice: 50,
+    annualPrice: 300,
+    monthlyPlanKey: "business",
+    annualPlanKey: "business_annual",
+    features: [
+      "4,000 pages per month",
+      "CSV + Excel export",
+      "Batch upload up to 50 files",
+      "Transaction categorization",
+      "Priority support + onboarding",
+    ],
+  },
+];
 
 interface PricingSectionProps {
   variant?: "full" | "simplified";
@@ -22,9 +81,6 @@ const PricingSection = ({ variant = "full" }: PricingSectionProps) => {
   const { initiateCheckout, isLoading, loadingPlan } = useCheckout();
 
   const isAnnual = billingInterval === "annual";
-  const proPlanKey = isAnnual ? "pro_annual" : "pro";
-  const proPrice = isAnnual ? PRO_ANNUAL_PRICE : PRO_MONTHLY_PRICE;
-  const proPeriod = isAnnual ? "/year" : "/month";
 
   return (
     <section id="pricing" className="py-24 relative">
@@ -40,7 +96,8 @@ const PricingSection = ({ variant = "full" }: PricingSectionProps) => {
             Simple pricing. Works worldwide.
           </h2>
           <p className="text-lg text-muted-foreground">
-            Start free. Upgrade to Pro for unlimited conversions. All prices in USD.
+            Try it free with no signup. Create a free account for more pages, or pick a paid
+            plan when you need volume. All prices in USD, inclusive of applicable taxes.
           </p>
         </div>
 
@@ -68,33 +125,25 @@ const PricingSection = ({ variant = "full" }: PricingSectionProps) => {
             >
               Annual
               <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                Save {ANNUAL_SAVINGS_PERCENT}%
+                Save 50%
               </span>
             </span>
           </div>
         )}
 
-        {/* Two-tier grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {/* Free */}
-          <div className="glass-card p-8 flex flex-col">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-display text-xl font-bold text-foreground">Free</h3>
+        {/* Free tiers row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+          {/* Anonymous Free */}
+          <div className="glass-card p-6 flex flex-col">
+            <h3 className="font-display text-lg font-bold text-foreground mb-1">Try it free</h3>
+            <p className="text-sm text-muted-foreground mb-4">No signup required</p>
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className="font-display text-3xl font-bold text-foreground">$0</span>
             </div>
-            <p className="text-sm text-muted-foreground mb-5">
-              For trying out ClearlyLedger
-            </p>
-
-            <div className="flex items-baseline gap-1 mb-1">
-              <span className="font-display text-4xl font-bold text-foreground">$0</span>
-              <span className="text-muted-foreground">/month</span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-6">No credit card required</p>
-
-            <ul className="space-y-3 mb-8 text-sm text-muted-foreground flex-1">
+            <ul className="space-y-2 mb-6 text-sm text-muted-foreground flex-1">
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>5 pages per month</span>
+                <span>1 page every 24 hours</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -102,138 +151,145 @@ const PricingSection = ({ variant = "full" }: PricingSectionProps) => {
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Works with any bank (AI-powered for unknown banks)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Single file upload</span>
-              </li>
-              <li className="flex items-start gap-2 opacity-60">
-                <X className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                <span>Excel export</span>
-              </li>
-              <li className="flex items-start gap-2 opacity-60">
-                <X className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                <span>Batch upload</span>
+                <span>Works with any bank worldwide</span>
               </li>
             </ul>
-
-            <Link to="/signup" className="mt-auto">
+            <Link to="/" className="mt-auto">
               <Button variant="outline" className="w-full">
-                Try it free
+                Convert a PDF now
               </Button>
             </Link>
           </div>
 
-          {/* Pro */}
-          <div className="glass-card p-8 border-2 border-primary/50 glow-primary relative flex flex-col">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
-                <Sparkles className="w-3 h-3" />
-                Most popular
-              </div>
+          {/* Registered Free */}
+          <div className="glass-card p-6 flex flex-col">
+            <h3 className="font-display text-lg font-bold text-foreground mb-1">Free account</h3>
+            <p className="text-sm text-muted-foreground mb-4">Signup required</p>
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className="font-display text-3xl font-bold text-foreground">$0</span>
             </div>
-
-            <div className="flex items-center gap-2 mb-2 mt-2">
-              <h3 className="font-display text-xl font-bold text-foreground">Pro</h3>
-            </div>
-            <p className="text-sm text-muted-foreground mb-5">
-              For accountants, bookkeepers, and finance teams
-            </p>
-
-            <div className="flex items-baseline gap-1 mb-1">
-              <span className="font-display text-4xl font-bold text-foreground">${proPrice}</span>
-              <span className="text-muted-foreground">{proPeriod}</span>
-            </div>
-            {isAnnual ? (
-              <p className="text-xs text-primary mb-6">
-                ${PRO_ANNUAL_MONTHLY_EQUIVALENT}/mo effective · Save {ANNUAL_SAVINGS_PERCENT}%
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground mb-6">Cancel anytime</p>
-            )}
-
-            <ul className="space-y-3 mb-6 text-sm text-muted-foreground flex-1">
-              <li className="flex items-start gap-2 text-foreground font-medium">
+            <ul className="space-y-2 mb-6 text-sm text-muted-foreground flex-1">
+              <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Unlimited pages</span>
+                <span>6 pages every 24 hours</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>All banks worldwide — known profiles and AI-powered fallback</span>
-              </li>
-              <li className="flex items-start gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Excel + CSV export</span>
-              </li>
-              <li className="flex items-start gap-2 text-foreground font-medium">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Batch upload up to 50 files at once</span>
+                <span>CSV + Excel export</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Basic transaction categorization</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Priority email support</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span>Cancel anytime</span>
+                <span>Conversion history saved</span>
               </li>
             </ul>
-
-            <p className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-              <Globe className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span>
-                Supports banks from the US, UK, India, Australia, Canada, UAE, Singapore, Europe,
-                and 100+ countries worldwide.
-              </span>
-            </p>
-
-            <Button
-              variant="hero"
-              className="w-full mt-auto"
-              onClick={() => initiateCheckout(proPlanKey)}
-              disabled={isLoading && loadingPlan === proPlanKey}
-            >
-              {isLoading && loadingPlan === proPlanKey ? "Starting checkout…" : "Upgrade to Pro"}
-            </Button>
+            <Link to="/signup" className="mt-auto">
+              <Button variant="outline" className="w-full">
+                Create free account
+              </Button>
+            </Link>
           </div>
+        </div>
+
+        {/* Paid tiers grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {PAID_TIERS.map((tier) => {
+            const planKey = isAnnual ? tier.annualPlanKey : tier.monthlyPlanKey;
+            const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
+            const period = isAnnual ? "/year" : "/month";
+            const monthlyEquivalent = isAnnual ? Math.round(tier.annualPrice / 12) : null;
+
+            return (
+              <div
+                key={tier.key}
+                className={cn(
+                  "glass-card p-8 flex flex-col relative",
+                  tier.popular && "border-2 border-primary/50 glow-primary"
+                )}
+              >
+                {tier.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-[hsl(185,84%,45%)] text-xs font-semibold text-primary-foreground">
+                      <Sparkles className="w-3 h-3" />
+                      Most popular
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mb-2 mt-2">
+                  <h3 className="font-display text-xl font-bold text-foreground">{tier.name}</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-5">{tier.description}</p>
+
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="font-display text-4xl font-bold text-foreground">${price}</span>
+                  <span className="text-muted-foreground">{period}</span>
+                </div>
+                {isAnnual ? (
+                  <p className="text-xs text-primary mb-2">
+                    ${monthlyEquivalent}/mo effective · Save 50%
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mb-2">Cancel anytime</p>
+                )}
+                <p className="text-xs text-muted-foreground mb-6">
+                  All prices inclusive of applicable taxes.
+                </p>
+
+                <ul className="space-y-3 mb-8 text-sm text-muted-foreground flex-1">
+                  {tier.features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  variant={tier.popular ? "hero" : "outline"}
+                  className="w-full mt-auto"
+                  onClick={() => initiateCheckout(planKey)}
+                  disabled={isLoading && loadingPlan === planKey}
+                >
+                  {isLoading && loadingPlan === planKey
+                    ? "Starting checkout…"
+                    : `Get ${tier.name}`}
+                </Button>
+              </div>
+            );
+          })}
         </div>
 
         {/* Pricing footnote */}
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Prices in USD. Local currency and taxes calculated at checkout.
+          Prices in USD, inclusive of applicable taxes. Paddle is our Merchant of Record and
+          handles VAT, GST, and sales tax in 200+ countries.
         </p>
 
         {/* Feature comparison table - full variant only */}
         {variant === "full" && (
-          <div className="max-w-4xl mx-auto mt-16">
+          <div className="max-w-5xl mx-auto mt-16">
             <h3 className="font-display text-2xl font-bold text-foreground text-center mb-6">
-              Compare features
+              Compare paid plans
             </h3>
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="text-left p-4 font-medium text-foreground">Feature</th>
-                    <th className="text-center p-4 font-medium text-foreground">Free</th>
-                    <th className="text-center p-4 font-medium text-foreground">Pro</th>
+                    <th className="text-center p-4 font-medium text-foreground">Starter</th>
+                    <th className="text-center p-4 font-medium text-foreground">Professional</th>
+                    <th className="text-center p-4 font-medium text-foreground">Business</th>
                   </tr>
                 </thead>
                 <tbody className="text-muted-foreground">
-                  <ComparisonRow label="Pages per month" free="5" pro="Unlimited" />
-                  <ComparisonRow label="CSV export" free={true} pro={true} />
-                  <ComparisonRow label="Excel export" free={false} pro={true} />
-                  <ComparisonRow label="Worldwide bank support" free={true} pro={true} />
-                  <ComparisonRow label="AI fallback for unknown banks" free={true} pro={true} />
-                  <ComparisonRow label="Balance verification" free={true} pro={true} />
-                  <ComparisonRow label="Single file upload" free={true} pro={true} />
-                  <ComparisonRow label="Batch upload (up to 50 files)" free={false} pro={true} />
-                  <ComparisonRow label="Transaction categorization" free={false} pro={true} />
-                  <ComparisonRow label="Priority email support" free={false} pro={true} />
+                  <ComparisonRow label="Pages per month" starter="400" pro="1,500" business="4,000" />
+                  <ComparisonRow label="CSV export" starter={true} pro={true} business={true} />
+                  <ComparisonRow label="Excel export" starter={true} pro={true} business={true} />
+                  <ComparisonRow label="Worldwide bank support" starter={true} pro={true} business={true} />
+                  <ComparisonRow label="Batch upload (up to 50 files)" starter={false} pro={true} business={true} />
+                  <ComparisonRow label="Transaction categorization" starter={false} pro={true} business={true} />
+                  <ComparisonRow label="Priority support" starter={false} pro={true} business={true} />
+                  <ComparisonRow label="Onboarding assistance" starter={false} pro={false} business={true} />
                 </tbody>
               </table>
             </div>
@@ -241,10 +297,17 @@ const PricingSection = ({ variant = "full" }: PricingSectionProps) => {
         )}
 
         {/* Trust footer */}
-        <div className="mt-12 text-center">
+        <div className="mt-12 text-center space-y-2">
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
             <Shield className="w-4 h-4 text-primary" />
             <span>Global payments by Paddle · Cancel anytime · No hidden fees</span>
+          </p>
+          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
+            <Globe className="w-3.5 h-3.5 text-primary" />
+            <span>
+              Banks supported from the US, UK, India, Australia, Canada, UAE, Singapore, Europe,
+              and 100+ countries worldwide.
+            </span>
           </p>
         </div>
       </div>
@@ -254,19 +317,17 @@ const PricingSection = ({ variant = "full" }: PricingSectionProps) => {
 
 interface ComparisonRowProps {
   label: string;
-  free: boolean | string;
+  starter: boolean | string;
   pro: boolean | string;
+  business: boolean | string;
 }
 
-const ComparisonRow = ({ label, free, pro }: ComparisonRowProps) => (
+const ComparisonRow = ({ label, starter, pro, business }: ComparisonRowProps) => (
   <tr className="border-t border-border">
     <td className="p-4 text-foreground">{label}</td>
-    <td className="p-4 text-center">
-      <ComparisonCell value={free} />
-    </td>
-    <td className="p-4 text-center">
-      <ComparisonCell value={pro} />
-    </td>
+    <td className="p-4 text-center"><ComparisonCell value={starter} /></td>
+    <td className="p-4 text-center"><ComparisonCell value={pro} /></td>
+    <td className="p-4 text-center"><ComparisonCell value={business} /></td>
   </tr>
 );
 
