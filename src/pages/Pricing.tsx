@@ -6,14 +6,19 @@ import { Helmet } from "react-helmet-async";
 
 const pricingFaqs = [
   {
-    question: "Is the Free plan really free?",
+    question: "Can I try ClearlyLedger without signing up?",
     answer:
-      "Yes. The Free plan gives you 5 pages per month with CSV export and works with banks from any country. No credit card is required to sign up."
+      "Yes. You can convert 1 page every 24 hours without an account. Create a free account to get 6 pages every 24 hours plus saved conversion history."
   },
   {
-    question: "What countries can pay for Pro?",
+    question: "Are taxes included in the price?",
     answer:
-      "Pro is available worldwide. Payments are processed by Paddle, our Merchant of Record, in 25+ currencies and 30+ payment methods. You see prices in USD on our site, and Paddle automatically converts and applies the correct local currency, VAT, GST, or sales tax at checkout."
+      "Yes. All listed prices are inclusive of applicable taxes. Paddle, our Merchant of Record, calculates and remits VAT, GST, and sales tax in 200+ countries automatically — there are no surprise charges at checkout."
+  },
+  {
+    question: "What countries can pay for a paid plan?",
+    answer:
+      "Paid plans are available worldwide. Payments are processed by Paddle in 25+ currencies and 30+ payment methods. Prices are shown in USD and Paddle automatically applies your local currency at checkout."
   },
   {
     question: "Can I get a refund?",
@@ -21,14 +26,14 @@ const pricingFaqs = [
       "Refunds are handled by Paddle on a case-by-case basis. If something is not working as expected, email helppropsal@outlook.com within 14 days of purchase and we will work with Paddle to resolve it."
   },
   {
-    question: "Can I cancel my Pro subscription anytime?",
+    question: "Can I cancel anytime?",
     answer:
-      "Yes. Cancel from your account dashboard at any time. You keep Pro access until the end of your current billing period."
+      "Yes. Cancel from your account dashboard at any time. You keep access until the end of your current billing period."
   },
   {
     question: "How does the page limit work?",
     answer:
-      "Each page of your PDF counts as one page. A 12-page bank statement uses 12 pages. The Free plan resets every calendar month. Pro is unlimited."
+      "Each page of your PDF counts as one page. A 12-page bank statement uses 12 pages. Free anonymous and free account limits reset every 24 hours. Paid plan limits reset every calendar month."
   },
   {
     question: "Which banks are supported?",
@@ -43,7 +48,7 @@ const Pricing = () => {
     "@type": "WebPage",
     name: "Pricing - ClearlyLedger",
     description:
-      "Simple global pricing for ClearlyLedger. Free plan with 5 pages per month, Pro plan at $36/month or $359/year. Works with banks worldwide.",
+      "Simple global pricing for ClearlyLedger. Free anonymous and free account tiers, plus Starter, Professional, and Business plans. All prices inclusive of applicable taxes.",
     url: "https://clearlyledger.com/pricing",
     breadcrumb: {
       "@type": "BreadcrumbList",
@@ -64,34 +69,73 @@ const Pricing = () => {
     offers: [
       {
         "@type": "Offer",
-        name: "Free Plan",
+        name: "Anonymous Free",
         price: "0",
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
-        priceValidUntil: "2026-12-31",
-        description: "5 pages per month, CSV export, works with any bank."
+        description: "1 page every 24 hours, no signup required."
       },
       {
         "@type": "Offer",
-        name: "Pro Plan (Monthly)",
-        price: "36",
+        name: "Free Account",
+        price: "0",
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
-        priceValidUntil: "2026-12-31",
+        description: "6 pages every 24 hours, signup required."
+      },
+      {
+        "@type": "Offer",
+        name: "Starter (Monthly)",
+        price: "15",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
         billingIncrement: "P1M",
-        description:
-          "Unlimited pages, Excel + CSV export, batch upload up to 50 files, priority support."
+        description: "400 pages per month, CSV + Excel export. Tax inclusive."
       },
       {
         "@type": "Offer",
-        name: "Pro Plan (Annual)",
-        price: "359",
+        name: "Starter (Annual)",
+        price: "90",
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
-        priceValidUntil: "2026-12-31",
         billingIncrement: "P1Y",
-        description:
-          "Unlimited pages, Excel + CSV export, batch upload up to 50 files, priority support. Save 17% vs monthly."
+        description: "400 pages per month, billed annually. Save 50%. Tax inclusive."
+      },
+      {
+        "@type": "Offer",
+        name: "Professional (Monthly)",
+        price: "30",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        billingIncrement: "P1M",
+        description: "1,500 pages per month, batch upload, categorization. Tax inclusive."
+      },
+      {
+        "@type": "Offer",
+        name: "Professional (Annual)",
+        price: "180",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        billingIncrement: "P1Y",
+        description: "1,500 pages per month, billed annually. Save 50%. Tax inclusive."
+      },
+      {
+        "@type": "Offer",
+        name: "Business (Monthly)",
+        price: "50",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        billingIncrement: "P1M",
+        description: "4,000 pages per month, priority support and onboarding. Tax inclusive."
+      },
+      {
+        "@type": "Offer",
+        name: "Business (Annual)",
+        price: "300",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        billingIncrement: "P1Y",
+        description: "4,000 pages per month, billed annually. Save 50%. Tax inclusive."
       }
     ]
   };
@@ -102,7 +146,7 @@ const Pricing = () => {
         <title>Pricing - ClearlyLedger | Bank Statement to Excel Converter</title>
         <meta
           name="description"
-          content="Free plan with 5 pages per month. Pro plan at $36/month or $359/year. Works with banks worldwide. Local currency and taxes calculated at checkout by Paddle."
+          content="Free to try with no signup. Starter $15/mo, Professional $30/mo, Business $50/mo. All prices inclusive of applicable taxes. Works with banks worldwide."
         />
         <meta
           name="keywords"
@@ -115,7 +159,7 @@ const Pricing = () => {
         <meta property="og:title" content="Pricing - ClearlyLedger | Bank Statement Converter" />
         <meta
           property="og:description"
-          content="Free plan with 5 pages per month. Pro plan at $36/mo or $359/yr. Works with banks worldwide."
+          content="Free to try with no signup. Paid plans from $15/mo. All prices inclusive of applicable taxes."
         />
         <meta property="og:image" content="https://clearlyledger.com/og-image.png" />
 
@@ -123,7 +167,7 @@ const Pricing = () => {
         <meta name="twitter:title" content="Pricing - ClearlyLedger" />
         <meta
           name="twitter:description"
-          content="Simple global pricing for the bank statement converter accountants worldwide rely on."
+          content="Simple global pricing for the bank statement converter accountants worldwide rely on. Tax inclusive."
         />
 
         <script type="application/ld+json">{JSON.stringify(schemaOrg)}</script>
