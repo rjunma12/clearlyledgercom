@@ -244,6 +244,54 @@ const BlogPostRuleBasedVsAI = () => {
               </p>
             </section>
 
+            {/* Failure modes */}
+            <section>
+              <h2 id="failure-modes">Three Failure Modes That Break Pure Approaches</h2>
+              <p>
+                The cleanest way to see why a hybrid wins is to look at where each pure approach actually breaks on real statements.
+              </p>
+              <h3 id="failure-1">1. The challenger bank with a brand-new layout</h3>
+              <p>
+                A user uploads a statement from a neobank that launched last quarter. The rule engine has no profile for it, so column anchors miss and rows come back fragmented. Pure AI handles the layout fine but quietly misclassifies a refund as a debit. Without a verification step nobody notices until month-end reconciliation fails.
+              </p>
+              <p>
+                Hybrid result: AI proposes the column boundaries, the rule engine parses against them, and the balance check rejects the misclassified refund before export.
+              </p>
+              <h3 id="failure-2">2. The multi-currency corporate statement</h3>
+              <p>
+                A treasury team uploads a corporate account statement with USD, EUR, and GBP transactions interleaved. Pure rules trip over the inline currency symbols. Pure AI extracts the rows but normalises every amount to one currency, silently destroying the actual figures.
+              </p>
+              <p>
+                Hybrid result: the rule engine forward-fills currency from the column header, AI assists on the dense narrative column, and any row whose currency can't be sourced from the document is left empty rather than guessed.
+              </p>
+              <h3 id="failure-3">3. The scanned PDF with skewed pages</h3>
+              <p>
+                A bookkeeper scans a paper statement at 200 DPI on a slightly tilted feeder. Pure rules need clean text and produce nothing usable. Pure AI returns a plausible-looking table where two rows have inverted digits.
+              </p>
+              <p>
+                Hybrid result: the scan quality gate flags low DPI, OCR runs with deskew, AI proposes row segmentation, and the running-balance check catches the inverted digits because the math no longer ties out.
+              </p>
+            </section>
+
+            {/* Architecture deep dive */}
+            <section>
+              <h2 id="architecture">Inside the Pipeline: How the Hybrid Engine Actually Runs</h2>
+              <p>
+                The hybrid engine is not "call AI and hope" — it's a six-stage pipeline where each stage has a specific responsibility.
+              </p>
+              <ol>
+                <li><strong>Document classification.</strong> The PDF is fingerprinted against 350+ known bank profiles. A confident match routes straight to the deterministic path.</li>
+                <li><strong>Geometry-based table detection.</strong> Text positions are clustered into rows and columns using a 3px Y-tolerance and column-gap analysis, with header anchors locking the schema.</li>
+                <li><strong>AI assist (only where needed).</strong> If the rule engine's confidence on row segmentation drops, AI is invoked to propose boundaries — but it never writes the final values, only the structure the rule engine then parses.</li>
+                <li><strong>Number and date parsing.</strong> Locale-aware parsers handle Lakh/Crore notation, Zenkaku digits, comma vs dot decimals, and 20+ date formats.</li>
+                <li><strong>Post-processing passes.</strong> Forward-fill currency, fill balance gaps, stitch multi-line descriptions, repair Debit/Credit flips with strict guardrails — never fabricate.</li>
+                <li><strong>Verification gate.</strong> Opening + credits − debits = closing. Page subtotals match printed totals. Chronology is consistent. Anything that fails is surfaced before export.</li>
+              </ol>
+              <p>
+                The important property: AI lives in stage 3 only. It cannot insert numbers, change dates, or override the verification gate. That containment is what makes AI-assisted output safe for accounting.
+              </p>
+            </section>
+
             {/* Comparison Table */}
             <section>
               <h2 id="comparison">At a Glance: Pure Rules vs Pure AI vs Hybrid</h2>
