@@ -9,8 +9,8 @@ import { useState } from "react";
 const blogPosts = [
   {
     slug: "rule-based-vs-ai-bank-statement-conversion",
-    title: "Rule-Based vs AI Bank Statement Conversion: Which Is Right for Your Business?",
-    excerpt: "Comprehensive comparison of rule-based and AI-based bank statement conversion. Learn which approach delivers better accuracy, compliance, and cost-effectiveness for fintech, accounting, and enterprise use cases.",
+    title: "How Hybrid AI Bank Statement Conversion Reaches 99%+ Accuracy",
+    excerpt: "Pure rule engines miss new layouts. Pure AI hallucinates numbers. See how a hybrid rule + AI engine with built-in balance verification delivers 99%+ accuracy on real PDF bank statements — without trading away audit trails.",
     date: "February 4, 2026",
     category: "Thought Leadership",
     readTime: "17 min read",
