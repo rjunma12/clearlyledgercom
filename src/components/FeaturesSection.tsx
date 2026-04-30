@@ -1,14 +1,26 @@
 import { forwardRef } from "react";
-import { ShieldCheck, FileSpreadsheet, CheckCircle2, Globe2, CreditCard, Gauge } from "lucide-react";
+import { ShieldCheck, FileSpreadsheet, CheckCircle2, Globe2, CreditCard, Gauge, Lock, Layers } from "lucide-react";
 
-const features = [{
+type Feature = {
+  icon: typeof Gauge;
+  title: string;
+  description: string;
+  badge?: string;
+};
+
+const features: Feature[] = [{
   icon: Gauge,
   title: "Fast Processing",
   description: "Upload your PDF and get structured Excel output in seconds. Optimized for speed and reliability."
 }, {
-  icon: ShieldCheck,
-  title: "Privacy-First Processing",
-  description: "All PII is anonymized during processing. Names replaced, account numbers masked. Files auto-deleted after delivery."
+  icon: Lock,
+  title: "Client data stays private",
+  description: "Names, account numbers, and personal details are never stored or logged. Every statement is processed in memory and deleted immediately — fully GDPR and DPDPA 2023 compliant. Safe to use with client statements."
+}, {
+  icon: Layers,
+  title: "Process 50 statements at once",
+  description: "Upload an entire client folder in one go. Get one merged, deduplicated spreadsheet with a source file column for traceability. Built for accounting firms handling high volumes.",
+  badge: "Available on Professional and Business plans"
 }, {
   icon: FileSpreadsheet,
   title: "Uniform Output",
@@ -64,6 +76,11 @@ const FeaturesSection = forwardRef<HTMLElement>((_, ref) => {
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   {feature.description}
                 </p>
+                {feature.badge && (
+                  <span className="inline-flex mt-3 items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                    {feature.badge}
+                  </span>
+                )}
               </div>
             );
           })}

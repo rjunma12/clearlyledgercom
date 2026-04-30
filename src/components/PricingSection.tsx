@@ -236,12 +236,21 @@ const PricingSection = ({ variant = "full" }: PricingSectionProps) => {
                 </p>
 
                 <ul className="space-y-3 mb-8 text-sm text-muted-foreground flex-1">
-                  {tier.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
+                  {tier.features.map((feature, i) => {
+                    const isBatch = /batch upload/i.test(feature);
+                    return (
+                      <li key={i} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        {isBatch ? (
+                          <span className="font-semibold text-foreground bg-primary/10 px-1.5 py-0.5 rounded">
+                            {feature}
+                          </span>
+                        ) : (
+                          <span>{feature}</span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 <Button
