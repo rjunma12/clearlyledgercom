@@ -14,7 +14,7 @@ import { requestLogger } from './middleware/requestLogger.js';
 import jobsRouter from './routes/jobs.js';
 import pdfRouter, { multerErrorHandler } from './routes/pdf.js';
 import bankProfilesRouter from './routes/bankProfiles.js';
-import dodoWebhookRouter from './webhooks/dodo.js';
+// Payment webhooks are handled by the Railway backend, not this server.
 
 // =============================================================================
 // EXPRESS SETUP
@@ -30,9 +30,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
-
-// Raw body parsing for webhook signature verification (must be before express.json())
-app.use('/api/webhooks/dodo', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -64,7 +61,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/jobs', jobsRouter);
 app.use('/api/process-pdf', pdfRouter);
 app.use('/api/bank-profiles', bankProfilesRouter);
-app.use('/api/webhooks/dodo', dodoWebhookRouter);
+
 
 // =============================================================================
 // ERROR HANDLING

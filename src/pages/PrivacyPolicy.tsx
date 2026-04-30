@@ -263,9 +263,9 @@ const PrivacyPolicy = () => {
                     <td className="p-3">30 days</td>
                   </tr>
                   <tr>
-                    <td className="p-3 font-medium">Dodo Payments</td>
-                    <td className="p-3">Subscription billing</td>
-                    <td className="p-3">Email, billing info (handled by Dodo)</td>
+                    <td className="p-3 font-medium">Paddle</td>
+                    <td className="p-3">Subscription billing & global tax compliance (Merchant of Record)</td>
+                    <td className="p-3">Email, billing info (handled by Paddle)</td>
                     <td className="p-3">Per processor requirements</td>
                   </tr>
                 </tbody>

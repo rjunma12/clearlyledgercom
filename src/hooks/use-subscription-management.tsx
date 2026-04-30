@@ -1,8 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logError, ErrorTypes } from "@/lib/errorLogger";
 
 interface UseSubscriptionManagementReturn {
   isLoading: boolean;
@@ -11,134 +8,20 @@ interface UseSubscriptionManagementReturn {
 }
 
 /**
- * Hook for managing subscription lifecycle
- * 
- * This hook provides a provider-agnostic interface for subscription management.
- * It communicates with the manage-subscription edge function which handles
- * both local database updates and provider API calls (when configured).
+ * Hook for managing subscription lifecycle.
+ *
+ * NOTE: The legacy provider integration has been removed. Paddle Billing's
+ * customer portal will replace these methods in a follow-up step. Until then
+ * this hook keeps its public signature so consumers continue to compile, but
+ * every action surfaces a "coming soon" toast and resolves to false.
  */
 export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const cancelSubscription = async (): Promise<boolean> => {
+  const notReady = async (): Promise<boolean> => {
     setIsLoading(true);
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        logError({
-          errorType: ErrorTypes.SUBSCRIPTION,
-          errorMessage: 'User not authenticated for subscription cancellation',
-          component: 'useSubscriptionManagement',
-          action: 'cancel'
-        });
-        navigate('/login');
-        return false;
-      }
-
-      const { data, error } = await supabase.functions.invoke('manage-subscription', {
-        body: { action: 'cancel' }
-      });
-
-      if (error) {
-        console.error('Cancel error:', error);
-        toast.error(error.message || 'Failed to cancel subscription');
-        logError({
-          errorType: ErrorTypes.SUBSCRIPTION,
-          errorMessage: error.message || 'Failed to cancel subscription',
-          component: 'useSubscriptionManagement',
-          action: 'cancel'
-        });
-        return false;
-      }
-
-      if (data?.success) {
-        toast.success(data.message || 'Subscription cancelled');
-        return true;
-      } else {
-        toast.error(data?.error || 'Failed to cancel subscription');
-        logError({
-          errorType: ErrorTypes.SUBSCRIPTION,
-          errorMessage: data?.error || 'Failed to cancel subscription',
-          component: 'useSubscriptionManagement',
-          action: 'cancel',
-          metadata: { responseData: data }
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error('Cancel error:', error);
-      toast.error('Failed to cancel subscription. Please try again.');
-      logError({
-        errorType: ErrorTypes.SUBSCRIPTION,
-        errorMessage: error instanceof Error ? error.message : 'Unknown cancel error',
-        component: 'useSubscriptionManagement',
-        action: 'cancel'
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const reactivateSubscription = async (): Promise<boolean> => {
-    setIsLoading(true);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        logError({
-          errorType: ErrorTypes.SUBSCRIPTION,
-          errorMessage: 'User not authenticated for subscription reactivation',
-          component: 'useSubscriptionManagement',
-          action: 'reactivate'
-        });
-        navigate('/login');
-        return false;
-      }
-
-      const { data, error } = await supabase.functions.invoke('manage-subscription', {
-        body: { action: 'reactivate' }
-      });
-
-      if (error) {
-        console.error('Reactivate error:', error);
-        toast.error(error.message || 'Failed to reactivate subscription');
-        logError({
-          errorType: ErrorTypes.SUBSCRIPTION,
-          errorMessage: error.message || 'Failed to reactivate subscription',
-          component: 'useSubscriptionManagement',
-          action: 'reactivate'
-        });
-        return false;
-      }
-
-      if (data?.success) {
-        toast.success(data.message || 'Subscription reactivated');
-        return true;
-      } else {
-        toast.error(data?.error || 'Failed to reactivate subscription');
-        logError({
-          errorType: ErrorTypes.SUBSCRIPTION,
-          errorMessage: data?.error || 'Failed to reactivate subscription',
-          component: 'useSubscriptionManagement',
-          action: 'reactivate',
-          metadata: { responseData: data }
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error('Reactivate error:', error);
-      toast.error('Failed to reactivate subscription. Please try again.');
-      logError({
-        errorType: ErrorTypes.SUBSCRIPTION,
-        errorMessage: error instanceof Error ? error.message : 'Unknown reactivate error',
-        component: 'useSubscriptionManagement',
-        action: 'reactivate'
-      });
+      toast.info('Subscription management is being upgraded. Please check back shortly.');
       return false;
     } finally {
       setIsLoading(false);
@@ -147,7 +30,7 @@ export function useSubscriptionManagement(): UseSubscriptionManagementReturn {
 
   return {
     isLoading,
-    cancelSubscription,
-    reactivateSubscription
+    cancelSubscription: notReady,
+    reactivateSubscription: notReady,
   };
 }
