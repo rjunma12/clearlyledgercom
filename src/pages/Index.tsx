@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import RegionStrip from "@/components/RegionStrip";
 import AdvantagesSection from "@/components/AdvantagesSection";
+import AccuracySection from "@/components/AccuracySection";
 import FeaturesSection from "@/components/FeaturesSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import PricingSection from "@/components/PricingSection";
@@ -159,6 +160,7 @@ const Index = () => {
           <InteractiveDemo />
         </Suspense>
         <FeaturesSection />
+        <AccuracySection />
         <HowItWorksSection />
         <Suspense fallback={<div className="py-16 animate-pulse bg-surface-elevated/30" />}>
           <FAQSection 
