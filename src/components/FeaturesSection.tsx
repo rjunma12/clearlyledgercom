@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { ShieldCheck, FileSpreadsheet, CheckCircle2, Globe2, RefreshCw, Gauge } from "lucide-react";
+import { ShieldCheck, FileSpreadsheet, CheckCircle2, Globe2, CreditCard, Gauge } from "lucide-react";
 
 const features = [{
   icon: Gauge,
@@ -22,9 +22,9 @@ const features = [{
   title: "Multi-Region Support",
   description: "Localized rule sets for India, USA, UK, Canada, Australia, UAE, and Singapore. English default with optional secondary language."
 }, {
-  icon: RefreshCw,
-  title: "Auto-Rollback",
-  description: "Bank rule sets are version-controlled. If an update breaks parsing, the system automatically reverts to the last stable version."
+  icon: CreditCard,
+  title: "Tax-inclusive global billing",
+  description: "One clear price, no surprise taxes at checkout. We use Paddle as our Merchant of Record — VAT, GST, and sales tax are included in the price you see, handled automatically across 180+ countries."
 }];
 
 const FeaturesSection = forwardRef<HTMLElement>((_, ref) => {
