@@ -8,6 +8,15 @@ import { useState } from "react";
 
 const blogPosts = [
   {
+    slug: "convert-bank-statement-pdf-to-excel-any-bank",
+    title: "Convert Bank Statement PDF to Excel in Seconds — Any Bank, Any Country",
+    excerpt: "Stop manually re-entering bank transactions. Convert any bank statement PDF to clean Excel or CSV in under 60 seconds — works with HDFC, Chase, Barclays, ANZ, and 350+ banks worldwide.",
+    date: "April 30, 2026",
+    category: "Tutorial",
+    readTime: "8 min read",
+    featured: true
+  },
+  {
     slug: "convert-pdf-bank-statement-to-excel-2026-guide",
     title: "How to Convert PDF Bank Statement to Excel in 2026 (Complete Guide)",
     excerpt: "Step-by-step guide comparing 4 conversion methods. Learn why ChatGPT and generic PDF tools fail, and the workflow that delivers 99%+ accuracy with balance verification.",
