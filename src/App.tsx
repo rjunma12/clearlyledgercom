@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 const NotFound = lazy(() => import("./pages/NotFound"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const DataProcessing = lazy(() => import("./pages/DataProcessing"));
 const Security = lazy(() => import("./pages/Security"));
 const Features = lazy(() => import("./pages/Features"));
