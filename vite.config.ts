@@ -18,6 +18,17 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Pre-bundle these so Vite doesn't re-optimize mid-session and load
+  // duplicate copies (which breaks Router/Helmet context across modules).
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "react-helmet-async",
+      "@tanstack/react-query",
+    ],
+  },
   build: {
     rollupOptions: {
       output: {
