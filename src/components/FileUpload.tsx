@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, forwardRef } from "react";
 import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { processPDF } from "@/lib/pdfProcessor";
 import { loadPdfDocument } from "@/lib/pdfUtils";
 import type { ProcessingResult, ProcessingStage, ParsedTransaction } from "@/lib/ruleEngine/types";
 import { exportDocument } from "@/lib/ruleEngine/exportAdapters";
@@ -23,6 +22,14 @@ import { useUsageContext } from "@/contexts/UsageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { logError, ErrorTypes } from "@/lib/errorLogger";
 
+interface ConversionResponse {
+  bank_detected?: string;
+  transaction_count?: number;
+  verification_status?: "VERIFIED" | "UNVERIFIED" | string;
+  download_url?: string;
+  warnings?: string[];
+}
+
 interface UploadedFile {
   id: string;
   name: string;
@@ -32,6 +39,7 @@ interface UploadedFile {
   error?: string;
   stage?: string;
   result?: ProcessingResult;
+  conversion?: ConversionResponse;
   file?: File;
   validationResult?: ExportValidationResult;
 }
@@ -152,121 +160,75 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
         )
       );
 
-      const result = await processPDF(file, {
-        onProgress: (stage: ProcessingStage) => {
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === fileId
-                ? {
-                    ...f,
-                    progress: Math.min(stage.progress || 0, 95),
-                    stage: getStageMessage(stage),
-                  }
-                : f
-            )
-          );
-        },
-      });
+      const apiUrl = import.meta.env.VITE_API_URL || "https://clearlyledgercom-production.up.railway.app";
 
-      if (result.success && result.document) {
-        // Check for empty extraction (0 transactions)
-        if (result.document.totalTransactions === 0) {
-          console.warn('[Processing] No transactions extracted. Document details:', {
-            fileName: file.name,
-            totalPages: result.document.totalPages,
-            locale: result.document.detectedLocale,
-            warnings: result.warnings,
-          });
-          
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === fileId
-                ? {
-                    ...f,
-                    status: "error" as const,
-                    error: "No transactions found - check console for details",
-                    result,
-                  }
-                : f
-            )
-          );
-          
-          logError({
-            errorType: ErrorTypes.PROCESSING,
-            errorMessage: 'No transactions found in PDF',
-            component: 'FileUpload',
-            action: 'processFile',
-            metadata: { 
-              fileName: file.name, 
-              totalPages: result.document?.totalPages,
-              locale: result.document?.detectedLocale,
-              warnings: result.warnings 
-            }
-          });
-          refreshUsage();
-          return;
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || "";
+
+      let result: ConversionResponse;
+      try {
+        const response = await fetch(`${apiUrl}/convert`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (response.status === 401) {
+          throw new Error("Please log in again.");
         }
-        
-        // Check if there are validation errors
-        const hasErrors = result.document.errorTransactions > 0;
-        const hasWarnings = result.document.warningTransactions > 0;
-        
+        if (response.status === 429) {
+          throw new Error("You have reached your plan limit. Please upgrade.");
+        }
+        if (!response.ok) {
+          throw new Error("Conversion failed. Please try again or contact support.");
+        }
+
+        result = await response.json();
+      } catch (err: any) {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
         setFiles((prev) =>
           prev.map((f) =>
-            f.id === fileId
-              ? {
-                  ...f,
-                  status: "complete" as const,
-                  progress: 100,
-                  stage: hasErrors 
-                    ? `${result.document?.totalTransactions || 0} transactions (${result.document?.errorTransactions} errors)`
-                    : hasWarnings
-                      ? `${result.document?.totalTransactions || 0} transactions (${result.document?.warningTransactions} warnings)`
-                      : `${result.document?.totalTransactions || 0} transactions extracted`,
-                  result,
-                }
-              : f
-          )
-        );
-        
-        // Show appropriate toast
-        if (hasErrors) {
-          logError({
-            errorType: ErrorTypes.VALIDATION,
-            errorMessage: `${result.document.errorTransactions} transaction(s) failed balance validation`,
-            component: 'FileUpload',
-            action: 'processFile',
-            metadata: { fileName: file.name, errorCount: result.document.errorTransactions }
-          });
-        } else if (hasWarnings) {
-          toast({
-            title: "Processing complete with warnings",
-            description: `Extracted ${result.document.totalTransactions} transactions. ${result.document.warningTransactions} have balance warnings.`,
-          });
-        } else {
-          toast({
-            title: "Processing complete",
-            description: `Extracted ${result.document.totalTransactions} transactions from ${file.name}`,
-          });
-        }
-        
-        // Refresh usage to reflect new quota
-        refreshUsage();
-      } else {
-        const errorMessage = result.errors?.[0]?.message || "Failed to process PDF";
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId ? { ...f, status: "error" as const, error: errorMessage } : f
+            f.id === fileId ? { ...f, status: "error" as const, error: err.message } : f
           )
         );
         logError({
           errorType: ErrorTypes.PROCESSING,
-          errorMessage: errorMessage,
+          errorMessage: err.message,
           component: 'FileUpload',
-          action: 'processFile',
-          metadata: { fileName: file.name, errors: result.errors }
+          action: 'convertViaRailway',
+          metadata: { fileName: file.name }
         });
+        return;
       }
+
+      const txCount = result.transaction_count ?? 0;
+      const bank = result.bank_detected || 'Unknown bank';
+
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileId
+            ? {
+                ...f,
+                status: "complete" as const,
+                progress: 100,
+                stage: `${txCount} transactions extracted`,
+                conversion: result,
+              }
+            : f
+        )
+      );
+
+      toast({
+        title: "Processing complete",
+        description: `${bank} — ${txCount} transactions from ${file.name}`,
+      });
+
+      refreshUsage();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       setFiles((prev) =>
@@ -948,6 +910,64 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
                     <p className="text-xs text-orange-500 mt-2">
                       ⚠️ Export blocked: Fix {file.result?.document?.errorTransactions} balance error(s) before downloading
                     </p>
+                  )}
+
+                  {/* Railway conversion result */}
+                  {file.status === "complete" && file.conversion && (
+                    <div className="mt-3 space-y-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {file.conversion.bank_detected && (
+                          <span className="text-foreground">
+                            <span className="text-muted-foreground">Bank:</span>{" "}
+                            <span className="font-medium">{file.conversion.bank_detected}</span>
+                          </span>
+                        )}
+                        {file.conversion.transaction_count != null && (
+                          <span className="text-foreground">
+                            <span className="text-muted-foreground">Transactions:</span>{" "}
+                            <span className="font-medium">{file.conversion.transaction_count}</span>
+                          </span>
+                        )}
+                        {file.conversion.verification_status && (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium",
+                              file.conversion.verification_status === "VERIFIED"
+                                ? "bg-emerald-500/10 text-emerald-500"
+                                : "bg-orange-500/10 text-orange-500"
+                            )}
+                          >
+                            {file.conversion.verification_status === "VERIFIED" ? (
+                              <ShieldCheck className="w-3 h-3" />
+                            ) : (
+                              <ShieldAlert className="w-3 h-3" />
+                            )}
+                            {file.conversion.verification_status}
+                          </span>
+                        )}
+                      </div>
+
+                      {file.conversion.warnings && file.conversion.warnings.length > 0 && (
+                        <ul className="list-disc list-inside text-orange-500 space-y-0.5">
+                          {file.conversion.warnings.map((w, i) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {file.conversion.download_url && (
+                        <a
+                          href={file.conversion.download_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Download
+                        </a>
+                      )}
+                    </div>
                   )}
 
                   {/* Export Button - Show when complete */}
