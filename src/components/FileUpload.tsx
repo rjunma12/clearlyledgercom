@@ -912,6 +912,64 @@ const FileUpload = forwardRef<HTMLDivElement>((_, ref) => {
                     </p>
                   )}
 
+                  {/* Railway conversion result */}
+                  {file.status === "complete" && file.conversion && (
+                    <div className="mt-3 space-y-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {file.conversion.bank_detected && (
+                          <span className="text-foreground">
+                            <span className="text-muted-foreground">Bank:</span>{" "}
+                            <span className="font-medium">{file.conversion.bank_detected}</span>
+                          </span>
+                        )}
+                        {file.conversion.transaction_count != null && (
+                          <span className="text-foreground">
+                            <span className="text-muted-foreground">Transactions:</span>{" "}
+                            <span className="font-medium">{file.conversion.transaction_count}</span>
+                          </span>
+                        )}
+                        {file.conversion.verification_status && (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium",
+                              file.conversion.verification_status === "VERIFIED"
+                                ? "bg-emerald-500/10 text-emerald-500"
+                                : "bg-orange-500/10 text-orange-500"
+                            )}
+                          >
+                            {file.conversion.verification_status === "VERIFIED" ? (
+                              <ShieldCheck className="w-3 h-3" />
+                            ) : (
+                              <ShieldAlert className="w-3 h-3" />
+                            )}
+                            {file.conversion.verification_status}
+                          </span>
+                        )}
+                      </div>
+
+                      {file.conversion.warnings && file.conversion.warnings.length > 0 && (
+                        <ul className="list-disc list-inside text-orange-500 space-y-0.5">
+                          {file.conversion.warnings.map((w, i) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {file.conversion.download_url && (
+                        <a
+                          href={file.conversion.download_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Download
+                        </a>
+                      )}
+                    </div>
+                  )}
+
                   {/* Export Button - Show when complete */}
                   {file.status === "complete" && file.result?.document && (
                     <div className="mt-3">
