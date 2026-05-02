@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, forwardRef } from "react";
 import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { processPDF } from "@/lib/pdfProcessor";
 import { loadPdfDocument } from "@/lib/pdfUtils";
 import type { ProcessingResult, ProcessingStage, ParsedTransaction } from "@/lib/ruleEngine/types";
 import { exportDocument } from "@/lib/ruleEngine/exportAdapters";
