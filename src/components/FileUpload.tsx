@@ -22,6 +22,14 @@ import { useUsageContext } from "@/contexts/UsageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { logError, ErrorTypes } from "@/lib/errorLogger";
 
+interface ConversionResponse {
+  bank_detected?: string;
+  transaction_count?: number;
+  verification_status?: "VERIFIED" | "UNVERIFIED" | string;
+  download_url?: string;
+  warnings?: string[];
+}
+
 interface UploadedFile {
   id: string;
   name: string;
@@ -31,6 +39,7 @@ interface UploadedFile {
   error?: string;
   stage?: string;
   result?: ProcessingResult;
+  conversion?: ConversionResponse;
   file?: File;
   validationResult?: ExportValidationResult;
 }
